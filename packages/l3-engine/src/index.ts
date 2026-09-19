@@ -37,6 +37,20 @@ export { StrictImprovementGate, IncompleteFitness } from "./strict-improvement.j
 export type { Decision } from "./strict-improvement.js";
 
 // ---------------------------------------------------------------------------
+// L3-T03: reflective mutation generator (GEPA variant source) + luckyPass
+// defence-in-depth guard. Barrel additions only.
+// ---------------------------------------------------------------------------
+export {
+  ReflectiveMutator,
+  LuckyPassTrajectoryRejected,
+  MalformedMutation,
+} from "./reflective-mutation.js";
+export type {
+  LLMPort,
+  ReflectiveMutatorOptions,
+} from "./reflective-mutation.js";
+
+// ---------------------------------------------------------------------------
 // L3-T02: GEPA-reduced beam-search optimizer + FakeEvaluator fixture deps.
 // Barrel additions only (REFACTOR: PRNG抽 src/prng.ts 供 T06b reseed 复用).
 // ---------------------------------------------------------------------------

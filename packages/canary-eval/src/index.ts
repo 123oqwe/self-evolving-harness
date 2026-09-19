@@ -94,3 +94,21 @@ export {
   selectCrossFamilyJudge,
   SameModelFamilyError,
 } from "./judge-pool.js";
+
+// CE-T05 落地：LLM-judge 去偏 — position swap A/B + length-controlled + CoT
+// + combined-budget + σ 跟踪 + judge model pool。
+// ERRATA-w2plus CE-14：runDebiasedJudge 四参 (a,b,cfg,opts?)。
+// ERRATA-w2plus CE-15：同族 judge 剔除 throw SameModelFamilyError（judge 与 agent 同族）。
+// ERRATA-w2plus CE-16：claimedGap=|scoreA-scoreB|；consistent=sigma<=claimedGap；
+//   calibrateAgainstL0 accuracy 公式仅类型约束 ∈[0,1]。
+// ERRATA-w2plus CE-25/CE-27：calibrateAgainstL0 入参 l0Verdicts: VerifierRun[] 复用
+//   CE-T02 导出契约（VerifierRun 见上方 verifier.js 导出块）。
+// Variant 类型为本模块首个定义处（CE-T05 接口签名），CE-T12 等后续任务复用此形状
+// （L3 types.ts 未定义 Variant，不重复定义）。
+export { runDebiasedJudge, calibrateAgainstL0 } from "./judge-debias.js";
+
+export type {
+  Variant,
+  DebiasConfig,
+  JudgeResult,
+} from "./judge-debias.js";
