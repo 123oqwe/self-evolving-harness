@@ -42,9 +42,11 @@ dispatch_task() {
     L0C-T02)
       # Form A: the locked spec must pass.
       pnpm vitest run tests/L0C/T02-turn.spec.ts || return 1
-      # CLN-T02 (Wave 2) will upgrade this branch to full Form B by appending
-      # the orphan-tool_result mutation gate (scripts/lib/mutate-invariant.sh
-      # L0C-T02-orphan). Until CLN-T02 lands this stays Form A (ERRATA §BC-3).
+      # Form B (CLN-T02, ERRATA §BC-3): orphan-tool_result mutation gate on a
+      # tmp copy of the locked spec — inject → tmp fails (invariant catches
+      # orphan) → restore → original passes → sha256 lock intact. Implemented
+      # in scripts/lib/mutate-invariant.sh (replaces the prior pure Form A).
+      bash "$SCRIPT_DIR/lib/mutate-invariant.sh" L0C-T02-orphan || return 1
       return 0
       ;;
     L0C-T03)
