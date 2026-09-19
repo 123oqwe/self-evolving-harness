@@ -429,7 +429,8 @@ dispatch_task() {
 
     # ── CLN (3) — 清理任务（§3.9, ERRATA-w01 悬空项转正） ──────
     CLN-T01)
-      # Form A: L0C-T03/T06 locked specs still GREEN after typebox migration.
+      # Form A: CLN typebox-migration spec + L0C-T03/T06 locked specs still GREEN.
+      pnpm vitest run tests/cleanup/T01-typebox-migration.spec.ts || return 1
       pnpm vitest run tests/L0C/T03-stop.spec.ts || return 1
       pnpm vitest run tests/L0C/T06-memory-schema.spec.ts || return 1
       # Form B: build green + grep confirms the two schema files import typebox.
@@ -440,7 +441,7 @@ dispatch_task() {
       ;;
     CLN-T02)
       # Form A: the CLN mutation-gate spec must pass.
-      pnpm vitest run tests/CLN/T02-mutation-gate.spec.ts || return 1
+      pnpm vitest run tests/cleanup/T02-mutation-gate.spec.ts || return 1
       # Form B: helper self-check (注入 fail / 恢复 pass) + sha256 lock intact.
       bash "$SCRIPT_DIR/lib/mutate-invariant.sh" L0C-T02-orphan || return 1
       # Regression: L0C-T02 now full Form B (Form A + mutation gate).
@@ -449,7 +450,7 @@ dispatch_task() {
       ;;
     CLN-T03)
       # Form A: the CLN non-root CI spec must pass.
-      pnpm vitest run tests/CLN/T03-linux-ci-nonroot.spec.ts || return 1
+      pnpm vitest run tests/cleanup/T03-linux-ci-nonroot.spec.ts || return 1
       # Form B: bwrap argv contains --cap-drop ALL + breaker rejects removal.
       node --experimental-strip-types --no-warnings \
         "$SCRIPT_DIR/cln-t03-bwrap-verify.mjs" || return 1
