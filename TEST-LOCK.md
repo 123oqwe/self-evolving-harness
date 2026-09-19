@@ -38,7 +38,7 @@
 | L0C-T01 | `tests/L0C/T01-scaffold.spec.ts` | `139000a5bdb39088dfafa85ada67f6626a5959d303f32dcf1f9e76b3a43963a1` |
 | L0C-T02 | `tests/L0C/T02-turn.spec.ts` | `f025a591e617f0f1ebd9b8a0648a93560c0309d786583c545d4193dc7b53dddd` |
 | L0C-T03 | `tests/L0C/T03-stop.spec.ts` | `95eece03e222360b92b52ba82c5e785275a6bd07b111357039b4783d80440897` |
-| L0C-T04 | `tests/L0C/T04-retry-overflow.spec.ts` | `b2b39dc95874365670b16be4a8476c428f017d6a8dbf98fb50feb033d46410ae` |
+| L0C-T04 | `tests/L0C/T04-retry-overflow.spec.ts` | `7cd6524fc4ced7302dce9b5dd5dc783b662e58a31cd178ab58f0d0e9f99ab3c3` |
 | L0C-T05 | `tests/L0C/T05-cache-cut.spec.ts` | `4b99095c1a489930b4407ecab42071fd44640bbe1c0f803233a3d65ae4ae80de` |
 | L0C-T06 | `tests/L0C/T06-memory-schema.spec.ts` | `06eb747d6c29f6e940ae758bb51c6720f71a4b942a7d7b7e78d3677591b5be78` |
 | L0C-T07a | `tests/L0C/T07a-runstate.spec.ts` | `4cedd0311d16c440103a7df292457cd443866622065f14d4d67f2e899c87e84a` |

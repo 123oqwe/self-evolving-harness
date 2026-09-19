@@ -133,7 +133,7 @@ describe("L0C-T04", () => {
     await guard.dispose().catch(() => {});
 
     // 关键不变量：即便 hook throw，AbortController 仍被 abort（finally 块），无泄漏。
-    expect(abortController.aborted).toBe(true);
+    expect(abortController.signal.aborted).toBe(true);
     // hook 确实被调用过（dispose 不是空操作）。
     expect(onDispose).toHaveBeenCalledTimes(1);
   });
