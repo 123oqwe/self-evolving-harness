@@ -36,7 +36,15 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)
 
-  packages/canary-eval: {}
+  packages/canary-eval:
+    dependencies:
+      '@harness/l0-sandbox':
+        specifier: workspace:*
+        version: link:../l0-sandbox
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
 
   packages/l0-core:
     dependencies:
