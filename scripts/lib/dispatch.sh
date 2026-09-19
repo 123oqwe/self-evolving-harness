@@ -28,6 +28,21 @@ dispatch_task() {
       # switched on by integ:lead after T01 completes — not here.
       return 0
       ;;
+    L0C-T02)
+      # Form A: the locked spec must pass.
+      pnpm vitest run tests/L0C/T02-turn.spec.ts || return 1
+      return 0
+      ;;
+    L0C-T04)
+      # Form A: the locked spec must pass.
+      pnpm vitest run tests/L0C/T04-retry-overflow.spec.ts || return 1
+      return 0
+      ;;
+    L0C-T06)
+      # Form A: the locked spec must pass.
+      pnpm vitest run tests/L0C/T06-memory-schema.spec.ts || return 1
+      return 0
+      ;;
     *)
       echo "verify.sh: unknown TASK-ID '${task_id}'" >&2
       return 1
