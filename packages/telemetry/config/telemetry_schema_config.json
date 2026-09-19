@@ -1,0 +1,13 @@
+{
+  "schema_version": "v1",
+  "required_fields": [
+    "type",
+    "uuid",
+    "parentUuid",
+    "sessionId",
+    "content"
+  ],
+  "truncate_bytes": 50000,
+  "capture_thinking_blocks": true,
+  "sample_non_llm_spans": 1.0
+}
