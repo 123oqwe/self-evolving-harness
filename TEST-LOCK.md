@@ -73,7 +73,7 @@
 
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
-| TL-T01 | `tests/TL/T01-transcript.spec.ts` | `f8debcc22bf39d6cd8f0bdb31b8d85253cd6181e8a679bfe104645474cf54246` |
+| TL-T01 | `tests/TL/T01-transcript.spec.ts` | `c53d4a995262dd85717efb4f5f8ca74903d077b7d695a6f182ef65b66a87c1ed` |
 | TL-T02 | `tests/TL/T02-usage.spec.ts` | `32f2fffa280383d368567b5d664559ca9f9fc95e7bc521d9721922e9724eb1a6` |
 | TL-T05 | `tests/TL/T05-schema-policy.spec.ts` | `5e83215f60db6fa6126e5c2de9382e4ad05cd9abdfa8198658e736fb86f03f41` |
 | TL-T06 | `tests/TL/T06-budget-policy.spec.ts` | `f22328e796b7eccdacb6fdaa4110c3c7f80fbd9f9e952f7c1200828a50b15bed` |
