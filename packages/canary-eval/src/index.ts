@@ -66,3 +66,31 @@ export type {
   RetryLoopResult,
   RegressionLoopResult,
 } from "./loop-detector.js";
+
+// CE-T04 落地：fresh-context reviewer — 异模型族/异 session / 只读权威证据 /
+// MAX_REVIEW_ITERATIONS=5。
+// ERRATA-w2plus CE-12：runFreshReviewer 双参 `(input, opts?)`；family 提取= model id 前缀。
+// ERRATA-w2plus CE-13：nlSummary 键名固定小写驼峰，大小写/别名不敏感；
+//   `as unknown` 强转注入运行时值触发 NLSummaryForbiddenError 合法。
+// SameModelFamilyError / MAX_REVIEW_ITERATIONS / extractModelFamily / selectCrossFamilyJudge
+// 见下方 judge-pool 共享块（REFACTOR 抽出，T05 复用）。
+export {
+  runFreshReviewer,
+  NLSummaryForbiddenError,
+} from "./reviewer.js";
+
+export type {
+  ReviewerInput,
+  ReviewerOutput,
+  ReviewerOptions,
+  JSONLTranscript,
+} from "./reviewer.js";
+
+// CE-T04/CE-T05 共享：judge model pool 选择（REFACTOR 抽 src/judge-pool.ts）。
+// T05 复用 selectCrossFamilyJudge / extractModelFamily / SameModelFamilyError。
+export {
+  MAX_REVIEW_ITERATIONS,
+  extractModelFamily,
+  selectCrossFamilyJudge,
+  SameModelFamilyError,
+} from "./judge-pool.js";
