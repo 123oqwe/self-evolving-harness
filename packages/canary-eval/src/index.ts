@@ -43,3 +43,26 @@ export type { ABCAuditResult } from "./canary/abc-audit.js";
 export { runVerify, assertNoCrossRunMerge, CrossRunMergeViolation } from "./verifier.js";
 
 export type { VerifierRun, SandboxHandle } from "./verifier.js";
+
+// CE-T03 落地：AgentLens Lucky-Pass 过滤集成 — 拒绝盲目重试/regression 循环过的 trajectory。
+// ERRATA-w2plus CE-10：filterAndTag 保留全部 entry + 打标（不剔除 luckyPass）。
+// ERRATA-w2plus CE-11：返回 import('@harness/l3-engine').Trajectory（L3 导出该类型）。
+export { detectLuckyPass, filterAndTag } from "./lucky-pass.js";
+
+export type { LuckyPassVerdict } from "./lucky-pass.js";
+
+// 通用循环检测器（CE-T03 REFACTOR，供 TL-T06 runaway-loop detector 复用）。
+export {
+  detectRetryLoops,
+  detectRegressionLoops,
+  callFingerprint,
+  serializeInput,
+  DEFAULT_RETRY_THRESHOLD,
+  DEFAULT_REGRESSION_THRESHOLD,
+} from "./loop-detector.js";
+
+export type {
+  ToolCall,
+  RetryLoopResult,
+  RegressionLoopResult,
+} from "./loop-detector.js";
