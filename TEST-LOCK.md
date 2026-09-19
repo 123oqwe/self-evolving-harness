@@ -237,7 +237,7 @@
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
 | CLN-T01 | `tests/cleanup/T01-typebox-migration.spec.ts` | `cafce786d781e5dded8239bb76497beeda3121877d1f4145f4b6bd8bb80ec7a7` |
-| CLN-T02 | `tests/cleanup/T02-mutation-gate.spec.ts` | `76367339fd5161f431b1581c675caf84095d420962780464e6f4b4d04b07220` |
+| CLN-T02 | `tests/cleanup/T02-mutation-gate.spec.ts` | `76367339fd5161f431b1581c675caf84095d420962780464e6f4b4d044b07220` |
 | CLN-T03 | `tests/cleanup/T03-linux-ci-nonroot.spec.ts` | `5e38877c0363b73b6d0a33cddc7c15b70e1f08b1baf876d7734595144f3849db` |
 
 ### 2.11 锁定合计
