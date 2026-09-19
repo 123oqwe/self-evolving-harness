@@ -10,8 +10,11 @@
     "build": "pnpm -r run --if-present build"
   },
   "devDependencies": {
+    "@harness/l0-sandbox": "workspace:*",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "@harness/l0-core": "workspace:*",
+    "@harness/telemetry": "workspace:*"
   },
   "engines": {
     "node": ">=20"
