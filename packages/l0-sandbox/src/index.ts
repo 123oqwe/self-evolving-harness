@@ -1,2 +1,9 @@
-// Placeholder. Implementation lands in module tasks (L0C-T01 onward).
-export {};
+/**
+ * @harness/l0-sandbox — L0 不可变核心 · 安全边界原语层
+ *
+ * L0S-T01: brain/hands/session 三信任域边界接口（MVP）。
+ * 后续任务（T02..T06）在本包内追加 os-sandbox / fs-isolation / net-isolation /
+ * credential-masking / canary-verify / lifecycle 模块。
+ */
+
+export * from "./trust-domains/index.js";
