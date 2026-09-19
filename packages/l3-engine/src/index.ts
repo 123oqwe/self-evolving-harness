@@ -37,6 +37,25 @@ export { StrictImprovementGate, IncompleteFitness } from "./strict-improvement.j
 export type { Decision } from "./strict-improvement.js";
 
 // ---------------------------------------------------------------------------
+// L3-T02: GEPA-reduced beam-search optimizer + FakeEvaluator fixture deps.
+// Barrel additions only (REFACTOR: PRNG抽 src/prng.ts 供 T06b reseed 复用).
+// ---------------------------------------------------------------------------
+
+// Deterministic PRNG helpers (shared with tests/L3/fixtures/prng.ts).
+export { mulberry32, hashStr, seededPrng } from "./prng.js";
+
+// BeamSearchOptimizer + ScoredMutant + SelectionSignalViolation.
+export {
+  BeamSearchOptimizer,
+  SelectionSignalViolation,
+  defaultDiversityMetric,
+} from "./beam-search.js";
+export type {
+  ScoredMutant,
+  BeamSearchOptimizerOptions,
+} from "./beam-search.js";
+
+// ---------------------------------------------------------------------------
 // L3-T09: EvolveSkillAdapter + FitnessBridge + runEvolutionLoop body +
 // runEvolutionCycle (XM-T01 entry). Barrel additions only.
 // ---------------------------------------------------------------------------
