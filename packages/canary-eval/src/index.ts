@@ -18,3 +18,15 @@ export type {
   CanaryManifest,
   Trajectory,
 } from "./canary/types.js";
+
+// CE-T01b 落地：SWE-ABS coverage+mutation 对抗加强（G0 降级最小可行 mutation 方案）。
+export {
+  strengthenTask,
+  runMutationCases,
+  isTainted,
+} from "./canary/swe-abs.js";
+
+export type {
+  Patch,
+  StrengtheningResult,
+} from "./canary/swe-abs.js";

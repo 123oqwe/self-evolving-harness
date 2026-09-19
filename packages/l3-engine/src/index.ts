@@ -33,65 +33,29 @@ export { BreakerError, NotImplemented, recordSecurityEvent } from "./breaker.js"
 export { routeOptimizer } from "./optimizer-router.js";
 
 // ---------------------------------------------------------------------------
-// runEvolutionLoop — evolution-loop entry (breaker gate; body lands in T02–T09)
+// L3-T09: EvolveSkillAdapter + FitnessBridge + runEvolutionLoop body +
+// runEvolutionCycle (XM-T01 entry). Barrel additions only.
 // ---------------------------------------------------------------------------
 
-import type { LoopOptions, LoopResult } from "./types.js";
-import type { Sandbox } from "./sandbox.js";
-import { STATIC_CORE_PATHS } from "./sandbox.js";
-import { BreakerError, recordSecurityEvent } from "./breaker.js";
-import { routeOptimizer } from "./optimizer-router.js";
+// FitnessBridge — telemetry → Fitness generalisation + error classes.
+export {
+  FitnessBridge,
+  IncompleteTelemetry,
+  FitnessGeneralizationError,
+} from "./adapters/fitness-bridge.js";
+export type { TelemetrySpan } from "./adapters/fitness-bridge.js";
 
-/**
- * L3 evolution-loop entry.
- *
- * MVP (T01) scope: assert the static-core paths are read-only (breaker
- * clause) at entry; if the sandbox signals a writable static-core path, record
- * a security event and reject with `BreakerError`. The full
- * generate → score → select → retain → canary body is delivered by T02–T09;
- * until then a successful breaker gate throws `NotImplemented` for the body so
- * the entry never pretends to evolve.
- *
- * Invariants (§0):
- *  1. strict-improvement hard gate — held-out regression ≥ τ → reject (T04).
- *  2. diversity archive keep-all — never auto-delete (T06).
- *  3. optimizer cannot write static-core — enforced here at entry + per
- *     `sandbox.runVerify` EPERM hit (T01 breaker).
- */
-export async function runEvolutionLoop(
-  opts: LoopOptions,
-): Promise<LoopResult> {
-  const sandbox: Sandbox = opts.sandbox;
+// EvolveSkillAdapter + runEvolutionLoop (closed-loop body).
+export { EvolveSkillAdapter, runEvolutionLoop } from "./adapters/evolve-skill-adapter.js";
 
-  // Breaker: assert the canonical static-core set is read-only at entry.
-  try {
-    await sandbox.assertReadonly(STATIC_CORE_PATHS);
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    recordSecurityEvent(sandbox, {
-      kind: "static-core-write",
-      path: "static-core",
-      reason,
-    });
-    throw new BreakerError(
-      `breaker: static-core path writable at loop entry — ${reason}`,
-    );
-  }
-
-  // Route the optimizer for this substrate kind. Unknown/unsupported kinds
-  // throw NotImplemented here (weight → null short-circuits as channel-off).
-  const optimizer = routeOptimizer(opts.substrate.kind);
-  if (optimizer === null) {
-    // Weight channel is off by default; the loop cannot proceed.
-    throw new BreakerError(
-      `breaker: substrate kind '${opts.substrate.kind}' channel is off`,
-    );
-  }
-
-  // T01 only owns the entry + breaker. The evolution body (generate/score/
-  // select/retain/canary) lands in T02–T09; until then we surface a clear
-  // not-implemented signal rather than faking a result.
-  throw new BreakerError(
-    `breaker: runEvolutionLoop body not implemented (lands in L3-T02..T09); substrate kind='${opts.substrate.kind}'`,
-  );
-}
+// runEvolutionCycle (XM-T01 E2E entry) + E2E contract types.
+export { runEvolutionCycle } from "./adapters/e2e-adapter.js";
+export type {
+  E2EConfig,
+  CycleResult,
+  MiniCanaryTask,
+  MutationSource,
+  ReleasePolicy,
+  CanaryObservations,
+  ReleaseEvent,
+} from "./adapters/e2e-adapter.js";

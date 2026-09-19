@@ -34,3 +34,6 @@ export * from "./run-state/journal.js";
 export * from "./session-log/session-log.js";
 export * from "./guard/pre-commit.js";
 export * from "./guard/read-only.js";
+// L0C-T09b: invariant-B guards (assertCBound / assertAuthoringPriorExists /
+// assertArchiveNotDeleted + AUTHORING_PRIOR_ID). Barrel append-only.
+export * from "./guard/invariants.js";

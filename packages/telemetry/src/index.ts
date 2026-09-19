@@ -15,3 +15,5 @@ export * from "./usage";
 // TL-T03: OTel GenAI 语义约定发射器（gen_ai.* spans/events + trace 传播）
 export * from "./otel-context";
 export * from "./otel-emitter";
+// TL-T04: replay 复现率采集（fresh sandbox 重放 + 非确定 action 持久 setup）
+export * from "./replay";
