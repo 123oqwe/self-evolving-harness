@@ -26,13 +26,13 @@ import type {
 // 辅助构造器
 //
 // 说明：spec 给出 TranscriptNode 公共类型（uuid/parentUuid/type/sessionId/cwd/
-// gitBranch/version/timestamp/agentId?/content/toolUseId?/usage?），但未给出
-// `NormalizedContent`（content 字段）的精确形状（spec 仅述"text/image 归一化"）。
-// 此处按最小可工作假设构造 text 变体：`{ type:'text', text:string }`。
-// 见文末 ambiguities。
+// gitBranch/version/timestamp/agentId?/content/toolUseId?/usage?）。
+// 数据契约（裁决 TL-T01-A4）定义 NormalizedContent = NormalizedBlock[]
+// （block 数组，非单对象），block 含 text/image/thinking/tool_use/tool_result
+// 变体（与 L0C ContentBlock 对齐 + thinking）。此处按数组形状构造 text 块。
 // ---------------------------------------------------------------------------
 function textContent(text: string): NormalizedContent {
-  return { type: "text", text } as unknown as NormalizedContent;
+  return [{ type: "text", text }] as unknown as NormalizedContent;
 }
 
 // 构造一个合法的 assistant 节点载荷（Omit<TranscriptNode,'uuid'|'parentUuid'|'timestamp'>）
