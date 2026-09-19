@@ -10,11 +10,15 @@
     "build": "pnpm -r run --if-present build"
   },
   "devDependencies": {
-    "@harness/l0-sandbox": "workspace:*",
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.8",
+    "@harness/canary-eval": "workspace:*",
     "@harness/l0-core": "workspace:*",
-    "@harness/telemetry": "workspace:*"
+    "@harness/l0-sandbox": "workspace:*",
+    "@harness/l1-config": "workspace:*",
+    "@harness/l2-memory": "workspace:*",
+    "@harness/l3-engine": "workspace:*",
+    "@harness/telemetry": "workspace:*",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
   },
   "engines": {
     "node": ">=20"
