@@ -8,12 +8,24 @@ importers:
 
   .:
     devDependencies:
+      '@harness/canary-eval':
+        specifier: workspace:*
+        version: link:packages/canary-eval
       '@harness/l0-core':
         specifier: workspace:*
         version: link:packages/l0-core
       '@harness/l0-sandbox':
         specifier: workspace:*
         version: link:packages/l0-sandbox
+      '@harness/l1-config':
+        specifier: workspace:*
+        version: link:packages/l1-config
+      '@harness/l2-memory':
+        specifier: workspace:*
+        version: link:packages/l2-memory
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:packages/l3-engine
       '@harness/telemetry':
         specifier: workspace:*
         version: link:packages/telemetry
