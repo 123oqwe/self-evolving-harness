@@ -1,0 +1,7 @@
+;; L0S-T02 Seatbelt base profile template (reference)
+;; 动态生成见 src/os-sandbox/seatbelt.ts SeatbeltBackend.buildProfile()。
+;; 此模板为 T07 版本化（profiles/v{n}.yaml + sha256）铺路的静态锚点。
+(version 1)
+(allow default)
+;; deny file-read*/file-write* (subpath "<resolved-realpath>")  ; denyRead/denyWrite
+(deny network*)
