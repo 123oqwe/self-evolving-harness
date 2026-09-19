@@ -13,6 +13,12 @@ export type {
   OssandboxBackend,
 } from "./types.js";
 export { SeatbeltBackend } from "./seatbelt.js";
-export { BubblewrapBackend } from "./bubblewrap.js";
+export {
+  BubblewrapBackend,
+  BWRAP_HARDENED_ARGS,
+  StaticCoreTamperError,
+  buildBwrapArgs,
+} from "./bubblewrap.js";
+export type { BwrapArgsConfig } from "./bubblewrap.js";
 export { NoneBackend } from "./none.js";
 export { detect } from "./detect.js";

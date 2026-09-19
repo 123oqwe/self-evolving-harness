@@ -1,0 +1,27 @@
+# TL-T07: otel_capture_policy.yaml
+#
+# OTel 采集策略（capture_message_events / message_sampling_rate /
+# pii_redaction_rules）。项目 scope 不可覆写（防 prompt-injected 仓库改采集
+# 策略偷数据，PRD §11.2 / research §1.3 (f)）。仅在离线元循环改写；agent
+# 运行时只读。
+#
+# 字段：
+#   capture_message_events   — 是否把 full messages 作 structured event 落 span
+#   message_sampling_rate     — 0-1，event 采样率（1.0 = 全采）
+#   pii_redaction_rules       — PII 脱敏规则集（regex pattern + replacement token）
+#
+capture_message_events: true
+message_sampling_rate: 1.0
+pii_redaction_rules:
+  - name: ssn
+    pattern: '\d{3}-\d{2}-\d{4}'
+    replacement: '[REDACTED_SSN]'
+  - name: api_key
+    pattern: 'sk-[A-Za-z0-9]+'
+    replacement: '[REDACTED_API_KEY]'
+  - name: aws_access_key
+    pattern: 'AKIA[0-9A-Z]{16}'
+    replacement: '[REDACTED_AWS_KEY]'
+  - name: email
+    pattern: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+    replacement: '[REDACTED_EMAIL]'

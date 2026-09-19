@@ -17,3 +17,5 @@ export * from "./otel-context";
 export * from "./otel-emitter";
 // TL-T04: replay 复现率采集（fresh sandbox 重放 + 非确定 action 持久 setup）
 export * from "./replay";
+// TL-T07: otel_capture_policy + PII redaction filter（PII>0 立即 reject 硬门）
+export * from "./capture-policy";

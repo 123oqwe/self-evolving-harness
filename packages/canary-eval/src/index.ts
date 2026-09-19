@@ -30,3 +30,8 @@ export type {
   Patch,
   StrengtheningResult,
 } from "./canary/swe-abs.js";
+
+// CE-T01c 落地：ABC checklist 审计 + ≥90% 覆盖或报 unresolved-comparison budget。
+export { runABCAudit } from "./canary/abc-audit.js";
+
+export type { ABCAuditResult } from "./canary/abc-audit.js";
