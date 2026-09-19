@@ -32,7 +32,12 @@
 # Invariants registered (T09a):
 #   L0C-T09a-turn-boundary  — isLegalInsertionPoint(mid_turn) forced true
 #   L0C-T09a-orphan-400     — OrphanToolResultError.statusCode forced 200
-# (T09b will append five more invariants to this same script per spec.)
+# Invariants registered (T09b):
+#   L0C-T09b-never-delete       — assertArchiveNotDeleted guard disabled (never-auto-delete)
+#   L0C-T09b-c-bound           — assertCBound guard disabled (C>0 lower bound)
+#   L0C-T09b-authoring-prior   — assertAuthoringPriorExists missing-prior guard disabled
+#   L0C-T09b-unsent-tracking   — deserializeRunState drops unsent_tool_call_ids (round-trip loss)
+#   L0C-T09b-cut-boundary      — isCutPointMessage forced true (cut at tool_result/compaction)
 
 set -euo pipefail
 
@@ -46,11 +51,11 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 #   REPLACE   — the sed replacement (the destructive change + marker)
 # ─────────────────────────────────────────────────────────────────────────────
 
-emit_file()    { case "$1" in L0C-T09a-turn-boundary) echo "packages/l0-core/src/transcript/turn.ts";; L0C-T09a-orphan-400) echo "packages/l0-core/src/transcript/tool-use-id.ts";; *) return 1;; esac; }
-emit_match()   { case "$1" in L0C-T09a-turn-boundary) echo 'return point === "turn_end" && this.#phase === "turn_end";';; L0C-T09a-orphan-400) echo 'this.statusCode = 400;';; *) return 1;; esac; }
-emit_replace() { case "$1" in L0C-T09a-turn-boundary) echo 'return true; /* MUTATED:L0C-T09a-turn-boundary */';; L0C-T09a-orphan-400) echo 'this.statusCode = 200; /* MUTATED:L0C-T09a-orphan-400 */';; *) return 1;; esac; }
+emit_file()    { case "$1" in L0C-T09a-turn-boundary) echo "packages/l0-core/src/transcript/turn.ts";; L0C-T09a-orphan-400) echo "packages/l0-core/src/transcript/tool-use-id.ts";; L0C-T09b-never-delete) echo "packages/l0-core/src/guard/invariants.ts";; L0C-T09b-c-bound) echo "packages/l0-core/src/guard/invariants.ts";; L0C-T09b-authoring-prior) echo "packages/l0-core/src/guard/invariants.ts";; L0C-T09b-unsent-tracking) echo "packages/l0-core/src/run-state/run-state.ts";; L0C-T09b-cut-boundary) echo "packages/l0-core/src/compaction/cut-boundary.ts";; *) return 1;; esac; }
+emit_match()   { case "$1" in L0C-T09a-turn-boundary) echo 'return point === "turn_end" && this.#phase === "turn_end";';; L0C-T09a-orphan-400) echo 'this.statusCode = 400;';; L0C-T09b-never-delete) echo '!fs.existsSync(archivePath)';; L0C-T09b-c-bound) echo 'typeof C !== "number" || !Number.isFinite(C) || C <= 0';; L0C-T09b-authoring-prior) echo '!prior';; L0C-T09b-unsent-tracking) echo 'return decoded as unknown as RunState;';; L0C-T09b-cut-boundary) echo 'return entry.type === "user" || entry.type === "assistant";';; *) return 1;; esac; }
+emit_replace() { case "$1" in L0C-T09a-turn-boundary) echo 'return true; /* MUTATED:L0C-T09a-turn-boundary */';; L0C-T09a-orphan-400) echo 'this.statusCode = 200; /* MUTATED:L0C-T09a-orphan-400 */';; L0C-T09b-never-delete) echo 'false /* MUTATED:L0C-T09b-never-delete */';; L0C-T09b-c-bound) echo 'false /* MUTATED:L0C-T09b-c-bound */';; L0C-T09b-authoring-prior) echo 'false /* MUTATED:L0C-T09b-authoring-prior */';; L0C-T09b-unsent-tracking) echo 'return Object.assign(decoded, {unsent_tool_call_ids_for_interrupted_state: []}) as unknown as RunState; /* MUTATED:L0C-T09b-unsent-tracking */';; L0C-T09b-cut-boundary) echo 'return true; /* MUTATED:L0C-T09b-cut-boundary */';; *) return 1;; esac; }
 
-KNOWN_INVARIANTS=(L0C-T09a-turn-boundary L0C-T09a-orphan-400)
+KNOWN_INVARIANTS=(L0C-T09a-turn-boundary L0C-T09a-orphan-400 L0C-T09b-never-delete L0C-T09b-c-bound L0C-T09b-authoring-prior L0C-T09b-unsent-tracking L0C-T09b-cut-boundary)
 
 usage() {
   cat >&2 <<EOF
