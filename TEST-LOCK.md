@@ -29,7 +29,7 @@
 
 - **政策**：主计划全部 120 任务（117 + 3 CLN，见 `execution/README.md` §领取协议 + `execution/09-EXECUTION-GRAPH.md` §2.3）的锁定测试由隔离 `test-author` 从 spec **一次性预生成并锁定**。**废止原 per-wave just-in-time 出题政策**（先例见 `09-EXECUTION-GRAPH.md` §2.3 + `ERRATA-w01.md` 本轮记录）：预锁定使 implementer 领单时 spec/测试/锁三方已一致。
 - **本表锁定范围**：`tests/` 下已落地的全部 153 个 `.spec.ts` 文件（Wave 0 L0C + Wave 1 L0S/TL + Wave 2 L1/L2/L3/CE/XM/gates），逐文件 sha256 见 §2.1–§2.9。
-- **例外（无锁定测试文件）**：3 个可行性 spike（`CE-T00a/b/c`，`[MVP-spike]`）只产 spike 报告 `research/spikes/CE-T00*.md`，不产 `.spec.ts`，不计入本表；`CLN-T01` 为 schema 迁移（无新增测试，沿用 L0C-T03/T06 锁定 spec 验收）；跨模块/模块级 integration spec（`tests/{CE,L0C,L0S,L1,L2,TL}/integration*.spec.ts`、`tests/L1/e2e.spec.ts`、`tests/CLN/T02|T03`）由对应波次 Gate 触发时由 test-author 落地并追加锁定。
+- **例外（无锁定测试文件）**：3 个可行性 spike（`CE-T00a/b/c`，`[MVP-spike]`）只产 spike 报告 `research/spikes/CE-T00*.md`，不产 `.spec.ts`，不计入本表；`CLN-T01` 为 schema 迁移（额外补 `tests/cleanup/T01-typebox-migration.spec.ts` 锁定 spec + 沿用 L0C-T03/T06 锁定 spec 验收）；CLN 清理 spec（`tests/cleanup/T01|T02|T03`）已由 test-author 落地并锁定见 §2.10。
 - **新增锁定**：后续新落地的测试文件由 test-author 追加到本表 §2 对应小节，并落 `test-lock:` commit；申诉裁决同步记入 `ERRATA-w<NN>.md`。
 
 ## 2. 测试文件清单 + sha256（全量预锁定）
@@ -232,7 +232,15 @@
 | --- | --- | --- |
 | G1 | `tests/gates/g1-smoke.spec.ts` | `95b43f029753c854503858911c66b565c0186962494bd4337c2c614f10714cd1` |
 
-### 2.10 锁定合计
+### 2.10 — CLN cleanup spec（`tests/cleanup/`，3 文件）
+
+| 任务 | 测试文件 | sha256 |
+| --- | --- | --- |
+| CLN-T01 | `tests/cleanup/T01-typebox-migration.spec.ts` | `cafce786d781e5dded8239bb76497beeda3121877d1f4145f4b6bd8bb80ec7a7` |
+| CLN-T02 | `tests/cleanup/T02-mutation-gate.spec.ts` | `76367339fd5161f431b1581c675caf84095d420962780464e6f4b4d04b07220` |
+| CLN-T03 | `tests/cleanup/T03-linux-ci-nonroot.spec.ts` | `5e38877c0363b73b6d0a33cddc7c15b70e1f08b1baf876d7734595144f3849db` |
+
+### 2.11 锁定合计
 
 | 波次 | 模块 | 文件数 | 测试数 |
 | --- | --- | --- | --- |
@@ -245,7 +253,8 @@
 | Wave 2 | CE | 14 | 44 |
 | Wave 2 | XM | 1 | 0（parse error：import 目标未落地） |
 | Wave 1 | gates | 1 | 3 |
-| **合计** | | **153** | **795** |
+| Wave 2 | CLN | 3 | —（CLN RED 形态，helper/bwrap 未落地） |
+| **合计** | | **156** | **795+** |
 
 > RED 门基线（`pnpm vitest run`，详见 `TEST-BASELINE.md`）：已实现 18 任务（L0C T01–T08/T10/T11 + L0S T01/T02/T03/T06 + TL T01/T02/T05/T06）+ G1 smoke 全绿；Wave 2 未实现模块测试全 RED（`Cannot find module @harness/*` / `X is not a function`）。终审实测：276 passed / 519 failed / 795 total，1 文件级 parse error（`tests/XM/T01-e2e-evolution-loop.spec.ts`：`Failed to load url ../../scripts/xm/g5-report.ts`）。
 
