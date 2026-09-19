@@ -4,3 +4,7 @@
 export * from "./repo-layout.js";
 export * from "./substrate-types.js";
 export * from "./compaction-substrate.js";
+// L1-T03: signature verification + phase substrate + warm-up cache-hit.
+export * from "./signature.js";
+export * from "./phase-types.js";
+export * from "./phase-substrate.js";

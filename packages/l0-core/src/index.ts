@@ -37,3 +37,6 @@ export * from "./guard/read-only.js";
 // L0C-T09b: invariant-B guards (assertCBound / assertAuthoringPriorExists /
 // assertArchiveNotDeleted + AUTHORING_PRIOR_ID). Barrel append-only.
 export * from "./guard/invariants.js";
+// L0C-T10: breaker clause runtime engine (evaluate + BREAKER_CLAUSES +
+// BreakerVerdict). Barrel append-only.
+export * from "./guard/breaker.js";

@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # CLN-T03 (ERRATA-w01 §L0S-R1): Linux CI 须以非 root uid 跑 L0S 测试。
+  # root uid 下 bwrap mode-000 遮蔽失效（root 绕过文件权限），sandbox 隔离
+  # 契约不可信。纵深防御：(a) 非 root user 跑 L0S；(b) bwrap --cap-drop ALL
+  # （见 packages/l0-sandbox/src/os-sandbox/bubblewrap.ts BWRAP_HARDENED_ARGS）。
+  l0s-linux-nonroot:
+    name: L0S tests (Linux, non-root)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create non-root user for L0S sandbox tests
+        run: |
+          # bwrap mode-000 遮蔽仅在非 root uid 下生效；创建专用非 root user。
+          sudo useradd -m -s /bin/bash l0s-runner
+          # 把 workspace 所有权转交给该 user，否则 pnpm store / vitest cache 权限报错。
+          sudo chown -R l0s-runner:l0s-runner "$GITHUB_WORKSPACE"
+
+      - name: Run L0S tests as non-root user
+        run: |
+          # 以非 root uid 执行 L0S 测试；id -u ≠ 0，bwrap mode-000 遮蔽生效。
+          sudo runuser -u l0s-runner -- bash -lc 'cd "$GITHUB_WORKSPACE" && id -u && pnpm vitest run tests/L0S/'
