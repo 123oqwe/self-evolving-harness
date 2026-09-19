@@ -57,7 +57,7 @@
 | L0S-T01 | `tests/L0S/T01.session-wake-idempotent.spec.ts` | `dd45317e254523bdad78a9ff8d8c8aa23c4844e8b502f4a673babe04fb4944b7` |
 | L0S-T02 | `tests/L0S/T02.sandbox-deny-egress.spec.ts` | `308877ac725e513199d3577ae5dd04087ea2ded68fedd4fa970aead474a40ce8` |
 | L0S-T02 | `tests/L0S/T02.sandbox-deny-ssh.spec.ts` | `649da92e7eccc8e30651ce21e364ad017f2cf9f71308fcbc84d12ba29e62aeac` |
-| L0S-T02 | `tests/L0S/T02.sandbox-platform-skip.spec.ts` | `fc01dbe0aea1d847cadff32b011e2076d63cb5f461f5801895e6a00a368ae5c8` |
+| L0S-T02 | `tests/L0S/T02.sandbox-platform-skip.spec.ts` | `b53e9694b7e36a7d1eb407f8f63f665dd51cb14ea54bad5a625110bcabe4a85d` |
 | L0S-T03 | `tests/L0S/T03.deny-read-ssh.spec.ts` | `eae750a9ad05d908492d3776b3c6b6b9a34f0023d7abf8d15b22b04cdac0383d` |
 | L0S-T03 | `tests/L0S/T03.narrower-allow-reopens.spec.ts` | `529893d41bfbdd779a1e771202b44b5e35298f137b05b6d8ea58d51b0aa56a7f` |
 | L0S-T03 | `tests/L0S/T03.symlink-bypass-blocked.spec.ts` | `22e03e9b36bf54c429544bca4ae10fd1d2913668ed8c58e9c9bb23dd56055256` |

@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "unit": "USD_per_million_tokens",
+  "comment": "TL-T02 版本化价目表（static-core，仅 version 可升级）。单价 = 美元 / 百万 token；cost = tokens / 1_000_000 × unit_price。model key 精确为 'claude-sonnet-4.5'（含点号）。cache_read 用折扣价 0.3（防 total_tokens 漏 cache 折扣致账单错，research §1.2）。",
+  "prices": {
+    "claude-sonnet-4.5": {
+      "input": 3,
+      "output": 15,
+      "cache_read": 0.3,
+      "cache_creation": 3.75,
+      "reasoning": 15
+    }
+  }
+}
