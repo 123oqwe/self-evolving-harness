@@ -31,20 +31,20 @@
 
 ## 2. 测试文件清单 + sha256（Wave 0 + 1）
 
-### 2.1 Wave 0 — L0C 包内 spec（`packages/l0-core/tests/L0C/`）
+### 2.1 Wave 0 — L0C spec（已统一至 `tests/L0C/`）
 
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
-| L0C-T01 | `packages/l0-core/tests/L0C/T01-scaffold.spec.ts` | `c71e540ec1c97c0363e756c8013692871c5cfd45bb3c7b887b16cd1222244dbb` |
-| L0C-T02 | `packages/l0-core/tests/L0C/T02-turn.spec.ts` | `f025a591e617f0f1ebd9b8a0648a93560c0309d786583c545d4193dc7b53dddd` |
-| L0C-T03 | `packages/l0-core/tests/L0C/T03-stop.spec.ts` | `95eece03e222360b92b52ba82c5e785275a6bd07b111357039b4783d80440897` |
-| L0C-T04 | `packages/l0-core/tests/L0C/T04-retry-overflow.spec.ts` | `b2b39dc95874365670b16be4a8476c428f017d6a8dbf98fb50feb033d46410ae` |
-| L0C-T05 | `packages/l0-core/tests/L0C/T05-cache-cut.spec.ts` | `4b99095c1a489930b4407ecab42071fd44640bbe1c0f803233a3d65ae4ae80de` |
-| L0C-T06 | `packages/l0-core/tests/L0C/T06-memory-schema.spec.ts` | `06eb747d6c29f6e940ae758bb51c6720f71a4b942a7d7b7e78d3677591b5be78` |
-| L0C-T07a | `packages/l0-core/tests/L0C/T07a-runstate.spec.ts` | `4cedd0311d16c440103a7df292457cd443866622065f14d4d67f2e899c87e84a` |
-| L0C-T07b | `packages/l0-core/tests/L0C/T07b-session-log.spec.ts` | `105e80a9997612da6e182563e6f017ecc9f357b41172a80532dbe93ce9ae3ae5` |
-| L0C-T08 | `packages/l0-core/tests/L0C/T08-precommit.spec.ts` | `170d024576f7123f87aa16162b5588e315a9556028d9acf8e32a83c8e5a8e74e` |
-| L0C-T11 | `packages/l0-core/tests/L0C/T11-readonly.spec.ts` | `634ae239ccc8c8de230a3d1f92c2ecb9f0964fdbfc568302a88d9eec6c349d6b` |
+| L0C-T01 | `tests/L0C/T01-scaffold.spec.ts` | `c71e540ec1c97c0363e756c8013692871c5cfd45bb3c7b887b16cd1222244dbb` |
+| L0C-T02 | `tests/L0C/T02-turn.spec.ts` | `f025a591e617f0f1ebd9b8a0648a93560c0309d786583c545d4193dc7b53dddd` |
+| L0C-T03 | `tests/L0C/T03-stop.spec.ts` | `95eece03e222360b92b52ba82c5e785275a6bd07b111357039b4783d80440897` |
+| L0C-T04 | `tests/L0C/T04-retry-overflow.spec.ts` | `b2b39dc95874365670b16be4a8476c428f017d6a8dbf98fb50feb033d46410ae` |
+| L0C-T05 | `tests/L0C/T05-cache-cut.spec.ts` | `4b99095c1a489930b4407ecab42071fd44640bbe1c0f803233a3d65ae4ae80de` |
+| L0C-T06 | `tests/L0C/T06-memory-schema.spec.ts` | `06eb747d6c29f6e940ae758bb51c6720f71a4b942a7d7b7e78d3677591b5be78` |
+| L0C-T07a | `tests/L0C/T07a-runstate.spec.ts` | `4cedd0311d16c440103a7df292457cd443866622065f14d4d67f2e899c87e84a` |
+| L0C-T07b | `tests/L0C/T07b-session-log.spec.ts` | `105e80a9997612da6e182563e6f017ecc9f357b41172a80532dbe93ce9ae3ae5` |
+| L0C-T08 | `tests/L0C/T08-precommit.spec.ts` | `170d024576f7123f87aa16162b5588e315a9556028d9acf8e32a83c8e5a8e74e` |
+| L0C-T11 | `tests/L0C/T11-readonly.spec.ts` | `634ae239ccc8c8de230a3d1f92c2ecb9f0964fdbfc568302a88d9eec6c349d6b` |
 
 > **L0C 小计**：10 文件 / 126 测试（详见 `TEST-BASELINE.md` §2.2）。T01-scaffold 为 scaffold 验收测试（4 GREEN 基线校验 + 4 RED 未完成钩子），非出题事故，仍锁定。
 

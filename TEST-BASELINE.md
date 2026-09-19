@@ -61,7 +61,7 @@
 
 **Wave 1 根级 gate 合计：18 文件 / 62 测试 / 0 通过 / 0 parse error / 全 RED。**
 
-### 2.2 Wave 0 — L0C 包内 spec（`packages/l0-core/tests/L0C/`）
+### 2.2 Wave 0 — L0C spec（已统一至 `tests/L0C/`）
 
 > 这些 spec 不被根 `vitest.config.ts` 收集（设计如此：L0C 包内测试经由
 > `pnpm --filter @harness/l0-core vitest run` 派发，T01-scaffold 自身即如此引用）。
@@ -71,16 +71,16 @@
 
 | 任务 | 测试文件 | 测试数 | 失败模式 |
 | --- | --- | --- | --- |
-| L0C-T01 | `packages/l0-core/tests/L0C/T01-scaffold.spec.ts` | 8 | 见 §3 专项说明（4 GREEN / 4 RED） |
-| L0C-T02 | `packages/l0-core/tests/L0C/T02-turn.spec.ts` | 9 | Cannot find module @harness/l0-core |
-| L0C-T03 | `packages/l0-core/tests/L0C/T03-stop.spec.ts` | 15 | Cannot find module @harness/l0-core |
-| L0C-T04 | `packages/l0-core/tests/L0C/T04-retry-overflow.spec.ts` | 5 | Cannot find module @harness/l0-core |
-| L0C-T05 | `packages/l0-core/tests/L0C/T05-cache-cut.spec.ts` | 14 | Cannot find module @harness/l0-core |
-| L0C-T06 | `packages/l0-core/tests/L0C/T06-memory-schema.spec.ts` | 25 | Cannot find module @harness/l0-core |
-| L0C-T07a | `packages/l0-core/tests/L0C/T07a-runstate.spec.ts` | 10 | Cannot find module @harness/l0-core |
-| L0C-T07b | `packages/l0-core/tests/L0C/T07b-session-log.spec.ts` | 6 | Cannot find module @harness/l0-core |
-| L0C-T08 | `packages/l0-core/tests/L0C/T08-precommit.spec.ts` | 18 | Cannot find module @harness/l0-core |
-| L0C-T11 | `packages/l0-core/tests/L0C/T11-readonly.spec.ts` | 16 | Cannot find module @harness/l0-core |
+| L0C-T01 | `tests/L0C/T01-scaffold.spec.ts` | 8 | 见 §3 专项说明（5 GREEN / 3 RED，脚手架已存在） |
+| L0C-T02 | `tests/L0C/T02-turn.spec.ts` | 9 | Cannot find module @harness/l0-core |
+| L0C-T03 | `tests/L0C/T03-stop.spec.ts` | 15 | Cannot find module @harness/l0-core |
+| L0C-T04 | `tests/L0C/T04-retry-overflow.spec.ts` | 5 | Cannot find module @harness/l0-core |
+| L0C-T05 | `tests/L0C/T05-cache-cut.spec.ts` | 14 | Cannot find module @harness/l0-core |
+| L0C-T06 | `tests/L0C/T06-memory-schema.spec.ts` | 25 | Cannot find module @harness/l0-core |
+| L0C-T07a | `tests/L0C/T07a-runstate.spec.ts` | 10 | Cannot find module @harness/l0-core |
+| L0C-T07b | `tests/L0C/T07b-session-log.spec.ts` | 6 | Cannot find module @harness/l0-core |
+| L0C-T08 | `tests/L0C/T08-precommit.spec.ts` | 18 | Cannot find module @harness/l0-core |
+| L0C-T11 | `tests/L0C/T11-readonly.spec.ts` | 16 | Cannot find module @harness/l0-core |
 | **L0C 小计** | **10 文件** | **126 测试** | T02–T11 全 RED；T01 见 §3 |
 
 **Wave 0 L0C 合计：10 文件 / 126 测试。**
