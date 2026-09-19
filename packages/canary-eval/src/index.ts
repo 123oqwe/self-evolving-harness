@@ -35,3 +35,11 @@ export type {
 export { runABCAudit } from "./canary/abc-audit.js";
 
 export type { ABCAuditResult } from "./canary/abc-audit.js";
+
+// CE-T02 落地：确定性验证器 harness — verify: 命令 exit-code 裁决 / 单次连续 run / 禁跨 run 合并。
+// VerifierRun/SandboxHandle 由 @harness/canary-eval 导出（ERRATA-w2plus CE-07/CE-25 跨任务契约：
+// CE-T05 calibrateAgainstL0 入参 l0Verdicts: VerifierRun[]、CE-T07 FreshEvidence.verifications
+// 复用本导出）。
+export { runVerify, assertNoCrossRunMerge, CrossRunMergeViolation } from "./verifier.js";
+
+export type { VerifierRun, SandboxHandle } from "./verifier.js";

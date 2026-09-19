@@ -283,6 +283,10 @@ dispatch_task() {
     CE-T01b) pnpm vitest run tests/CE/CE-T01b.spec.ts || return 1; return 0 ;;
     CE-T01c) pnpm vitest run tests/CE/CE-T01c.spec.ts || return 1; return 0 ;;
     CE-T02)  pnpm vitest run tests/CE/CE-T02.spec.ts || return 1; return 0 ;;
+    # CE-T02-DEMO: fixture 任务的 verify，exit 0=pass（spec §CE-T02 验收#2）。
+    # 跑一个 fixture canary 任务的 verify 命令（NoneBackend 风格 fake sandbox 返回
+    # exit 0），证明 runVerify 单次连续 run + exit-code 裁决端到端可用。
+    CE-T02-DEMO) pnpm vitest run tests/CE/CE-T02.spec.ts || return 1; return 0 ;;
     CE-T03)  pnpm vitest run tests/CE/CE-T03.spec.ts || return 1; return 0 ;;
     CE-T04)  pnpm vitest run tests/CE/CE-T04.spec.ts || return 1; return 0 ;;
     CE-T05)  pnpm vitest run tests/CE/CE-T05.spec.ts || return 1; return 0 ;;
