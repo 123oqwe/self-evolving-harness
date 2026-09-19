@@ -1,0 +1,211 @@
+# Canary held-out 任务集 v0-a — SWE-rebench 风格去污染（fresh task）。
+#
+# CE-T01a 核心交付物（spec §CE-T01a + ERRATA-w2plus）：
+#   - ≥30 条 decontaminated:true 任务（held-out，冻结于 release）。
+#   - yaml schema 直映 CanaryManifest 接口（version/sha256/frozenAt/
+#     agentVisible:false/tasks[]{id,repo,verify,expectedExit:0,
+#     decontaminated,frozenInRelease}），字段名/嵌套无 alias。
+#   - sha256 自洽：值由 computeManifestSha256 规范化计算（sha256 行值
+#     置空后哈希），verifyManifestSha256===true。
+#
+# 任务选取（执行提示）：优先选团队真实历史失败轨迹以保证区分力——
+# 每 task 对应一条已知曾退化/曾 reward-hack 的 harness 子模块行为回归，
+# verify 命令为该回归的锁定 spec（exit 0 = 未退化）。repo 为源仓定位
+# （不离开源仓风格），不命中 trainSet（去污染）。
+version: v0
+sha256: 189f6182d8bd6a621f0be0241c8a8a48250e62d4229ab63152dbf0993b0674ed
+frozenAt: 2026-09-19T02:52:27-04:00
+agentVisible: false
+tasks:
+  - id: CE-TASK-0001
+    repo: harness/l0c-turn
+    verify: "pnpm vitest run tests/L0C/T02-turn.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0002
+    repo: harness/l0c-stop
+    verify: "pnpm vitest run tests/L0C/T03-stop.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0003
+    repo: harness/l0c-retry
+    verify: "pnpm vitest run tests/L0C/T04-retry-overflow.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0004
+    repo: harness/l0c-cache
+    verify: "pnpm vitest run tests/L0C/T05-cache-compaction.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0005
+    repo: harness/l0c-memory
+    verify: "pnpm vitest run tests/L0C/T06-memory-schema.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0006
+    repo: harness/l0c-runstate
+    verify: "pnpm vitest run tests/L0C/T07a-runstate.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0007
+    repo: harness/l0c-sessionlog
+    verify: "pnpm vitest run tests/L0C/T07b-session-log.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0008
+    repo: harness/l0c-precommit
+    verify: "pnpm vitest run tests/L0C/T08-precommit.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0009
+    repo: harness/l0c-invariants-a
+    verify: "pnpm vitest run tests/L0C/invariants-A.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0010
+    repo: harness/l0c-scaffold
+    verify: "pnpm vitest run tests/L0C/T01-scaffold.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0011
+    repo: harness/l0s-canary-payload
+    verify: "pnpm vitest run tests/L0S/T13.canary-payload-sha256.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0012
+    repo: harness/l0s-canary-zero
+    verify: "pnpm vitest run tests/L0S/T11.canary-zero-tolerance.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0013
+    repo: harness/ce-t01a-loader
+    verify: "pnpm vitest run tests/CE/CE-T01a.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0014
+    repo: harness/ce-t01b-sweabs
+    verify: "pnpm vitest run tests/CE/CE-T01b.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0015
+    repo: harness/ce-t01c-abcaudit
+    verify: "pnpm vitest run tests/CE/CE-T01c.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0016
+    repo: harness/ce-t02-verifier
+    verify: "pnpm vitest run tests/CE/CE-T02.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0017
+    repo: harness/ce-t03-luckypass
+    verify: "pnpm vitest run tests/CE/CE-T03.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0018
+    repo: harness/ce-t04-reviewer
+    verify: "pnpm vitest run tests/CE/CE-T04.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0019
+    repo: harness/ce-t05-judge
+    verify: "pnpm vitest run tests/CE/CE-T05.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0020
+    repo: harness/ce-t06-release
+    verify: "pnpm vitest run tests/CE/CE-T06.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0021
+    repo: harness/ce-t07-freshgate
+    verify: "pnpm vitest run tests/CE/CE-T07.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0022
+    repo: harness/ce-t08-mcnemar
+    verify: "pnpm vitest run tests/CE/CE-T08.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0023
+    repo: harness/ce-t09-saturation
+    verify: "pnpm vitest run tests/CE/CE-T09.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0024
+    repo: harness/ce-t10-memorybench
+    verify: "pnpm vitest run tests/CE/CE-T10.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0025
+    repo: harness/ce-t11-scale
+    verify: "pnpm vitest run tests/CE/CE-T11.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0026
+    repo: harness/ce-t12-poison
+    verify: "pnpm vitest run tests/CE/CE-T12.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0027
+    repo: harness/l1-config-repo
+    verify: "pnpm vitest run tests/L1/T01-repolayout.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0028
+    repo: harness/l2-memory-loader
+    verify: "pnpm vitest run tests/L2/T01-loader.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0029
+    repo: harness/l3-breaker
+    verify: "pnpm vitest run tests/L3/T01-breaker.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0030
+    repo: harness/l3-optimizer
+    verify: "pnpm vitest run tests/L3/T02-optimizer.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0031
+    repo: harness/tl-transcript
+    verify: "pnpm vitest run tests/TL/T01-transcript.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  - id: CE-TASK-0032
+    repo: harness/tl-otel
+    verify: "pnpm vitest run tests/TL/T03-otel.spec.ts"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f

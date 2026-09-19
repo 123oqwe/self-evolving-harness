@@ -9,4 +9,5 @@
 export * from "./trust-domains/index.js";
 export * from "./os-sandbox/index.js";
 export * from "./fs-isolation/index.js";
+export * from "./net-isolation/index.js";
 export * from "./lifecycle/index.js";

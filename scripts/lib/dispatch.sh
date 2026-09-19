@@ -96,10 +96,31 @@ dispatch_task() {
       return 0
       ;;
     L0C-T09a)
-      # NOT-yet-implemented (Wave 5). WBS A.3 plans Form B behavior gate via
-      # `bash scripts/lib/mutate-loop.sh L0C-T09a`; until that helper exists,
-      # dispatch to the canonical Form A invariant spec → RED.
-      pnpm vitest run tests/L0C/T09a-invariants.spec.ts || return 1
+      # Form B behavior gate (spec §L0C-T09a + ERRATA-w2plus L0C-03).
+      # Two invariants; for each: inject mutation → run the locked spec →
+      # assert it FAILS (exit≠0, the mutation must be caught); restore →
+      # run again → assert it PASSES (exit=0, baseline intact). The locked
+      # spec lives at tests/L0C/invariants-A.spec.ts (T02-backed, GREEN by
+      # design); the RED-via-mutation is delegated to
+      # scripts/mutate-invariant.sh, NOT inlined into the spec file.
+      local spec_09a="tests/L0C/invariants-A.spec.ts"
+      for inv_09a in L0C-T09a-turn-boundary L0C-T09a-orphan-400; do
+        # inject the destructive mutation (saves a .mutate-bak first)
+        bash "$SCRIPT_DIR/mutate-invariant.sh" "$inv_09a" || return 1
+        # mutated spec MUST fail — if it passes, the mutation is a false-green
+        if pnpm vitest run "$spec_09a" >/dev/null 2>&1; then
+          bash "$SCRIPT_DIR/mutate-invariant.sh" --restore "$inv_09a" >/dev/null 2>&1 || true
+          echo "L0C-T09a: mutation $inv_09a did NOT fail the spec (false-green)" >&2
+          return 1
+        fi
+        # restore the original source from the backup
+        bash "$SCRIPT_DIR/mutate-invariant.sh" --restore "$inv_09a" || return 1
+        # restored baseline MUST pass — if it fails, restore leaked the mutation
+        if ! pnpm vitest run "$spec_09a" >/dev/null 2>&1; then
+          echo "L0C-T09a: spec failed after restoring $inv_09a (baseline not intact)" >&2
+          return 1
+        fi
+      done
       return 0
       ;;
     L0C-T09b)
@@ -250,7 +271,11 @@ dispatch_task() {
     CE-T00c) pnpm vitest run tests/CE/CE-T00c.spec.ts || return 1; return 0 ;;
     CE-T01a)
       pnpm vitest run tests/CE/CE-T01a.spec.ts || return 1
-      # WBS A.3 behavior assert: manifest tasks>=30 + sha256 (lands with task)
+      # WBS A.3 behavior assert (spec §CE-T01a 验收#2):
+      # canary/manifest.yaml 存在 → loadCanary tasks>=30 →
+      # verifyManifestSha256===true。非合成 fixture，断言真实交付物。
+      node --experimental-strip-types --no-warnings \
+        "$SCRIPT_DIR/ce-t01a-verify-gate.mjs" || return 1
       return 0
       ;;
     CE-T01b) pnpm vitest run tests/CE/CE-T01b.spec.ts || return 1; return 0 ;;
