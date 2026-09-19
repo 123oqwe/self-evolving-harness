@@ -43,6 +43,39 @@ dispatch_task() {
       pnpm vitest run tests/L0C/T06-memory-schema.spec.ts || return 1
       return 0
       ;;
+    L0C-T07a)
+      # Form A: the locked spec must pass. The spec additionally asserts the
+      # resume duplicate-side-effect hard constraint (terminal tool calls are
+      # never re-executed on resume → execution-count delta == 0), which is
+      # covered by the `assertNoResentToolCalls` cases inside the spec.
+      pnpm vitest run tests/L0C/T07a-runstate.spec.ts || return 1
+      return 0
+      ;;
+    L0C-T07b)
+      # Form A: the locked spec must pass (SessionLog append-only + wake
+      # rehydration + WriteDeltaJournal completion-order replay).
+      pnpm vitest run tests/L0C/T07b-session-log.spec.ts || return 1
+      return 0
+      ;;
+    L0C-T08)
+      # Form A: the locked pre-commit guard spec must pass (five dangerous-diff
+      # kinds via checkDiff + STATIC_CORE_FIELD_REGISTRY + installPreCommitHook).
+      pnpm vitest run tests/L0C/T08-precommit.spec.ts || return 1
+      # Form B / spec verify-block gate: construct a temporary git repo, stage
+      # each of the five dangerous-diff kinds plus one clean diff, run the
+      # staged-diff interceptor (scripts/l0c-t08-check-staged.mjs -> checkDiff)
+      # against the REAL staged `git diff --cached`, and assert every dangerous
+      # kind rejects (exit 1) while the clean diff is allowed (exit 0).
+      node --experimental-strip-types --no-warnings \
+        "$SCRIPT_DIR/l0c-t08-verify-gate.mjs" || return 1
+      return 0
+      ;;
+    L0C-T11)
+      # Form A (ERRATA §5: unified to Appendix A.3 no-`--filter` form,
+      # cwd = repo root): the locked read-only enforcement spec must pass.
+      pnpm vitest run tests/L0C/T11-readonly.spec.ts || return 1
+      return 0
+      ;;
     *)
       echo "verify.sh: unknown TASK-ID '${task_id}'" >&2
       return 1
