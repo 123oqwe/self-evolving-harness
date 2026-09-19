@@ -1,0 +1,17 @@
+{
+  "comment": "L0S-T02 bubblewrap base args template (reference). 动态生成见 src/os-sandbox/bubblewrap.ts BubblewrapBackend.buildArgs()。",
+  "args": [
+    "bwrap",
+    "--ro-bind", "/", "/",
+    "--bind", "<cwd>", "<cwd>",
+    "--dev", "/dev",
+    "--proc", "/proc",
+    "--unshare-net",
+    "--die-with-parent",
+    "--", "sh", "-c", "<cmd>"
+  ],
+  "seccomp": {
+    "comment": "T07: seccomp filter block ptrace/keyctl + denyRead open() → EPERM",
+    "deny": ["ptrace", "keyctl"]
+  }
+}

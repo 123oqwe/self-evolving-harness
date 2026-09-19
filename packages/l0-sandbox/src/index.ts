@@ -7,3 +7,4 @@
  */
 
 export * from "./trust-domains/index.js";
+export * from "./os-sandbox/index.js";
