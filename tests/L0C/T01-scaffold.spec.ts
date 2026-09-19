@@ -127,9 +127,9 @@ describe("L0C-T01", () => {
 
   it("exports L0_CORE_VERSION === 0.1.0", async () => {
     // spec: packages/l0-core/src/index.ts → export const L0_CORE_VERSION = "0.1.0";
-    // 直接相对路径导入源文件：packages/l0-core 无 exports 字段，pnpm 不 hoist，
-    // vitest 也未配 alias，裸包名 @harness/l0-core 在 vitest 下不可解析。
-    const mod = await import("../../src/index.ts");
+    // 包名导入：root package.json 已声明 @harness/l0-core 为 workspace:* devDep，
+    // pnpm install 后 node_modules/@harness/l0-core 符号链接可解析（依赖规范化，见 ERRATA-w01）。
+    const mod = await import("@harness/l0-core");
     expect(mod.L0_CORE_VERSION).toBe("0.1.0");
     expect(typeof mod.L0_CORE_VERSION).toBe("string");
   });
