@@ -1,0 +1,14 @@
+# TL-T06: budget_policy.yaml
+#
+# 项目 scope 不可覆写（防 prompt-injected 仓库改预算偷数据，PRD §11.2）。
+# 仅在离线元循环改写；agent 运行时进程只读（assertMutableByAgent 守卫，
+# 防 reward tampering，Everitt CRMDP，research §1.2 (f)）。
+#
+# 字段：
+#   per_agent_budget         — 单 agent token 上限（Infinity = 不限）
+#   runaway_loop_threshold   — 连续同工具调用次数上限，严格超过 → abort
+#   price_table_version      — 版本化价目表指针（TL-T02）
+#
+per_agent_budget: Infinity
+runaway_loop_threshold: 10
+price_table_version: v1
