@@ -54,11 +54,23 @@ importers:
         specifier: ^22.10.0
         version: 22.20.1
 
-  packages/l1-config: {}
+  packages/l1-config:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
 
-  packages/l2-memory: {}
+  packages/l2-memory:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
 
-  packages/l3-engine: {}
+  packages/l3-engine:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
 
   packages/telemetry:
     devDependencies:

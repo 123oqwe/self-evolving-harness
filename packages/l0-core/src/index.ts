@@ -19,6 +19,16 @@ export * from "./compaction/cache-prefix.js";
 export * from "./compaction/cut-boundary.js";
 export * from "./memory-tool/progressive-disclosure.js";
 export * from "./memory-tool/six-commands.js";
+// CLN-T01: real typebox schemas for the stop-decision contract (L0C-T03)
+// and the six memory-tool command inputs (L0C-T06). Explicit named
+// re-exports override the legacy type-only star exports above so the
+// barrel's `StopReason` / `StopDecision` / `MemoryCommand` bind to the
+// typebox schema *values* (runtime `Value.Check`-able) while keeping the
+// co-sourced `Static` types. The wire-level `StopReason` union stays
+// available via `transcript/types.ts` for internal use; the manual
+// `validateMemoryCommand` guard stays in `six-commands.ts`.
+export { StopReason, StopDecision } from "./stop-schema.js";
+export { MemoryCommand } from "./memory-schema.js";
 export * from "./run-state/run-state.js";
 export * from "./run-state/journal.js";
 export * from "./session-log/session-log.js";
