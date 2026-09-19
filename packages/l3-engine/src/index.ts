@@ -32,6 +32,10 @@ export { BreakerError, NotImplemented, recordSecurityEvent } from "./breaker.js"
 // Optimizer router.
 export { routeOptimizer } from "./optimizer-router.js";
 
+// L3-T04: strict-improvement hard gate.
+export { StrictImprovementGate, IncompleteFitness } from "./strict-improvement.js";
+export type { Decision } from "./strict-improvement.js";
+
 // ---------------------------------------------------------------------------
 // L3-T09: EvolveSkillAdapter + FitnessBridge + runEvolutionLoop body +
 // runEvolutionCycle (XM-T01 entry). Barrel additions only.
