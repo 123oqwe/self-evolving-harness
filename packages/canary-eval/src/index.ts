@@ -143,3 +143,12 @@ export type {
 
 // CE-T06 REFACTOR：revert 命令构造（static-core 标记，agent 运行时只读）。
 export { buildRevertCmd } from "./revert.js";
+
+// CE-T07 落地：fresh-evidence 终审门 hook — select 前 abort 若无 exit-code 证据。
+// 铁律：变体 select 前必须执行 ≥1 条机械命令、exit code=裁决、禁 prose reasoning 当成功
+// （bigpowers verify-work terminal-verdict gate + SpecPow execution-verification-before-completion
+// 同源印证，PRD §5.6）。嵌入 L3 select 步（L3-T04 strict-improvement 前置）。
+// ERRATA-w2plus CE-25：FreshEvidence.verifications 复用 CE-T02 VerifierRun 导出契约。
+export { assertFreshEvidence, AbortSelectError } from "./fresh-evidence-gate.js";
+
+export type { FreshEvidence } from "./fresh-evidence-gate.js";

@@ -155,6 +155,15 @@ export class ConfigRepo {
   }
 
   /**
+   * 暴露 repo root 绝对路径供下游 commit-on-success（T04b/T05b）写 active +
+   * staging 版本后缀文件、以及 canary 配置面写 `config/canary-shadow.yaml`。
+   * 纯只读访问器，不改变既有 load/reload/pinSha 行为（additive accessor）。
+   */
+  getRoot(): string {
+    return this.root;
+  }
+
+  /**
    * 接线 safety 段签名校验器（runtime 第二层守卫）。
    * 接线后，`loadActive` / `reload` 在 sha 钉死通过后、`ConfigSet` swap 之前，
    * 对清单覆盖的文件重算 safety 段 sha256 比对，失配 → throw 不 swap。
