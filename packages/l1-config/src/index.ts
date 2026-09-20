@@ -15,3 +15,5 @@ export * from "./select-retain.js";
 export * from "./canary-config-plane.js";
 // L1-T05a: phase prompt 进化 loop-a beam-search reflective mutation 驱动器。
 export * from "./phase-evolution-driver.js";
+// L1-T05b: phase 进化 loop-b select + cache warm-up 软多目标 + canary 配置面。
+export * from "./phase-select-retain.js";
