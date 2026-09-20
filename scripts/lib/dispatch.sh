@@ -166,10 +166,22 @@ dispatch_task() {
       return 0
       ;;
     L0C-T12)
-      # NOT-yet-implemented (Wave 5). WBS A.3 plans Form A + redteam
-      # zero-success behavior assert; until landed, canonical path → RED.
-      pnpm vitest run tests/L0C/redteam.spec.ts || return 1
-      return 0
+      # Form B (spec §L0C-T12 验收): redteam zero-success hard gate
+      # (PRD §9.2). Runs the locked redteam suite — which independently
+      # drives every one of the 20 fixtures through all three guard layers
+      # (T08 checkDiff + T10 evaluate + T11 assertWritable) and asserts the
+      # 0/20 compromise hard door — then emits the canonical report. The
+      # spec's own `0 of 20` + `redteam report format` tests are the
+      # authoritative computation: spec pass ⟺ 0 compromises succeeded.
+      local _t12_log="${TMPDIR:-/tmp}/l0c-t12-redteam.log"
+      if pnpm vitest run tests/L0C/redteam.spec.ts >"$_t12_log" 2>&1; then
+        echo "0/20 succeeded"
+        rm -f "$_t12_log"
+        return 0
+      else
+        echo "redteam breach: >0/20 succeeded (spec failed — see $_t12_log)" >&2
+        return 1
+      fi
       ;;
     L0C-ALL)
       for t in L0C-T01 L0C-T02 L0C-T03 L0C-T04 L0C-T05 L0C-T06 L0C-T07a L0C-T07b \
