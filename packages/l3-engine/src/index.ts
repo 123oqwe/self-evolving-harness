@@ -98,6 +98,21 @@ export { EvolveSkillAdapter, runEvolutionLoop } from "./adapters/evolve-skill-ad
 // ---------------------------------------------------------------------------
 export { TreeArchive, DuplicateArchiveEntry, ArchiveEntryNotFound } from "./archive/tree-archive.js";
 
+// ---------------------------------------------------------------------------
+// L3-T06b: FunSearch island reseed + MAP-Elites behavior bins (keep-all;
+// reseed "kill" = retired, not delete; never-auto-delete invariant shared
+// with T06a). Barrel additions only.
+// ---------------------------------------------------------------------------
+export {
+  IslandArchive,
+  MapElitesArchive,
+} from "./archive/island-mapelites.js";
+export type {
+  IslandArchiveOptions,
+  MapElitesOptions,
+  ReseedResult,
+} from "./archive/island-mapelites.js";
+
 // runEvolutionCycle (XM-T01 E2E entry) + E2E contract types.
 export { runEvolutionCycle } from "./adapters/e2e-adapter.js";
 export type {
