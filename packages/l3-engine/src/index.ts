@@ -37,6 +37,13 @@ export { StrictImprovementGate, IncompleteFitness } from "./strict-improvement.j
 export type { Decision } from "./strict-improvement.js";
 
 // ---------------------------------------------------------------------------
+// L3-T05: Pareto multi-objective selector (resolve_rate ∧ token ∧ cache_hit,
+// NO weighted sum — PRD §6.7 hard invariant). Barrel additions only.
+// ---------------------------------------------------------------------------
+export { ParetoSelector, WeightedSumForbidden } from "./pareto-selector.js";
+export type { ParetoSelector as ParetoSelectorInterface } from "./pareto-selector.js";
+
+// ---------------------------------------------------------------------------
 // L3-T03: reflective mutation generator (GEPA variant source) + luckyPass
 // defence-in-depth guard. Barrel additions only.
 // ---------------------------------------------------------------------------
