@@ -54,6 +54,8 @@ jobs:
       - name: Install bubblewrap (Linux only)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Build (all packages, strict)
@@ -112,6 +114,8 @@ jobs:
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y bubblewrap
       - name: Install deps
+      - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
         run: pnpm install --frozen-lockfile
       - name: Test-lock sha256 gate (defense in depth)
         run: node scripts/lib/test-lock-check.mjs
@@ -164,6 +168,8 @@ jobs:
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y bubblewrap
       - name: Install deps (root)
+      - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
         run: pnpm install --frozen-lockfile
       - name: Build all packages (root, strict)
         run: pnpm -r run build
