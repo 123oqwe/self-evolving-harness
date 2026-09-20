@@ -14,6 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 注: GitHub runner 默认即非 root (uid 1001 runner 用户), sentinel ubuntu job
+  # 已以非 root 覆盖全部 L0S 沙箱测试 → 原 L0S non-root job 冗余, 已移除 (L0S-R1 由 sentinel 满足)
   # ── 测试锁 sha256 门: 锁定测试文件不得被篡改 (TEST-LOCK.md §1.2) ────────
   # 这是 self-evolving harness 的核心安全属性: implementer 不得触碰 tests/ 下
   # 已锁定文件。本门重算每个锁定测试文件的 sha256 并与 TEST-LOCK.md §2 表
@@ -156,37 +158,3 @@ jobs:
   # 注: 原 ERRATA L0S-R1 缓解 (b) "bwrap 加 --cap-drop ALL" 已更正废除——
   # --cap-drop 是 Docker/podman 旗标, bwrap 无此选项 (cloud CI 实证)。权限
   # 约束由 bwrap 非特权 user namespace 本身完成。见 ERRATA-w01 更正记录。
-  l0s-nonroot:
-    name: L0S tests (non-root uid, ERRATA L0S-R1)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.0
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v4.0.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v6.5.0
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Install bubblewrap
-        run: sudo apt-get update && sudo apt-get install -y bubblewrap
-      - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
-        if: runner.os == 'Linux'
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: Install deps (root)
-        run: pnpm install --frozen-lockfile
-      - name: Build all packages (root, strict)
-        run: pnpm -r run build
-      # 创建非 root user 并把 workspace 所有权转交, 使后续测试以非 root uid 执行。
-      - name: Provision non-root user
-        run: |
-          sudo useradd -m -s /bin/bash l0s-runner
-          sudo chown -R l0s-runner:l0s-runner "$GITHUB_WORKSPACE"
-      # 以非 root uid 跑 L0S 测试: bwrap mode-000 遮蔽在非 root 下生效 (L0S-R1)。
-      - name: Run L0S tests as non-root user
-        run: |
-          set -o pipefail
-          sudo -u l0s-runner env "HOME=/home/l0s-runner" node node_modules/vitest/vitest.mjs run tests/L0S/T01.brain-no-credential.spec.ts tests/L0S/T01.session-log-append-only.spec.ts tests/L0S/T01.session-wake-idempotent.spec.ts tests/L0S/T02.sandbox-deny-ssh.spec.ts tests/L0S/T02.sandbox-deny-egress.spec.ts tests/L0S/T02.sandbox-platform-skip.spec.ts tests/L0S/T03.deny-read-ssh.spec.ts tests/L0S/T03.narrower-allow-reopens.spec.ts tests/L0S/T03.symlink-bypass-blocked.spec.ts tests/L0S/T03.worktree-write-scoped.spec.ts tests/L0S/T06.timeout-kills.spec.ts tests/L0S/T06.teardown-on-throw.spec.ts tests/L0S/T06.concurrency-limit.spec.ts tests/L0S/T06.orphan-list.spec.ts 2>&1 | tee /tmp/l0s.log
-          exit "${PIPESTATUS[0]}"
-      - name: Surface L0S failures
-        if: failure()
-        run: tail -30 /tmp/l0s.log | while IFS= read -r l; do echo "::error::$l"; done || true
