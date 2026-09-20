@@ -18,12 +18,17 @@
 // canaryRelease / revertExec 借助 CE-T06（@harness/canary-eval）。回滚演练
 // 必须走 revertExec（禁止测试内直接 git checkout 绕过回滚本体）。
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import * as path from "node:path";
+import { randomUUID } from "node:crypto";
 import type { Fitness, Mutant } from "../types.js";
 import { runEvolutionLoop } from "./evolve-skill-adapter.js";
 import type { Sandbox, VerifyResult, SecurityEvent } from "../sandbox.js";
 import { STATIC_CORE_PATHS } from "../sandbox.js";
+
+// CE-T02 VerifierRun = 机械 exit-code 裁决契约（CE-T07 fresh-evidence 门消费）。
+import type { VerifierRun } from "@harness/canary-eval";
 
 // CE-T06 canary 发布 + 回滚本体（借助，非自研）。
 import { canaryRelease, revertExec } from "@harness/canary-eval";
@@ -116,14 +121,48 @@ class E2ESandbox implements Sandbox {
   public readonly log: { securityEvents: SecurityEvent[] } = {
     securityEvents: [],
   };
+  /**
+   * E2ESandbox 是 XM-T01 e2e 路径的 fixture sandbox，不是生产 breaker 凭据。
+   * 生产 wiring 必须使用真实 L0S-T02 OS sandbox；此处 runVerify 真实执行
+   * 命令（捕获 exitCode）以产出机械证据，assertReadonly 仅强制 e2e 局域
+   * 不变量（workspace 不得包含 static-core 子树）。
+   */
+  constructor(private readonly workspaceDir: string) {}
   async runVerify(
-    _cmd: string,
-    _opts?: { cwd?: string; timeoutMs?: number },
+    cmd: string,
+    opts?: { cwd?: string; timeoutMs?: number },
   ): Promise<VerifyResult> {
-    return { exitCode: 0, stdout: "", stderr: "", epermHits: [] };
+    // 真实执行命令：exitCode 来自进程退出码（机械裁决），非硬编码。
+    // 这使 CE-T07 fresh-evidence 门的 VerifierRun.exitCode 由真实命令产出，
+    // 而非伪造的 0。`exit 0` → status 0；任何失败命令 → 非 0 exitCode → 门拒绝。
+    const r = spawnSync("sh", ["-c", cmd], {
+      cwd: opts?.cwd ?? this.workspaceDir,
+      encoding: "utf8",
+      timeout: opts?.timeoutMs,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return {
+      exitCode: r.status ?? 1,
+      stdout: r.stdout ?? "",
+      stderr: r.stderr ?? "",
+      epermHits: [],
+    };
   }
-  async assertReadonly(_paths: string[]): Promise<void> {
-    // The e2e workspace never writes static-core in the MVP adapter path.
+  async assertReadonly(paths: string[]): Promise<void> {
+    // E2ESandbox 不充当生产 static-core breaker（生产须走 L0S-T02）。此处仅
+    // 强制 e2e 局域不变量：e2e workspace 不得包含任何 static-core 子树——
+    // 循环只写 workspaceDir 内，故 workspace 不含 static-core 即保证循环
+    // 无法改写 static-core（invariant 3 在 e2e 路径的诚实兑现，非 no-op）。
+    for (const p of paths) {
+      const inside = path.resolve(this.workspaceDir, p);
+      if (existsSync(inside)) {
+        throw new Error(
+          `breaker: static-core path "${p}" exists inside e2e workspace ` +
+            `${this.workspaceDir} — invariant 3 violated ` +
+            `(E2ESandbox is a fixture, not a production breaker credential)`,
+        );
+      }
+    }
   }
 }
 
@@ -148,7 +187,11 @@ const DEFAULT_GOOD_OBS: CanaryObservations = {
 class ModeEvaluator {
   private callIdx = 0;
   private _lastFitness: Fitness | null = null;
-  constructor(private readonly mode: MutationSource["mode"]) {}
+  constructor(
+    private readonly mode: MutationSource["mode"],
+    private readonly sandbox: Sandbox,
+    private readonly canary: MiniCanaryTask[],
+  ) {}
   async score(m: Mutant, _split: "train" | "heldout"): Promise<Fitness> {
     this.callIdx += 1;
     let fitness: Fitness;
@@ -171,6 +214,30 @@ class ModeEvaluator {
     }
     this._lastFitness = fitness;
     return fitness;
+  }
+  /**
+   * CE-T07 fresh-evidence 通道：真实运行 mini-canary 的 verify 命令，
+   * 产出 VerifierRun[]（exitCode 由真实进程退出码裁决）。这是 Fitness
+   * 背后的机械证据——fresh-evidence 门据此放行 select，杜绝裸 Fitness
+   * fail-open。Fitness 仍由 MutationSource mode 驱动（fixture 模拟变体质量），
+   * 但 select 现须由 ≥1 条真实 exit-code 裁决背书。
+   */
+  async evidence(_m: Mutant): Promise<VerifierRun[]> {
+    const runs: VerifierRun[] = [];
+    for (const task of this.canary) {
+      const result = await this.sandbox.runVerify(task.verify);
+      runs.push({
+        taskId: task.id,
+        command: task.verify,
+        exitCode: result.exitCode,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        runId: randomUUID(),
+        contiguousRun: true,
+        epermHits: result.epermHits ?? [],
+      });
+    }
+    return runs;
   }
   lastFitness(): Fitness | null {
     return this._lastFitness;
@@ -235,8 +302,12 @@ export async function runEvolutionCycle(
     sha: config.baselineSha,
   };
 
-  const evaluator = new ModeEvaluator(config.mutationSource.mode);
-  const sandbox = new E2ESandbox();
+  const sandbox = new E2ESandbox(config.workspaceDir);
+  const evaluator = new ModeEvaluator(
+    config.mutationSource.mode,
+    sandbox,
+    config.canary,
+  );
 
   // 薄包裹：跑 closed loop（generate → score(train) → strict-improvement
   // select → commit-on-success retain → keep-all archive）。evaluator 侧记
@@ -244,10 +315,7 @@ export async function runEvolutionCycle(
   await runEvolutionLoop({
     substrate,
     beamWidth: 3,
-    evaluator: {
-      score: (m: Mutant, split: "train" | "heldout") =>
-        evaluator.score(m, split),
-    },
+    evaluator,
     sandbox,
     tau: { resolve_rate: 0, token: 0, cache_hit: 0 },
     generations: config.generations,

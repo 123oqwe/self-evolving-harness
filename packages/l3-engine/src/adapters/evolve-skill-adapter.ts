@@ -37,6 +37,7 @@ import type {
   Trajectory,
   LoopOptions,
   LoopResult,
+  Evaluator,
 } from "../types.js";
 import type { Sandbox } from "../sandbox.js";
 import { STATIC_CORE_PATHS } from "../sandbox.js";
@@ -49,6 +50,15 @@ import { ParetoSelector } from "../pareto-selector.js";
 import { TreeArchive } from "../archive/tree-archive.js";
 import { Retain } from "../retain/commit-on-success.js";
 import { hashStr } from "../prng.js";
+
+// CE-T07 fresh-evidence 终审门（select 前 abort 若无 exit-code 证据）。
+// 嵌入 L3 select 步：score→decide 之间接入 assertFreshEvidence，
+// 违反「no fresh evidence → no select」铁律的候选 fail-closed reject。
+import {
+  assertFreshEvidence,
+  AbortSelectError,
+} from "@harness/canary-eval";
+import type { VerifierRun } from "@harness/canary-eval";
 
 // ---------------------------------------------------------------------------
 // EvolveSkillAdapter — closed loop assembling real T02–T08 components
@@ -92,16 +102,12 @@ export class EvolveSkillAdapter {
   }
 
   /**
-   * Score hook. Delegates to an injected evaluator when present; otherwise
-   * throws — the adapter requires an evaluator to produce Fitness (the
-   * runEvolutionLoop entry wires the LoopOptions.evaluator in).
+   * Evaluator handle. Holds the full `Evaluator` so the select step can both
+   * `score` (Fitness) and `collectEvidence` (CE-T07 VerifierRun[]) — the
+   * fresh-evidence gate requires the latter before `StrictImprovementGate.decide`.
    */
-  private _evaluator:
-    | ((m: Mutant, split: "train" | "heldout") => Promise<Fitness>)
-    | null = null;
-  setEvaluator(
-    fn: (m: Mutant, split: "train" | "heldout") => Promise<Fitness>,
-  ): void {
+  private _evaluator: Evaluator | null = null;
+  setEvaluator(fn: Evaluator): void {
     this._evaluator = fn;
   }
   private async score(mutant: Mutant): Promise<Fitness> {
@@ -111,7 +117,23 @@ export class EvolveSkillAdapter {
       );
     }
     // train split only — held-out must never feed generate/select (contract §2).
-    return this._evaluator(mutant, "train");
+    return this._evaluator.score(mutant, "train");
+  }
+
+  /**
+   * CE-T07 fresh-evidence collection. Delegates to the wired evaluator's
+   * `evidence` port. Returns `[]` when the evaluator omits the port — the
+   * select step treats empty evidence as fail-closed (reject), honouring the
+   * 「no fresh evidence → no select」iron law rather than fail-open.
+   */
+  private async collectEvidence(mutant: Mutant): Promise<VerifierRun[]> {
+    if (!this._evaluator) {
+      return [];
+    }
+    if (typeof this._evaluator.evidence !== "function") {
+      return [];
+    }
+    return this._evaluator.evidence(mutant);
   }
 
   /**
@@ -195,6 +217,29 @@ export class EvolveSkillAdapter {
     for (let g = 0; g < n; g++) {
       const mutant = beam[g]!;
       const fitness = await this.score(mutant);
+
+      // CE-T07 fresh-evidence 终审门（嵌入 L3 select 步，strict-improvement 前置）。
+      // 铁律：no fresh exit-code evidence → no select。无 VerifierRun 或缺数值
+      // exitCode → throw AbortSelectError → candidate fail-closed rejected
+      // （不入 archive、不 commit）。这阻断了「裸 Fitness 即 select」的伪造信号
+      // fail-open 路径——strict-improvement 门只比对 Fitness，不校验 Fitness 来源；
+      // 本门在 select 前强制 Fitness 须由 ≥1 条机械命令 exit-code 裁决背书。
+      let verifications: VerifierRun[];
+      try {
+        verifications = await this.collectEvidence(mutant);
+        assertFreshEvidence({
+          variantSha: mutant.id,
+          verifications,
+          hasExitCodeEvidence: verifications.length > 0,
+        });
+      } catch (err) {
+        if (err instanceof AbortSelectError) {
+          // 无机械证据 → select abort → reject（fail-closed，不入 archive）。
+          rejected.push(mutant);
+          continue;
+        }
+        throw err;
+      }
 
       if (best === null) {
         // First candidate: seeds the running best. Strict-improvement is
@@ -341,7 +386,7 @@ export async function runEvolutionLoop(opts: LoopOptions): Promise<LoopResult> {
     archive,
     retain,
   });
-  adapter.setEvaluator((m, split) => opts.evaluator.score(m, split));
+  adapter.setEvaluator(opts.evaluator);
   return adapter.runLoop(opts.substrate, opts.generations);
 }
 

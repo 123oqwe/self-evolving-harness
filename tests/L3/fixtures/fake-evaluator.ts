@@ -16,6 +16,7 @@
 // self-contained.
 
 import type { Evaluator, Fitness, Mutant } from "@harness/l3-engine";
+import type { VerifierRun } from "@harness/canary-eval";
 import { mulberry32, hashStr } from "./prng";
 
 export interface FakeEvaluatorOptions {
@@ -66,6 +67,29 @@ export class FakeEvaluator implements Evaluator {
         : this.table;
     const f = src.get(m.id) ?? this.derive(m.id);
     return { ...f };
+  }
+
+  /**
+   * CE-T07 fresh-evidence 通道。fixture 产出 ≥1 条机械 VerifierRun
+   * （exitCode=0 裁决），使 L3 select 步的 assertFreshEvidence 门放行——
+   * 证明 commit 由机械证据背书，而非裸 Fitness fail-open。runId 每次唯一
+   * （调序计数器），避免跨 run 合并歧义。真实生产 evaluator 须由真实
+   * verify 命令产出 exitCode；此处 fixture 以 exitCode 0 模拟通过裁决。
+   */
+  async evidence(_m: Mutant): Promise<VerifierRun[]> {
+    const idx = this.seqIdx; // 复用 score 调序，使 runId 与 score 对齐
+    return [
+      {
+        taskId: `fake-${idx}`,
+        command: "exit 0",
+        exitCode: 0,
+        stdout: "",
+        stderr: "",
+        runId: `fake-run-${idx}-${this.seed}`,
+        contiguousRun: true,
+        epermHits: [],
+      },
+    ];
   }
 
   /** Deterministic Fitness fallback from id+seed (mulberry32). */
