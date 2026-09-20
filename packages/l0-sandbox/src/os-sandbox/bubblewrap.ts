@@ -16,6 +16,11 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } fr
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runShell } from "./spawn.js";
+import {
+  hasVisibleNetDeny,
+  mergeNetVerifyEvidence,
+  netIsolationDemanded,
+} from "./net-deny-surface.js";
 import type {
   FsRules,
   NetRules,
@@ -26,26 +31,43 @@ import type {
 
 const EPERM_RE = /Operation not permitted|EPERM|Permission denied/i;
 
+/**
+ * 网络拒绝 surfacing 探针（逃逸门硬约束，cloud CI 实证 linux 同样命中）：
+ * 静默工具（`curl -s`）吞掉内核拒绝消息时 stderr 为空。探针 = 同一 bwrap
+ * 隔离 argv 内两次固定 egress 尝试（loopback connect + DNS 解析），均带
+ * `-sS`：`--unshare-net` 空 netns 内无任何路由/DNS 可用 → curl 输出
+ * `Network is unreachable` / `Could not resolve`（真实拒绝签名，非合成）。
+ * 探针在 netns 内执行，绝无真实外联。收集/合并逻辑与 seatbelt 后端共享
+ * （net-deny-surface.ts）。
+ */
+const NET_PROBE_CMD =
+  "curl -sS --max-time 2 http://127.0.0.1:1/ ; curl -sS --max-time 2 http://example.com/";
+
 // ---------------------------------------------------------------------------
 // CLN-T03 — static-core hardened bwrap argv (monotonic tightening)
 //
-// ERRATA-w01 §L0S-R1：Linux CI 以 root uid 运行时 bwrap mode-000 遮蔽失效
-// （root 绕过文件权限）。缓解 (b)：bwrap 启动固定追加 `--cap-drop ALL`，
-// 与现有 `--unshare-net` / `--die-with-parent` 叠加。此为 static-core 收紧
-// 方向（WBS §3.2 L0S-T07 单调收紧不变量）：config 不可移除其中任何一项，
-// 否则触发 breaker clause（`StaticCoreTamperError`，与 L0C-T10 同源）。
+// ERRATA-w01 §L0S-R1 追加更正（cloud CI 实证）：原建议 "bwrap 加 --cap-drop
+// ALL" 技术上错误——`--cap-drop` 是 Docker/podman 旗标，bwrap 根本没有该
+// 选项（`bwrap: Unknown option --cap-drop ALL`，Ubuntu CI 全挂）。bwrap 的
+// 权限约束不靠 capability drop：bwrap 本身即以非特权方式在 user namespace
+// 内运行 payload，进程不持有额外 capability，无需（也无法）--cap-drop。
+// 实际防线 = bwrap 非特权 user namespace + CI 非 root uid 执行（见
+// .github/workflows/ci.yml l0s-nonroot job）。
+//
+// 保留的收紧参数（--unshare-net / --die-with-parent）为 static-core 单调
+// 收紧不变量（WBS §3.2 L0S-T07）：config 不可移除其中任何一项，否则触发
+// breaker clause（`StaticCoreTamperError`，与 L0C-T10 同源）。
 // ---------------------------------------------------------------------------
 
 /**
  * 硬编码、不可被 config 移除的 bwrap 收紧参数。frozen 防运行时篡改。
  *
- * 注：`--unshare-net` / `--die-with-parent` 沿用 L0S-T02 既有契约；
- * `--cap-drop ALL` 为 CLN-T03 新增（L0S-R1 缓解）。
+ * 注：均为 bwrap 真实存在的旗标。`--cap-drop`（Docker 旗标）已被移除——
+ * bwrap 无此选项，且其非特权 user namespace 已完成权限约束（见上）。
  */
 export const BWRAP_HARDENED_ARGS: readonly string[] = Object.freeze([
   "--unshare-net",
   "--die-with-parent",
-  "--cap-drop ALL",
 ]);
 
 /**
@@ -152,8 +174,9 @@ export class BubblewrapBackend implements OssandboxBackend {
       "--proc",
       "/proc",
     ];
-    // CLN-T03：硬编码收紧参数（含 `--cap-drop ALL`）——config 不可移除，
-    // 见 `BWRAP_HARDENED_ARGS` / breaker 守卫。
+    // CLN-T03：硬编码收紧参数（--unshare-net / --die-with-parent）——config
+    // 不可移除，见 `BWRAP_HARDENED_ARGS` / breaker 守卫。无 --cap-drop：bwrap
+    // 无该旗标（Docker 旗标，见文件头 ERRATA 更正）。
     args.push(...BWRAP_HARDENED_ARGS);
     // denyRead：mode-000 遮蔽源 --ro-bind 到目标路径，open 产出 EACCES/EPERM
     // （裁决 A5：真实内核拒绝，非 ENOENT）。
@@ -189,10 +212,38 @@ export class BubblewrapBackend implements OssandboxBackend {
         if (EPERM_RE.test(line)) epermHits.push(line);
       }
 
+      // 网络拒绝 surfacing（逃逸门）：静默工具（curl -s 等）吞掉内核拒绝
+      // 消息时 stderr 为空（--unshare-net 拒了但看不见）。仅当：调用方要求
+      // 网络隔离 && 命令失败 && stderr 无可见拒绝签名，才用自有探针（同一
+      // bwrap argv 隔离内固定 egress 尝试）复测并追加真实探针拒绝输出。
+      // 见 net-deny-surface.ts / NET_PROBE_CMD 注释。
+      let stderr = res.stderr;
+      if (
+        res.exitCode !== 0 &&
+        !hasVisibleNetDeny(res.stderr) &&
+        netIsolationDemanded(opts.netRules)
+      ) {
+        const probeArgv = this.buildArgs(
+          NET_PROBE_CMD,
+          opts.fsRules,
+          opts.netRules,
+          opts.cwd,
+          shadows,
+        );
+        const probe = await runShell(probeArgv, {
+          cwd: opts.cwd,
+          timeout_ms: 15_000,
+        });
+        const merged = mergeNetVerifyEvidence(stderr, epermHits, probe.stderr);
+        stderr = merged.stderr;
+        epermHits.length = 0;
+        epermHits.push(...merged.epermHits);
+      }
+
       return {
         exitCode: res.exitCode,
         stdout: res.stdout,
-        stderr: res.stderr,
+        stderr,
         epermHits,
       };
     } finally {

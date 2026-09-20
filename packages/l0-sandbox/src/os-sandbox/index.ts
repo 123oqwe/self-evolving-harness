@@ -14,6 +14,12 @@ export type {
 } from "./types.js";
 export { SeatbeltBackend } from "./seatbelt.js";
 export {
+  extractNetDenyHits,
+  mergeNetVerifyEvidence,
+  hasVisibleNetDeny,
+  netIsolationDemanded,
+} from "./net-deny-surface.js";
+export {
   BubblewrapBackend,
   BWRAP_HARDENED_ARGS,
   StaticCoreTamperError,
