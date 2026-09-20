@@ -142,7 +142,9 @@ export type {
 } from "./release.js";
 
 // CE-T06 REFACTOR：revert 命令构造（static-core 标记，agent 运行时只读）。
-export { buildRevertCmd } from "./revert.js";
+// XM-T01 依赖补齐：revertExec 回滚本体（ERRATA-w2plus XM-03 锁定签名）。
+export { buildRevertCmd, revertExec } from "./revert.js";
+export type { RevertExecOptions, RevertExecResult } from "./revert.js";
 
 // CE-T07 落地：fresh-evidence 终审门 hook — select 前 abort 若无 exit-code 证据。
 // 铁律：变体 select 前必须执行 ≥1 条机械命令、exit code=裁决、禁 prose reasoning 当成功

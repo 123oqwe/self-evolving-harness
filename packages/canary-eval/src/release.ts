@@ -84,8 +84,10 @@ function detectDegradation(
     }
   }
 
-  // PII 命中数超阈值。
-  if (observations.piiCount >= revertThresholds.piiCount) {
+  // PII 命中数超阈值（threshold = 允许上限；observed > threshold 才算违规。
+  // threshold=0 + observed=0 = 合规，不算退化——否则任何零 PII canary 都被误判
+  // 退化，与 XM-T01 PROMOTE_POLICY.piiCount=0 + GOOD_OBS.piiCount=0 冲突）。
+  if (observations.piiCount > revertThresholds.piiCount) {
     return true;
   }
 
