@@ -113,6 +113,14 @@ export type {
   ReseedResult,
 } from "./archive/island-mapelites.js";
 
+// ---------------------------------------------------------------------------
+// L3-T07: ExpeL upvote/downvote importance counter (start 2; count==0 →
+// retire, not delete; <minEvidence evidence → not activated). Barrel
+// additions only.
+// ---------------------------------------------------------------------------
+export { ExpelCounter } from "./archive/expel-counter.js";
+export type { ExpelCounterOptions } from "./archive/expel-counter.js";
+
 // runEvolutionCycle (XM-T01 E2E entry) + E2E contract types.
 export { runEvolutionCycle } from "./adapters/e2e-adapter.js";
 export type {
