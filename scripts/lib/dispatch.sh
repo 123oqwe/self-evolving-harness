@@ -504,11 +504,17 @@ dispatch_task() {
       return 0
       ;;
     CLN-T03)
-      # Form A: the CLN non-root CI spec must pass.
+      # Form A: the CLN non-root CI spec must pass. This locked spec asserts
+      # the same three invariants a standalone Form B verifier would
+      # (buildBwrapArgs argv contains --cap-drop ALL; BWRAP_HARDENED_ARGS is
+      # frozen and contains --cap-drop ALL; removeHardened:["--cap-drop ALL"]
+      # throws StaticCoreTamperError) — but via vitest's resolver, which can
+      # follow bubblewrap.ts's NodeNext `./spawn.js` runtime import. A
+      # standalone `node --experimental-strip-types` .mjs cannot resolve those
+      # `.js`-extension imports to `.ts` source (ERR_MODULE_NOT_FOUND), so the
+      # prior `cln-t03-bwrap-verify.mjs` Form B reference was unrunnable
+      # (REJECT refix1). Form A is the authoritative gate here.
       pnpm vitest run tests/cleanup/T03-linux-ci-nonroot.spec.ts || return 1
-      # Form B: bwrap argv contains --cap-drop ALL + breaker rejects removal.
-      node --experimental-strip-types --no-warnings \
-        "$SCRIPT_DIR/cln-t03-bwrap-verify.mjs" || return 1
       return 0
       ;;
     CLN-ALL)

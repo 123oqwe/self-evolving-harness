@@ -123,3 +123,37 @@ jobs:
         with:
           name: suite-log-${{ github.sha }}
           path: suite.log
+
+  # ── L0S 沙箱测试: 非 root uid 执行 (ERRATA-w01 §L0S-R1 / CLN-T03) ──
+  # Linux CI 以 root uid 运行时 bwrap mode-000 遮蔽失效 (root 绕过文件权限),
+  # 导致 L0S-T02 sandbox 隔离契约在 root 下不可信。本 job 以非 root uid 跑
+  # L0S 测试, 使 bwrap mode-000 遮蔽在非 root 下生效 (纵深防御 (a));
+  # bwrap argv 的 --cap-drop ALL 硬编码见 packages/l0-sandbox 后端 (缓解 (b))。
+  l0s-nonroot:
+    name: L0S tests (non-root uid, ERRATA L0S-R1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: pnpm/action-setup@fe02b34f77f8bc86e60342e0192b3f2d305eee70  # v4.0.0
+        with:
+          version: 10
+      - uses: actions/setup-node@924ae3a1cded613372ab5595356fb5720e22ba16  # v6.5.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install bubblewrap
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Install deps (root)
+        run: pnpm install --frozen-lockfile
+      - name: Build all packages (root, strict)
+        run: pnpm -r run build
+      # 创建非 root user 并把 workspace 所有权转交, 使后续测试以非 root uid 执行。
+      - name: Provision non-root user
+        run: |
+          sudo useradd -m -s /bin/bash l0s-runner
+          sudo chown -R l0s-runner:l0s-runner "$GITHUB_WORKSPACE"
+      # 以非 root uid 跑 L0S 测试: bwrap mode-000 遮蔽在非 root 下生效 (L0S-R1)。
+      - name: Run L0S tests as non-root user
+        run: |
+          su l0s-runner -c "cd \"$GITHUB_WORKSPACE\" && id -u && pnpm vitest run tests/L0S/"

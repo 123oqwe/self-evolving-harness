@@ -7,7 +7,7 @@
 // cache-hit 度量须 warm-up 后稳态度量：变异后首个 session 为 warm-up 不计入
 // 稳态 Pareto（PRD §6.8），由本任务的 `collectCacheHit` 标 `phase` 字段区分。
 
-import type { ConfigRepo, ConfigSet } from "./repo-layout.js";
+import type { ConfigRepo } from "./repo-layout.js";
 import type { Substrate } from "./substrate-types.js";
 import type { SignatureVerifier } from "./signature.js";
 import type { CacheHitSignal } from "./phase-types.js";
@@ -74,9 +74,20 @@ export class PhaseSubstrate {
 
   /**
    * 加载三 phase substrate（init/coding/review）。
-   * 签名校验在 swap 之前：verifier 缺失 → throw
-   * `MissingSignatureManifestError`；段缺失/sha 失配 → throw
-   * `SignatureTamperError`（由 `SignatureVerifier.verify` 抛），绝不半加载。
+   *
+   * 硬保证（T03 执行提示(1) + §0.4 契约不变量）：签名校验必须在
+   * `ConfigSet` swap 之前，签名失败绝不 swap。本方法把 `verifier` 接线进
+   * `repo`（`setSegmentVerifier`），随后调 `repo.loadActive()`——
+   * `loadActive` 内部先校验文件 sha256，再校验 safety 段签名，**全部通过才
+   * swap active**；任一失配 → throw，active 保持旧快照不被毒化。
+   *
+   * 这同时保护直接消费 `repo.loadActive()` 的调用方（compaction/agent 运行时）：
+   * 只要 repo 被接线（本方法或构造期接线），签名第二层即对全部 load 路径生效。
+   *
+   * 威胁场景（fail-closed）：攻击者绕过 pre-commit、篡改 phase-coding 的
+   * `<safety>` 段、同步更新可写的 `repo.lock.json` 文件 sha256 匹配——
+   * sha 钉死（T01）放过，但只读的 L0 static-core 签名清单不放过的 safety 段 sha，
+   * `loadActive` 在 swap 前抛 `SignatureTamperError`，active 不被毒化。
    */
   load(
     repo: ConfigRepo,
@@ -89,43 +100,27 @@ export class PhaseSubstrate {
       );
     }
 
-    let cs: ConfigSet;
-    try {
-      cs = repo.loadActive();
-    } catch (cause) {
-      // sha 失配等已在 loadActive 内抛出，active 保持旧快照
-      const msg =
-        cause instanceof Error
-          ? `phase substrate load failed: ${cause.message}`
-          : "phase substrate load failed";
-      throw new MissingSignatureManifestError(msg);
-    }
+    // 接线第二层守卫到 repo：使 loadActive 在 swap 前校验 safety 段签名。
+    // 失配 → loadActive 抛 `SignatureTamperError`/`ShaMismatchError`，不 swap。
+    repo.setSegmentVerifier(verifier);
 
-    // 对每个 phase 文件做 runtime 签名校验（第二层守卫）
-    // 先全验、再构造 substrate —— 任一失配即 throw，绝不返回半加载结果
-    const phaseContents: Record<"init" | "coding" | "review", string> = {} as Record<
-      "init" | "coding" | "review",
-      string
-    >;
-    for (const key of ["init", "coding", "review"] as const) {
-      const p = PHASE_PATHS[key];
+    // loadActive 内部：verifyFiles (sha) → verifySignatures (safety sha) → swap。
+    // 任一失配即 throw，active 保持上一个成功快照（原子，绝不半加载）。
+    const cs = repo.loadActive();
+
+    // 构造三 substrate（内容已由 loadActive 在 swap 前校验通过）
+    const build = (key: "init" | "coding" | "review"): Substrate => {
       const content = cs.phasePrompts[key];
       if (content === undefined) {
         // phase 文件缺 → 视作篡改（与 T01 一致：缺文件不静默返回空）
         throw new MissingSignatureManifestError(
-          `phase file missing: ${p}`,
+          `phase file missing: ${PHASE_PATHS[key]}`,
         );
       }
-      verifier.verify(p, content);
-      phaseContents[key] = content;
-    }
-
-    // 全验通过 → 构造三 substrate
-    const build = (key: "init" | "coding" | "review"): Substrate => {
       const substrate: Substrate = {
         kind: "phase",
         activePath: PHASE_PATHS[key],
-        content: phaseContents[key],
+        content,
       };
       return Object.freeze({ ...substrate }) as Substrate;
     };
