@@ -90,7 +90,10 @@ jobs:
             tests/TL/T02-usage.spec.ts \
             tests/TL/T05-schema-policy.spec.ts \
             tests/TL/T06-budget-policy.spec.ts \
-            tests/gates/g1-smoke.spec.ts
+            tests/gates/g1-smoke.spec.ts 2>&1 | tee /tmp/sentinel.log
+          EXIT=${PIPESTATUS[0]}
+          grep -E '^\s*×|FAIL ' /tmp/sentinel.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done
+          exit $EXIT
 
   # ── 全量套件: 当前 MVP 未完成, 未实现任务的红项是合法 RED ──────────
   # 报告 green/red 并与 GREENS.baseline 对比: 绿数不许低于基线(回归即fail)
