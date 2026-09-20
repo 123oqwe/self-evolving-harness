@@ -126,3 +126,20 @@ export type {
 export { computeSaturationGap, DISCRIMINATION_THRESHOLD } from "./saturation-gap.js";
 
 export type { SaturationGap } from "./saturation-gap.js";
+
+// CE-T06 落地：canary 发布管线 v0 — shadow 5% + 退化信号自动 revert（rainbow 模式）。
+// ERRATA-w2plus CE-T06：canaryRelease 五参 `(..., observations, opts?)`；
+//   `opts.baselineResolveRate` 注入，`drop = baseline - current`。
+//   runtime mutation of revert thresholds 由 L0C pre-commit/breaker 守卫，
+//   CE 侧仅守 `isRevertMechanismStaticCore()===true` 不变量 + 不 mutate policy。
+export { canaryRelease, isRevertMechanismStaticCore } from "./release.js";
+
+export type {
+  ReleasePolicy,
+  ReleaseEvent,
+  CanaryObservations,
+  CanaryReleaseOptions,
+} from "./release.js";
+
+// CE-T06 REFACTOR：revert 命令构造（static-core 标记，agent 运行时只读）。
+export { buildRevertCmd } from "./revert.js";
