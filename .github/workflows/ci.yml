@@ -185,7 +185,7 @@ jobs:
       - name: Run L0S tests as non-root user
         run: |
           set -o pipefail
-          sudo -u l0s-runner env "PATH=$PATH" "HOME=/home/l0s-runner" pnpm vitest run tests/L0S/T01.brain-no-credential.spec.ts tests/L0S/T01.session-log-append-only.spec.ts tests/L0S/T01.session-wake-idempotent.spec.ts tests/L0S/T02.sandbox-deny-ssh.spec.ts tests/L0S/T02.sandbox-deny-egress.spec.ts tests/L0S/T02.sandbox-platform-skip.spec.ts tests/L0S/T03.deny-read-ssh.spec.ts tests/L0S/T03.narrower-allow-reopens.spec.ts tests/L0S/T03.symlink-bypass-blocked.spec.ts tests/L0S/T03.worktree-write-scoped.spec.ts tests/L0S/T06.timeout-kills.spec.ts tests/L0S/T06.teardown-on-throw.spec.ts tests/L0S/T06.concurrency-limit.spec.ts tests/L0S/T06.orphan-list.spec.ts 2>&1 | tee /tmp/l0s.log
+          sudo -u l0s-runner env "HOME=/home/l0s-runner" node node_modules/vitest/vitest.mjs run tests/L0S/T01.brain-no-credential.spec.ts tests/L0S/T01.session-log-append-only.spec.ts tests/L0S/T01.session-wake-idempotent.spec.ts tests/L0S/T02.sandbox-deny-ssh.spec.ts tests/L0S/T02.sandbox-deny-egress.spec.ts tests/L0S/T02.sandbox-platform-skip.spec.ts tests/L0S/T03.deny-read-ssh.spec.ts tests/L0S/T03.narrower-allow-reopens.spec.ts tests/L0S/T03.symlink-bypass-blocked.spec.ts tests/L0S/T03.worktree-write-scoped.spec.ts tests/L0S/T06.timeout-kills.spec.ts tests/L0S/T06.teardown-on-throw.spec.ts tests/L0S/T06.concurrency-limit.spec.ts tests/L0S/T06.orphan-list.spec.ts 2>&1 | tee /tmp/l0s.log
           exit "${PIPESTATUS[0]}"
       - name: Surface L0S failures
         if: failure()
