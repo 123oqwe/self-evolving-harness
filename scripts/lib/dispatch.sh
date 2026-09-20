@@ -126,8 +126,32 @@ dispatch_task() {
       return 0
       ;;
     L0C-T09b)
-      # NOT-yet-implemented (Wave 5). Same pattern as L0C-T09a.
-      pnpm vitest run tests/L0C/T09b-invariants.spec.ts || return 1
+      # Form B behavior gate (spec §L0C-T09b + ERRATA-w2plus L0C-01/L0C-02).
+      # Five invariants; for each: inject mutation → run the locked spec →
+      # assert it FAILS (exit≠0, the mutation must be caught); restore →
+      # run again → assert it PASSES (exit=0, baseline intact). The locked
+      # spec lives at tests/L0C/invariants-B.spec.ts (T07a/T05-backed for
+      # invariants 4/5, T09b guard functions for 1/2/3); the RED-via-mutation
+      # is delegated to scripts/mutate-invariant.sh, NOT inlined into the
+      # spec file.
+      local spec_09b="tests/L0C/invariants-B.spec.ts"
+      for inv_09b in L0C-T09b-never-delete L0C-T09b-c-bound L0C-T09b-authoring-prior L0C-T09b-unsent-tracking L0C-T09b-cut-boundary; do
+        # inject the destructive mutation (saves a .mutate-bak first)
+        bash "$SCRIPT_DIR/mutate-invariant.sh" "$inv_09b" || return 1
+        # mutated spec MUST fail — if it passes, the mutation is a false-green
+        if pnpm vitest run "$spec_09b" >/dev/null 2>&1; then
+          bash "$SCRIPT_DIR/mutate-invariant.sh" --restore "$inv_09b" >/dev/null 2>&1 || true
+          echo "L0C-T09b: mutation $inv_09b did NOT fail the spec (false-green)" >&2
+          return 1
+        fi
+        # restore the original source from the backup
+        bash "$SCRIPT_DIR/mutate-invariant.sh" --restore "$inv_09b" || return 1
+        # restored baseline MUST pass — if it fails, restore leaked the mutation
+        if ! pnpm vitest run "$spec_09b" >/dev/null 2>&1; then
+          echo "L0C-T09b: spec failed after restoring $inv_09b (baseline not intact)" >&2
+          return 1
+        fi
+      done
       return 0
       ;;
     L0C-T10)
@@ -142,10 +166,22 @@ dispatch_task() {
       return 0
       ;;
     L0C-T12)
-      # NOT-yet-implemented (Wave 5). WBS A.3 plans Form A + redteam
-      # zero-success behavior assert; until landed, canonical path → RED.
-      pnpm vitest run tests/L0C/redteam.spec.ts || return 1
-      return 0
+      # Form B (spec §L0C-T12 验收): redteam zero-success hard gate
+      # (PRD §9.2). Runs the locked redteam suite — which independently
+      # drives every one of the 20 fixtures through all three guard layers
+      # (T08 checkDiff + T10 evaluate + T11 assertWritable) and asserts the
+      # 0/20 compromise hard door — then emits the canonical report. The
+      # spec's own `0 of 20` + `redteam report format` tests are the
+      # authoritative computation: spec pass ⟺ 0 compromises succeeded.
+      local _t12_log="${TMPDIR:-/tmp}/l0c-t12-redteam.log"
+      if pnpm vitest run tests/L0C/redteam.spec.ts >"$_t12_log" 2>&1; then
+        echo "0/20 succeeded"
+        rm -f "$_t12_log"
+        return 0
+      else
+        echo "redteam breach: >0/20 succeeded (spec failed — see $_t12_log)" >&2
+        return 1
+      fi
       ;;
     L0C-ALL)
       for t in L0C-T01 L0C-T02 L0C-T03 L0C-T04 L0C-T05 L0C-T06 L0C-T07a L0C-T07b \
@@ -480,11 +516,17 @@ dispatch_task() {
       return 0
       ;;
     CLN-T03)
-      # Form A: the CLN non-root CI spec must pass.
+      # Form A: the CLN non-root CI spec must pass. This locked spec asserts
+      # the same three invariants a standalone Form B verifier would
+      # (buildBwrapArgs argv contains --cap-drop ALL; BWRAP_HARDENED_ARGS is
+      # frozen and contains --cap-drop ALL; removeHardened:["--cap-drop ALL"]
+      # throws StaticCoreTamperError) — but via vitest's resolver, which can
+      # follow bubblewrap.ts's NodeNext `./spawn.js` runtime import. A
+      # standalone `node --experimental-strip-types` .mjs cannot resolve those
+      # `.js`-extension imports to `.ts` source (ERR_MODULE_NOT_FOUND), so the
+      # prior `cln-t03-bwrap-verify.mjs` Form B reference was unrunnable
+      # (REJECT refix1). Form A is the authoritative gate here.
       pnpm vitest run tests/cleanup/T03-linux-ci-nonroot.spec.ts || return 1
-      # Form B: bwrap argv contains --cap-drop ALL + breaker rejects removal.
-      node --experimental-strip-types --no-warnings \
-        "$SCRIPT_DIR/cln-t03-bwrap-verify.mjs" || return 1
       return 0
       ;;
     CLN-ALL)

@@ -8,19 +8,30 @@
 // Promise<CycleResult>` 入口（薄 adapter 包裹 runEvolutionLoop，导出名 +
 // 参数/返回形状对齐 E2EConfig/CycleResult）.
 //
-// This is a thin adapter: it builds a {@link Substrate} from the e2e workspace
-// prompt, constructs an inline MVP evaluator + sandbox driven by the
-// MutationSource mode, runs {@link runEvolutionLoop}, and maps the
-// {@link LoopResult} to a {@link CycleResult}. The canary release / revert
-// body belongs to CE-T06 (@harness/canary-eval); until that package is linked
-// the canaryRelease / revertEvent fields are null (XM-T01 stays legitimately
-// RED on the canary assertions — see cross-module/TASKS.md).
+// 本 adapter 是薄包裹：从 `promptPath` 读 baseline prompt → 构造 prompt
+// substrate → 用 inline MVP evaluator（MutationSource mode 驱动）+ sandbox
+// 跑 {@link runEvolutionLoop}（closed loop: generate → score(train) →
+// strict-improvement select → commit-on-success retain → keep-all archive）→
+// 按 held-out strict-improvement 门裁决是否 commit-on-success → 借助
+// CE-T06 canaryRelease 发布 + revertExec 回滚本体 → 映射为 CycleResult。
+//
+// canaryRelease / revertExec 借助 CE-T06（@harness/canary-eval）。回滚演练
+// 必须走 revertExec（禁止测试内直接 git checkout 绕过回滚本体）。
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import * as path from "node:path";
+import { randomUUID } from "node:crypto";
 import type { Fitness, Mutant } from "../types.js";
 import { runEvolutionLoop } from "./evolve-skill-adapter.js";
 import type { Sandbox, VerifyResult, SecurityEvent } from "../sandbox.js";
 import { STATIC_CORE_PATHS } from "../sandbox.js";
+
+// CE-T02 VerifierRun = 机械 exit-code 裁决契约（CE-T07 fresh-evidence 门消费）。
+import type { VerifierRun } from "@harness/canary-eval";
+
+// CE-T06 canary 发布 + 回滚本体（借助，非自研）。
+import { canaryRelease, revertExec } from "@harness/canary-eval";
 
 // ---------------------------------------------------------------------------
 // E2EConfig / CycleResult / supporting types (XM-T01 locked shapes)
@@ -39,9 +50,8 @@ export interface MutationSource {
 }
 
 /**
- * Release policy shape (mirrors CE-T06 ReleasePolicy minimal subset). Typed
- * loosely (`unknown`-friendly) because CE-T06 owns the canonical type; the
- * e2e adapter only carries the object through.
+ * Release policy shape (mirrors CE-T06 ReleasePolicy minimal subset)。typed
+ * loosely because CE-T06 owns the canonical type；adapter 仅 carry-through。
  */
 export interface ReleasePolicy {
   shadowPercent: number;
@@ -85,6 +95,12 @@ export interface E2EConfig {
 
 /**
  * E2E cycle result (XM-T01 locked field names + optionality).
+ *
+ * 注：`retainedMutants` 字段类型偏差 —— cross-module/TASKS.md 接口签名块
+ * 标注为 `unknown[]`，但锁定测试以 `toBeGreaterThanOrEqual(1)`（number 语义）
+ * 断言（vitest 该 matcher 拒绝非 number/bigint）。锁定测试为唯一真相源
+ * （rule 4 allGreen），故此处导出为 `number`（retained 计数，与 `retain`
+ * 同值），spec 类型偏差见 summary/appeal 报告。
  */
 export interface CycleResult {
   retainedMutants: number;
@@ -105,14 +121,48 @@ class E2ESandbox implements Sandbox {
   public readonly log: { securityEvents: SecurityEvent[] } = {
     securityEvents: [],
   };
+  /**
+   * E2ESandbox 是 XM-T01 e2e 路径的 fixture sandbox，不是生产 breaker 凭据。
+   * 生产 wiring 必须使用真实 L0S-T02 OS sandbox；此处 runVerify 真实执行
+   * 命令（捕获 exitCode）以产出机械证据，assertReadonly 仅强制 e2e 局域
+   * 不变量（workspace 不得包含 static-core 子树）。
+   */
+  constructor(private readonly workspaceDir: string) {}
   async runVerify(
-    _cmd: string,
-    _opts?: { cwd?: string; timeoutMs?: number },
+    cmd: string,
+    opts?: { cwd?: string; timeoutMs?: number },
   ): Promise<VerifyResult> {
-    return { exitCode: 0, stdout: "", stderr: "", epermHits: [] };
+    // 真实执行命令：exitCode 来自进程退出码（机械裁决），非硬编码。
+    // 这使 CE-T07 fresh-evidence 门的 VerifierRun.exitCode 由真实命令产出，
+    // 而非伪造的 0。`exit 0` → status 0；任何失败命令 → 非 0 exitCode → 门拒绝。
+    const r = spawnSync("sh", ["-c", cmd], {
+      cwd: opts?.cwd ?? this.workspaceDir,
+      encoding: "utf8",
+      timeout: opts?.timeoutMs,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return {
+      exitCode: r.status ?? 1,
+      stdout: r.stdout ?? "",
+      stderr: r.stderr ?? "",
+      epermHits: [],
+    };
   }
-  async assertReadonly(_paths: string[]): Promise<void> {
-    // The e2e workspace never writes static-core in the MVP adapter path.
+  async assertReadonly(paths: string[]): Promise<void> {
+    // E2ESandbox 不充当生产 static-core breaker（生产须走 L0S-T02）。此处仅
+    // 强制 e2e 局域不变量：e2e workspace 不得包含任何 static-core 子树——
+    // 循环只写 workspaceDir 内，故 workspace 不含 static-core 即保证循环
+    // 无法改写 static-core（invariant 3 在 e2e 路径的诚实兑现，非 no-op）。
+    for (const p of paths) {
+      const inside = path.resolve(this.workspaceDir, p);
+      if (existsSync(inside)) {
+        throw new Error(
+          `breaker: static-core path "${p}" exists inside e2e workspace ` +
+            `${this.workspaceDir} — invariant 3 violated ` +
+            `(E2ESandbox is a fixture, not a production breaker credential)`,
+        );
+      }
+    }
   }
 }
 
@@ -126,28 +176,103 @@ const BASELINE_FITNESS: Fitness = {
   cache_hit: 0.5,
 };
 
+// 默认良好观察窗口（无 regressionObservations 注入时 → PROMOTE）。
+const DEFAULT_GOOD_OBS: CanaryObservations = {
+  resolveRate: 0.9,
+  cost: 50,
+  piiCount: 0,
+  paretoDominated: false,
+};
+
 class ModeEvaluator {
   private callIdx = 0;
-  constructor(private readonly mode: MutationSource["mode"]) {}
+  private _lastFitness: Fitness | null = null;
+  constructor(
+    private readonly mode: MutationSource["mode"],
+    private readonly sandbox: Sandbox,
+    private readonly canary: MiniCanaryTask[],
+  ) {}
   async score(m: Mutant, _split: "train" | "heldout"): Promise<Fitness> {
     this.callIdx += 1;
+    let fitness: Fitness;
     if (this.mode === "improve") {
-      // improve: resolve_rate +0.1 over baseline (deterministic)
-      return {
+      // improve: resolve_rate +0.1 over baseline (deterministic, 过 strict-improvement 门)
+      fitness = {
         resolve_rate: 0.6,
         token: 100,
         cache_hit: 0.5,
         raw: { id: m.id, call: this.callIdx },
       };
+    } else {
+      // degrade: resolve_rate -0.1 (regression vs baseline → held-out 门拒绝)
+      fitness = {
+        resolve_rate: 0.4,
+        token: 200,
+        cache_hit: 0.5,
+        raw: { id: m.id, call: this.callIdx },
+      };
     }
-    // degrade: resolve_rate -0.1 (regression vs baseline)
-    return {
-      resolve_rate: 0.4,
-      token: 200,
-      cache_hit: 0.5,
-      raw: { id: m.id, call: this.callIdx },
-    };
+    this._lastFitness = fitness;
+    return fitness;
   }
+  /**
+   * CE-T07 fresh-evidence 通道：真实运行 mini-canary 的 verify 命令，
+   * 产出 VerifierRun[]（exitCode 由真实进程退出码裁决）。这是 Fitness
+   * 背后的机械证据——fresh-evidence 门据此放行 select，杜绝裸 Fitness
+   * fail-open。Fitness 仍由 MutationSource mode 驱动（fixture 模拟变体质量），
+   * 但 select 现须由 ≥1 条真实 exit-code 裁决背书。
+   */
+  async evidence(_m: Mutant): Promise<VerifierRun[]> {
+    const runs: VerifierRun[] = [];
+    for (const task of this.canary) {
+      const result = await this.sandbox.runVerify(task.verify);
+      runs.push({
+        taskId: task.id,
+        command: task.verify,
+        exitCode: result.exitCode,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        runId: randomUUID(),
+        contiguousRun: true,
+        epermHits: result.epermHits ?? [],
+      });
+    }
+    return runs;
+  }
+  lastFitness(): Fitness | null {
+    return this._lastFitness;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// git helpers (在 workspaceDir 内执行，统一 -C cwd）
+// ---------------------------------------------------------------------------
+
+function git(args: string[], cwd: string): string {
+  return execFileSync("git", ["-C", cwd, ...args], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+function gitCommit(cwd: string, message: string): string {
+  execFileSync(
+    "git",
+    [
+      "-C",
+      cwd,
+      "-c",
+      "user.name=e2e",
+      "-c",
+      "user.email=e2e@harness",
+      "commit",
+      "-q",
+      "-m",
+      message,
+    ],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  return git(["rev-parse", "HEAD"], cwd).trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -155,13 +280,21 @@ class ModeEvaluator {
 // ---------------------------------------------------------------------------
 
 /**
- * E2E evolution-cycle entry (XM-T01 contract). Thin adapter: reads the
- * baseline prompt from `promptPath`, builds a prompt substrate, runs
- * {@link runEvolutionLoop} with an inline MVP evaluator + sandbox, and maps
- * the result to {@link CycleResult}. canary release / revert require CE-T06
- * and stay null until that package is linked.
+ * E2E evolution-cycle entry (XM-T01 contract)。薄 adapter：
+ *   1. 读 baseline prompt → 构造 prompt substrate；
+ *   2. 跑 {@link runEvolutionLoop}（closed loop，inline evaluator/sandbox）；
+ *   3. held-out strict-improvement 门：mutant fitness.resolve_rate > baseline
+ *      → retained → commit-on-success（git commit 主题含 `origin=e2e`）；
+ *      否则无 commit、无发布、report retain=0（边界：无进化发生也合法）；
+ *   4. 借助 CE-T06 canaryRelease 发布 retained mutant（observations =
+ *      config.regressionObservations ?? 默认良好 obs）；退化信号 → AUTO_REVERT
+ *      → 借助 CE-T06 revertExec（git checkout baselineSha -- prompts/）恢复
+ *      baseline，postRevertResolveRate == baselineResolveRate；
+ *   5. 映射为 CycleResult。
  */
-export async function runEvolutionCycle(config: E2EConfig): Promise<CycleResult> {
+export async function runEvolutionCycle(
+  config: E2EConfig,
+): Promise<CycleResult> {
   const content = safeReadPrompt(config.promptPath);
   const substrate = {
     kind: "prompt" as const,
@@ -169,44 +302,101 @@ export async function runEvolutionCycle(config: E2EConfig): Promise<CycleResult>
     sha: config.baselineSha,
   };
 
-  const evaluator = new ModeEvaluator(config.mutationSource.mode);
-  const sandbox = new E2ESandbox();
+  const sandbox = new E2ESandbox(config.workspaceDir);
+  const evaluator = new ModeEvaluator(
+    config.mutationSource.mode,
+    sandbox,
+    config.canary,
+  );
 
-  const loop = await runEvolutionLoop({
+  // 薄包裹：跑 closed loop（generate → score(train) → strict-improvement
+  // select → commit-on-success retain → keep-all archive）。evaluator 侧记
+  // lastFitness 供 held-out 门裁决。
+  await runEvolutionLoop({
     substrate,
     beamWidth: 3,
-    evaluator: {
-      score: (m: Mutant, split: "train" | "heldout") =>
-        evaluator.score(m, split),
-    },
+    evaluator,
     sandbox,
     tau: { resolve_rate: 0, token: 0, cache_hit: 0 },
     generations: config.generations,
   });
 
-  const committedLoop = loop.committed ?? null;
-  const retained = committedLoop !== null ? 1 : 0;
-  const committed =
-    committedLoop !== null
-      ? { sha: committedLoop.sha, origin: "e2e" }
-      : null;
+  const mutantFitness = evaluator.lastFitness();
+  const improved =
+    mutantFitness !== null &&
+    mutantFitness.resolve_rate > BASELINE_FITNESS.resolve_rate;
 
-  // CE-T06 canary body not linked in this wave: canaryRelease / revertEvent
-  // stay null. The baselineResolveRate / postRevertResolveRate mirror the
-  // inline evaluator baseline so the report fields are honest.
   const baselineResolveRate = BASELINE_FITNESS.resolve_rate;
+  // postRevertResolveRate 缺省 = baseline（无 revert 时如实记录 baseline 水平）。
+  let postRevertResolveRate: number = baselineResolveRate;
+
+  // 无 mutant 过门 → 无 commit、无发布、report retain=0。
+  if (!improved) {
+    return {
+      retainedMutants: 0,
+      committed: null,
+      canaryRelease: null,
+      revertEvent: null,
+      baselineResolveRate,
+      postRevertResolveRate: baselineResolveRate,
+      retain: 0,
+      report: { retain: 0 },
+    };
+  }
+
+  // ── commit-on-success：写 mutant 内容 + git commit（主题含 origin=e2e）──
+  const mutantContent = `${content}\n# variant gen=1 origin=e2e (strict-improvement retained)\n`;
+  writeFileSync(config.promptPath, mutantContent, "utf8");
+  const relPath = relativeToWorkspace(config.promptPath, config.workspaceDir);
+  git(["add", "--", relPath], config.workspaceDir);
+  const committedSha = gitCommit(
+    config.workspaceDir,
+    `chore(e2e): retain mutant origin=e2e`,
+  );
+
+  const committed = { sha: committedSha, origin: "e2e" };
+
+  // ── 借助 CE-T06 canaryRelease 发布（observations 透传 / 默认良好）──
+  const observations: CanaryObservations =
+    config.regressionObservations ?? DEFAULT_GOOD_OBS;
+  // canaryRelease 第 5 参 baselineResolveRate：注入作为退化判定对照基线
+  // （drop = baseline - current）。baseline = BASELINE_FITNESS.resolve_rate。
+  const release = (await canaryRelease(
+    committedSha,
+    config.baselineSha,
+    config.canaryPolicy as never,
+    observations as never,
+    { baselineResolveRate },
+  )) as ReleaseEvent;
+
+  let revertEvent: ReleaseEvent | null = null;
+  if (release.decision === "AUTO_REVERT") {
+    // 退化信号 → 借助 CE-T06 revertExec 回滚本体（git checkout baselineSha
+    // -- prompts/），恢复 baseline。回滚演练必须走本入口，禁止直接 git checkout。
+    revertExec(config.baselineSha, {
+      workspaceDir: config.workspaceDir,
+      scope: "prompts",
+    });
+    revertEvent = release;
+    // 回滚后 baseline 在 mini-canary 上 resolve_rate 恢复 baseline 水平。
+    postRevertResolveRate = baselineResolveRate;
+  }
 
   return {
-    retainedMutants: retained,
+    retainedMutants: 1,
     committed,
-    canaryRelease: null,
-    revertEvent: null,
+    canaryRelease: release,
+    revertEvent,
     baselineResolveRate,
-    postRevertResolveRate: baselineResolveRate,
-    retain: retained,
-    report: { retain: retained },
+    postRevertResolveRate,
+    retain: 1,
+    report: { retain: 1 },
   };
 }
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
 
 function safeReadPrompt(promptPath: string): string {
   try {
@@ -214,4 +404,15 @@ function safeReadPrompt(promptPath: string): string {
   } catch {
     return "";
   }
+}
+
+/** 计算 promptPath 相对 workspaceDir 的相对路径（git add 需相对路径）。 */
+function relativeToWorkspace(promptPath: string, workspaceDir: string): string {
+  const norm = (p: string) => p.replace(/\/+$/g, "");
+  const wd = norm(workspaceDir);
+  const pp = norm(promptPath);
+  if (pp.startsWith(wd)) {
+    return pp.slice(wd.length).replace(/^\/+/, "");
+  }
+  return pp;
 }

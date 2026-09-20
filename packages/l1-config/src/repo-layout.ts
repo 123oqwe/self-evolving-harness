@@ -51,6 +51,22 @@ function sha256(content: string): string {
 }
 
 /**
+ * 可选 safety 段签名校验器（T03 runtime 第二层守卫）。
+ *
+ * 由 `SignatureVerifier`（signature.ts）结构实现。`ConfigRepo.loadActive()`
+ * 在 sha 钉死校验通过、`ConfigSet` swap **之前**调用 `verify`：
+ * 签名失配 → throw，绝不 swap（T03 执行提示(1) 硬保证 + §0.4 契约不变量）。
+ * 这使得即使攻击者绕过 pre-commit 并更新可写的 `repo.lock.json` 文件 sha256
+ * 匹配篡改内容，只读的 L0 static-core 签名清单仍能拒载——active 不被毒化。
+ */
+export interface SegmentVerifier {
+  /** 该文件是否在签名清单中（是 → load 时校验 safety 段 sha256）。 */
+  hasEntry(filePath: string): boolean;
+  /** 校验文件 content 的 safety 段 sha256 与清单一致；失配 → throw。 */
+  verify(filePath: string, content: string): void;
+}
+
+/**
  * 校验 lock 中每个文件的 sha256 与磁盘一致。
  * 任一失配 → 抛 `ShaMismatchError`（含失配文件路径）。
  * 全部一致 → 返回从磁盘读取的文件内容 map（path → content）。
@@ -124,6 +140,11 @@ export class ConfigRepo {
   private readonly root: string;
   private lock: RepoLock;
   private active: ConfigSet | null = null;
+  // 可选 safety 段签名校验器（T03 第二层）。null → loadActive 跳过签名校验
+  // （T01 单基质场景 / 未接线时退化为纯 sha 钉死，向后兼容）。一旦由
+  // PhaseSubstrate.load 接线，loadActive 在 swap 前重算 safety 段 sha256
+  // 比对只读清单，失配即 throw 不 swap——active 绝不被毒化。
+  private segmentVerifier: SegmentVerifier | null = null;
   // 简单 Mutex：保证 reload / loadActive 原子 swap（同步路径下用 token 标志，
   // 异步并发场景由调用方串行化；本实现保证单次 loadActive 期间 active 不被半改）。
   private swapping = false;
@@ -131,6 +152,40 @@ export class ConfigRepo {
   constructor(root: string, lock: RepoLock) {
     this.root = root;
     this.lock = lock;
+  }
+
+  /**
+   * 暴露 repo root 绝对路径供下游 commit-on-success（T04b/T05b）写 active +
+   * staging 版本后缀文件、以及 canary 配置面写 `config/canary-shadow.yaml`。
+   * 纯只读访问器，不改变既有 load/reload/pinSha 行为（additive accessor）。
+   */
+  getRoot(): string {
+    return this.root;
+  }
+
+  /**
+   * 接线 safety 段签名校验器（runtime 第二层守卫）。
+   * 接线后，`loadActive` / `reload` 在 sha 钉死通过后、`ConfigSet` swap 之前，
+   * 对清单覆盖的文件重算 safety 段 sha256 比对，失配 → throw 不 swap。
+   * 传 null 可卸载（仅用于测试隔离）。
+   */
+  setSegmentVerifier(verifier: SegmentVerifier | null): void {
+    this.segmentVerifier = verifier;
+  }
+
+  /**
+   * 在 sha 钉死通过后、swap 之前，对清单覆盖的文件做 safety 段签名校验。
+   * 失配 → throw（`SignatureTamperError` 等），active 保持旧快照不 swap。
+   * 无接线校验器 → no-op（向后兼容 T01 单基质场景）。
+   */
+  private verifySignatures(contents: Map<string, string>): void {
+    if (!this.segmentVerifier) return;
+    for (const [path, content] of contents) {
+      if (this.segmentVerifier.hasEntry(path)) {
+        // 在 swap 之前校验：失配即 throw，绝不返回半加载状态
+        this.segmentVerifier.verify(path, content);
+      }
+    }
   }
 
   /** repo.lock.json 在仓库中的权威路径。 */
@@ -149,8 +204,11 @@ export class ConfigRepo {
       return this.active;
     }
     const contents = verifyFiles(this.root, this.lock.files);
+    // T03 第二层：sha 钉死通过后、swap 之前校验 safety 段签名。
+    // 失配 → throw，active 保持旧快照（绝不 swap 篡改内容）。
+    this.verifySignatures(contents);
     const cs = buildConfigSet(this.lock.versionSha, contents);
-    // 原子 swap：仅在校验全部通过后才赋值 active
+    // 原子 swap：仅在 sha + 签名校验全部通过后才赋值 active
     this.active = cs;
     return cs;
   }
@@ -163,6 +221,8 @@ export class ConfigRepo {
     this.swapping = true;
     try {
       const contents = verifyFiles(this.root, this.lock.files);
+      // T03 第二层：sha 钉死通过后、swap 之前校验 safety 段签名。
+      this.verifySignatures(contents);
       const cs = buildConfigSet(this.lock.versionSha, contents);
       // 原子 swap
       this.active = cs;

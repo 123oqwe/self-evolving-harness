@@ -90,8 +90,30 @@ export interface Optimizer {
   generate(substrate: Substrate, ctx: OptContext): Promise<Mutant[]>;
 }
 
+// CE-T02 VerifierRun is the mechanical exit-code verdict contract. Imported
+// type-only (erased at compile) so the l3-engine core types can reference the
+// CE-T07 fresh-evidence gate's evidence shape without a runtime dependency.
+//
+// The circular type reference (canary-eval/lucky-pass.ts imports L3 Trajectory)
+// is type-only in both directions and safe under isolatedModules.
+import type { VerifierRun } from "@harness/canary-eval";
+
 export interface Evaluator {
   score(m: Mutant, split: "train" | "heldout"): Promise<Fitness>;
+  /**
+   * CE-T07 fresh-evidence channel: ≥1 mechanical `VerifierRun` (each carrying a
+   * numeric `exitCode` verdict) backing the Fitness returned by `score`.
+   *
+   * Production evaluators MUST implement this — the L3 select step calls
+   * `assertFreshEvidence` on the returned runs before `StrictImprovementGate.decide`
+   * (iron law: no fresh exit-code evidence → no select). An evaluator that
+   * omits `evidence` (or returns `[]`) causes every candidate to be rejected
+   * fail-closed at select.
+   *
+   * Optional only so legacy unit-test evaluators that pre-date the gate remain
+   * structurally assignable; the loop treats absence as fail-closed.
+   */
+  evidence?(m: Mutant): Promise<VerifierRun[]>;
 }
 
 // ---------------------------------------------------------------------------

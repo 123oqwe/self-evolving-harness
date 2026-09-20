@@ -95,6 +95,13 @@ export {
   SameModelFamilyError,
 } from "./judge-pool.js";
 
+// CE-T08 落地：paired McNemar + unresolved-comparison budget 报告器（5-step audit protocol）。
+// ERRATA-w2plus CE-19：runPairedMcNemar 双参 `(m, opts?)`；opts.coverage 缺省按 0。
+// ERRATA-w2plus CE-20：n≈30 用 Yates 连续性校正 χ²；n<25 退化精确二项检验；CI=95% Wilson 区间。
+export { runPairedMcNemar, mcnemarChi2Yates, exactBinomialPValue, IncompletePairsError } from "./mcnemar.js";
+
+export type { PairedMatrix, McNemarReport } from "./mcnemar.js";
+
 // CE-T05 落地：LLM-judge 去偏 — position swap A/B + length-controlled + CoT
 // + combined-budget + σ 跟踪 + judge model pool。
 // ERRATA-w2plus CE-14：runDebiasedJudge 四参 (a,b,cfg,opts?)。
@@ -112,3 +119,38 @@ export type {
   DebiasConfig,
   JudgeResult,
 } from "./judge-debias.js";
+
+// CE-T09 落地：canary Context Saturation Gap Δ 度量器
+// （MAG perf − brute-force full-context baseline）。
+// 阈值 5pp（DISCRIMINATION_THRESHOLD）与 CE-T08 McNemar n≈30 噪声带对齐。
+export { computeSaturationGap, DISCRIMINATION_THRESHOLD } from "./saturation-gap.js";
+
+export type { SaturationGap } from "./saturation-gap.js";
+
+// CE-T06 落地：canary 发布管线 v0 — shadow 5% + 退化信号自动 revert（rainbow 模式）。
+// ERRATA-w2plus CE-T06：canaryRelease 五参 `(..., observations, opts?)`；
+//   `opts.baselineResolveRate` 注入，`drop = baseline - current`。
+//   runtime mutation of revert thresholds 由 L0C pre-commit/breaker 守卫，
+//   CE 侧仅守 `isRevertMechanismStaticCore()===true` 不变量 + 不 mutate policy。
+export { canaryRelease, isRevertMechanismStaticCore, MissingBaselineResolveRateError } from "./release.js";
+
+export type {
+  ReleasePolicy,
+  ReleaseEvent,
+  CanaryObservations,
+  CanaryReleaseOptions,
+} from "./release.js";
+
+// CE-T06 REFACTOR：revert 命令构造（static-core 标记，agent 运行时只读）。
+// XM-T01 依赖补齐：revertExec 回滚本体（ERRATA-w2plus XM-03 锁定签名）。
+export { buildRevertCmd, revertExec } from "./revert.js";
+export type { RevertExecOptions, RevertExecResult } from "./revert.js";
+
+// CE-T07 落地：fresh-evidence 终审门 hook — select 前 abort 若无 exit-code 证据。
+// 铁律：变体 select 前必须执行 ≥1 条机械命令、exit code=裁决、禁 prose reasoning 当成功
+// （bigpowers verify-work terminal-verdict gate + SpecPow execution-verification-before-completion
+// 同源印证，PRD §5.6）。嵌入 L3 select 步（L3-T04 strict-improvement 前置）。
+// ERRATA-w2plus CE-25：FreshEvidence.verifications 复用 CE-T02 VerifierRun 导出契约。
+export { assertFreshEvidence, AbortSelectError } from "./fresh-evidence-gate.js";
+
+export type { FreshEvidence } from "./fresh-evidence-gate.js";

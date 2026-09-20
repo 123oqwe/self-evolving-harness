@@ -37,6 +37,13 @@ export { StrictImprovementGate, IncompleteFitness } from "./strict-improvement.j
 export type { Decision } from "./strict-improvement.js";
 
 // ---------------------------------------------------------------------------
+// L3-T05: Pareto multi-objective selector (resolve_rate ∧ token ∧ cache_hit,
+// NO weighted sum — PRD §6.7 hard invariant). Barrel additions only.
+// ---------------------------------------------------------------------------
+export { ParetoSelector, WeightedSumForbidden } from "./pareto-selector.js";
+export type { ParetoSelector as ParetoSelectorInterface } from "./pareto-selector.js";
+
+// ---------------------------------------------------------------------------
 // L3-T03: reflective mutation generator (GEPA variant source) + luckyPass
 // defence-in-depth guard. Barrel additions only.
 // ---------------------------------------------------------------------------
@@ -84,6 +91,56 @@ export type { TelemetrySpan } from "./adapters/fitness-bridge.js";
 
 // EvolveSkillAdapter + runEvolutionLoop (closed-loop body).
 export { EvolveSkillAdapter, runEvolutionLoop } from "./adapters/evolve-skill-adapter.js";
+
+// ---------------------------------------------------------------------------
+// L3-T06a: DGM open-ended tree archive (keep-all variant; interesting =
+// non-strictly-dominated). Barrel additions only.
+// ---------------------------------------------------------------------------
+export { TreeArchive, DuplicateArchiveEntry, ArchiveEntryNotFound } from "./archive/tree-archive.js";
+
+// ---------------------------------------------------------------------------
+// L3-T06b: FunSearch island reseed + MAP-Elites behavior bins (keep-all;
+// reseed "kill" = retired, not delete; never-auto-delete invariant shared
+// with T06a). Barrel additions only.
+// ---------------------------------------------------------------------------
+export {
+  IslandArchive,
+  MapElitesArchive,
+} from "./archive/island-mapelites.js";
+export type {
+  IslandArchiveOptions,
+  MapElitesOptions,
+  ReseedResult,
+} from "./archive/island-mapelites.js";
+
+// ---------------------------------------------------------------------------
+// L3-T07: ExpeL upvote/downvote importance counter (start 2; count==0 →
+// retire, not delete; <minEvidence evidence → not activated). Barrel
+// additions only.
+// ---------------------------------------------------------------------------
+export { ExpelCounter } from "./archive/expel-counter.js";
+export type { ExpelCounterOptions } from "./archive/expel-counter.js";
+
+// ---------------------------------------------------------------------------
+// L3-T08: Voyager commit-on-success retain + auto-revert (canary shadow +
+// regression-signal → CE-T06 git checkout). Barrel additions only.
+// Static-core invariant: rollbackThreshold frozen; optimizer cannot mutate;
+// revertExec delegates to CE-T06 (git checkout), not implemented in L3.
+// ---------------------------------------------------------------------------
+export { Retain, bumpVersion, baseName } from "./retain/commit-on-success.js";
+export type {
+  RetainGate,
+  CommitResult,
+  VectorIndex,
+} from "./retain/commit-on-success.js";
+export { AutoRevert } from "./retain/auto-revert.js";
+export type {
+  RegressionSignal,
+  CanaryHandle,
+  RevertResult,
+  AutoRevertOptions,
+} from "./retain/auto-revert.js";
+export { buildRollbackCommand } from "./retain/git-client.js";
 
 // runEvolutionCycle (XM-T01 E2E entry) + E2E contract types.
 export { runEvolutionCycle } from "./adapters/e2e-adapter.js";

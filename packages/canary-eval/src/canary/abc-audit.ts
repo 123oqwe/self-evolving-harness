@@ -18,10 +18,12 @@
 // （触发 BUDGET）；`opts.outcomeValidity` 缺省字段按 true 处理（默认信任 manifest 静态属性）。
 //
 // ERRATA-w2plus CE-06（裁决矛盾）verdict 优先级：
-//   1. `agentVisible===true` → **FAIL**（最高优先，覆盖 coverage 条件）；
-//   2. 其次 `coverage<0.9` → `BUDGET_REPORTED`；
-//   3. 其余全 true → `PASS`。
-// 即 agent 可见但 coverage>=0.9 仍 FAIL。
+//   1. `T3_agentNotVisible===false`（agentVisible===true）→ **FAIL**（最高优先，覆盖 coverage 条件）；
+//   2. 其次 T1/T2/T4/T5/T6 任一 false 或 outcomeValidity(Ob/Oc/Og) 任一 false → **FAIL**
+//      （防 trivial `exit 0` verify / 未去污染 canary 等蒙混通过 merge 闸，安全敏感 fail-open）；
+//   3. 其次 `coverage<0.9` → `BUDGET_REPORTED`（unresolvedBudget.reported=true）；
+//   4. 其余全 true → `PASS`.
+// 即 agent 可见但 coverage>=0.9 仍 FAIL；任一 taskValidity/outcomeValidity false 仍 FAIL。
 //
 // G0 降级（task CE-T01c 专属指令）：coverage 度量用调用方注入的 `opts.coverage`
 // （官方 split loader 已由 T01a 提供，coverage 度量见 spike CE-T00c）。
@@ -132,14 +134,15 @@ function checkT6Decontaminated(tasks: CanaryTask[]): boolean {
  * outcomeValidity 由调用方透传（ground-truth/judge 校验推导），缺省按 true 信任。
  */
 function defaultOutcomeValidity(
-  manifest: CanaryManifest,
+  _manifest: CanaryManifest,
   override?: Partial<ABCAuditResult["outcomeValidity"]>,
 ): ABCAuditResult["outcomeValidity"] {
-  const t5 = checkT5VerifyNonTrivial(manifest.tasks);
+  // ERRATA-w2plus CE-05：opts.outcomeValidity 缺省字段按 true 处理（默认信任 manifest
+  // 静态属性）。reward-hack 由 T5 taskValidity 把关，无需 Og 重复承担。
   return {
     Ob_judgeValidated: override?.Ob_judgeValidated ?? true,
     Oc_consistencyValidated: override?.Oc_consistencyValidated ?? true,
-    Og_groundTruthNonSubstring: override?.Og_groundTruthNonSubstring ?? t5,
+    Og_groundTruthNonSubstring: override?.Og_groundTruthNonSubstring ?? true,
   };
 }
 
@@ -161,12 +164,15 @@ function computeRequiredMargin(coverage: number): number {
  * - taskValidity（T.1-T.6）由 manifest 静态属性推导。
  * - outcomeValidity（O.b/O.c/O.g）由 `opts.outcomeValidity` 透传，缺省字段按 true 处理。
  * - coverage 由 `opts.coverage` 注入，缺省按 0 处理（触发 BUDGET）。
- * - verdict 优先级：
+ * - verdict 优先级（ERRATA-w2plus CE-06，全部 taskValidity+outcomeValidity 真校验）：
  *     1. `T3_agentNotVisible===false`（agentVisible===true）→ `FAIL`（最高优先）。
- *     2. `coverage<0.9` → `BUDGET_REPORTED`（unresolvedBudget.reported=true）。
- *     3. 其余全 true → `PASS`。
+ *     2. T1/T2/T4/T5/T6 任一 false 或 outcomeValidity(Ob/Oc/Og) 任一 false → `FAIL`
+ *        （防 trivial `exit 0` verify / 未去污染 canary 等绕过 merge 闸，安全敏感 fail-open）。
+ *     3. `coverage<0.9` → `BUDGET_REPORTED`（unresolvedBudget.reported=true,
+ *        requiredMargin=computeRequiredMargin(coverage)>0）。
+ *     4. 其余全 true → `PASS`.
  *
- * @returns ABCAuditResult（sync 纯函数裁决）。
+ * @returns ABCAuditResult（sync 纯函数裁决）.
  */
 export function runABCAudit(
   manifest: CanaryManifest,
@@ -193,12 +199,29 @@ export function runABCAudit(
       ? opts.coverage
       : 0;
 
-  // verdict 优先级（ERRATA-w2plus CE-06）：agentVisible → FAIL；coverage<0.9 → BUDGET；其余 → PASS。
+  // verdict 优先级（ERRATA-w2plus CE-06）：agentVisible → FAIL；任一 taskValidity/
+  // outcomeValidity false → FAIL；coverage<0.9 → BUDGET；其余全 true → PASS。
+  const taskRestValid =
+    taskValidity.T1_envFrozenAtRelease &&
+    taskValidity.T2_modelNotTrainedOn &&
+    taskValidity.T4_repoLocated &&
+    taskValidity.T5_verifyNonTrivial &&
+    taskValidity.T6_decontaminated;
+  const outcomeValid =
+    outcomeValidity.Ob_judgeValidated &&
+    outcomeValidity.Oc_consistencyValidated &&
+    outcomeValidity.Og_groundTruthNonSubstring;
+
   let verdict: ABCAuditResult["verdict"];
   let unresolvedBudget: ABCAuditResult["unresolvedBudget"];
 
   if (!taskValidity.T3_agentNotVisible) {
     // agent 可见 canary → static-core 违规 → FAIL（最高优先，覆盖 coverage 条件）。
+    verdict = "FAIL";
+    unresolvedBudget = null;
+  } else if (!taskRestValid || !outcomeValid) {
+    // T1/T2/T4/T5/T6 任一 false（如 trivial `exit 0` verify、未去污染）或
+    // outcomeValidity(Ob/Oc/Og) 任一 false → FAIL（防绕过 merge 闸，安全敏感 fail-open）。
     verdict = "FAIL";
     unresolvedBudget = null;
   } else if (coverage < COVERAGE_THRESHOLD) {

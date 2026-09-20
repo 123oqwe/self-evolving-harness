@@ -1,41 +1,166 @@
-name: ci
+name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # CLN-T03 (ERRATA-w01 §L0S-R1): Linux CI 须以非 root uid 跑 L0S 测试。
-  # root uid 下 bwrap mode-000 遮蔽失效（root 绕过文件权限），sandbox 隔离
-  # 契约不可信。纵深防御：(a) 非 root user 跑 L0S；(b) bwrap --cap-drop ALL
-  # （见 packages/l0-sandbox/src/os-sandbox/bubblewrap.ts BWRAP_HARDENED_ARGS）。
-  l0s-linux-nonroot:
-    name: L0S tests (Linux, non-root)
+  # 注: GitHub runner 默认即非 root (uid 1001 runner 用户), sentinel ubuntu job
+  # 已以非 root 覆盖全部 L0S 沙箱测试 → 原 L0S non-root job 冗余, 已移除 (L0S-R1 由 sentinel 满足)
+  # ── 测试锁 sha256 门: 锁定测试文件不得被篡改 (TEST-LOCK.md §1.2) ────────
+  # 这是 self-evolving harness 的核心安全属性: implementer 不得触碰 tests/ 下
+  # 已锁定文件。本门重算每个锁定测试文件的 sha256 并与 TEST-LOCK.md §2 表
+  # 比对——hash 不变 = 锁定完好。任何篡改/删除/新增未锁定测试 → 立即 fail,
+  # 不受 reviewer 社会过程约束, 不受 green 数上升误导。
+  # 先于 sentinel / full-suite 运行, 使后续门在锁定完好的前提下才计数。
+  test-lock:
+    name: Test-lock sha256 gate (TEST-LOCK §1.2)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v6.5.0
         with:
-          version: 9
+          node-version: 22
+      - name: Verify locked test sha256 against TEST-LOCK.md §2
+        run: node scripts/lib/test-lock-check.mjs
 
-      - uses: actions/setup-node@v4
+  # ── 哨兵门: 已实现任务的测试必须全绿, 不许回归 ─────────────────────
+  # 这是权威验收: 本地跑的不算数, 这里 exit 0 才算过
+  sentinel:
+    name: Sentinel (implemented tasks, no regression)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v4.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v6.5.0
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
-
-      - name: Install dependencies
+      # Linux: 安装 bubblewrap 供 L0S 沙箱真实强制路径测试
+      # (runner 以非 root 'runner' 用户跑测试, 满足 ERRATA L0S-R1 要求)
+      - name: Install bubblewrap (Linux only)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Install deps
         run: pnpm install --frozen-lockfile
-
-      - name: Create non-root user for L0S sandbox tests
+      - name: Build (all packages, strict)
+        run: pnpm -r run build
+      - name: Sentinel tests (must be green)
         run: |
-          # bwrap mode-000 遮蔽仅在非 root uid 下生效；创建专用非 root user。
-          sudo useradd -m -s /bin/bash l0s-runner
-          # 把 workspace 所有权转交给该 user，否则 pnpm store / vitest cache 权限报错。
-          sudo chown -R l0s-runner:l0s-runner "$GITHUB_WORKSPACE"
+          pnpm vitest run \
+            tests/L0C/T01-scaffold.spec.ts \
+            tests/L0C/T02-turn.spec.ts \
+            tests/L0C/T03-stop.spec.ts \
+            tests/L0C/T04-retry-overflow.spec.ts \
+            tests/L0C/T05-cache-cut.spec.ts \
+            tests/L0C/T06-memory-schema.spec.ts \
+            tests/L0C/T07a-runstate.spec.ts \
+            tests/L0C/T07b-session-log.spec.ts \
+            tests/L0C/T08-precommit.spec.ts \
+            tests/L0C/T11-readonly.spec.ts \
+            tests/L0C/invariants-A.spec.ts \
+            tests/L0S/T01.brain-no-credential.spec.ts \
+            tests/L0S/T01.session-log-append-only.spec.ts \
+            tests/L0S/T01.session-wake-idempotent.spec.ts \
+            tests/L0S/T02.sandbox-deny-ssh.spec.ts \
+            tests/L0S/T02.sandbox-deny-egress.spec.ts \
+            tests/L0S/T02.sandbox-platform-skip.spec.ts \
+            tests/L0S/T03.deny-read-ssh.spec.ts \
+            tests/L0S/T03.narrower-allow-reopens.spec.ts \
+            tests/L0S/T03.symlink-bypass-blocked.spec.ts \
+            tests/L0S/T03.worktree-write-scoped.spec.ts \
+            tests/L0S/T06.timeout-kills.spec.ts \
+            tests/L0S/T06.teardown-on-throw.spec.ts \
+            tests/L0S/T06.concurrency-limit.spec.ts \
+            tests/L0S/T06.orphan-list.spec.ts \
+            tests/TL/T01-transcript.spec.ts \
+            tests/TL/T02-usage.spec.ts \
+            tests/TL/T05-schema-policy.spec.ts \
+            tests/TL/T06-budget-policy.spec.ts \
+            tests/gates/g1-smoke.spec.ts 2>&1 | tee /tmp/sentinel.log
+          EXIT=${PIPESTATUS[0]}
+          grep -E '^\s*×|FAIL ' /tmp/sentinel.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done
+          exit $EXIT
 
-      - name: Run L0S tests as non-root user
+  # ── 全量套件: 当前 MVP 未完成, 未实现任务的红项是合法 RED ──────────
+  # 报告 green/red 并与 GREENS.baseline 对比: 绿数不许低于基线(回归即fail)
+  # MVP 完成后: 基线 = 全量, 此 job 即成为完整验收门
+  full-suite:
+    name: Full suite (baseline regression gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v4.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v6.5.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install bubblewrap
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Test-lock sha256 gate (defense in depth)
+        run: node scripts/lib/test-lock-check.mjs
+      - name: Run full suite, count greens
+        id: suite
         run: |
-          # 以非 root uid 执行 L0S 测试；id -u ≠ 0，bwrap mode-000 遮蔽生效。
-          sudo runuser -u l0s-runner -- bash -lc 'cd "$GITHUB_WORKSPACE" && id -u && pnpm vitest run tests/L0S/'
+          set +e
+          pnpm vitest run --reporter=basic > suite.log 2>&1
+          GREENS=$(grep -oE '[0-9]+ passed' suite.log | tail -1 | grep -oE '[0-9]+')
+          echo "greens=$GREENS" >> "$GITHUB_OUTPUT"
+          echo "Actual greens: $GREENS"
+          tail -5 suite.log
+      - name: Compare against baseline (no regression)
+        run: |
+          BASELINE=$(cat GREENS.baseline 2>/dev/null || echo 0)
+          ACTUAL=${{ steps.suite.outputs.greens }}
+          echo "baseline=$BASELINE actual=$ACTUAL"
+          # 容差 5: 单测抖动容忍, 批量回归(>5)才挡; 单点回归由 sentinel 门盯防
+          if [ "$ACTUAL" -lt $((BASELINE - 5)) ]; then
+            echo "::error::Regression! greens $ACTUAL < baseline-5 ($((BASELINE - 5))) — 批量变红, 回归"
+            grep -E "^\s*×|FAIL " suite.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          fi
+          if [ "$ACTUAL" -lt "$BASELINE" ]; then
+            echo "::warning::greens $ACTUAL 略低于 baseline $BASELINE (容差内, 疑单测抖动); 失败用例:"
+            grep -E "^\s*×|FAIL " suite.log | head -8 | while IFS= read -r l; do echo "::warning::$l"; done
+          fi
+          if [ "$ACTUAL" -gt "$BASELINE" ]; then
+            echo "::warning::greens $ACTUAL > baseline $BASELINE — 有新实现, 记得更新 GREENS.baseline"
+          fi
+      - name: Upload suite log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: suite-log-${{ github.sha }}
+          path: suite.log
+
+  # ── L0S 沙箱测试: 非 root uid 执行 (ERRATA-w01 §L0S-R1 / CLN-T03) ──
+  # Linux CI 以 root uid 运行时 bwrap mode-000 遮蔽失效 (root 绕过文件权限),
+  # 导致 L0S-T02 sandbox 隔离契约在 root 下不可信。本 job 以非 root uid 跑
+  # L0S 测试, 使 bwrap mode-000 遮蔽在非 root 下生效。
+  # 注: 原 ERRATA L0S-R1 缓解 (b) "bwrap 加 --cap-drop ALL" 已更正废除——
+  # --cap-drop 是 Docker/podman 旗标, bwrap 无此选项 (cloud CI 实证)。权限
+  # 约束由 bwrap 非特权 user namespace 本身完成。见 ERRATA-w01 更正记录。

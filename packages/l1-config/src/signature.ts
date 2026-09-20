@@ -61,9 +61,19 @@ export function computeSegmentHash(
 /**
  * 签名校验器：持有 L0 static-core 签名清单，对单文件 content 做 safety 段
  * sha256 比对。失配（含段缺失）→ throw `SignatureTamperError`。
+ *
+ * 本校验器是 runtime 第二层守卫，须在 `ConfigRepo.loadActive()` 的
+ * `ConfigSet` swap **之前**执行（T03 执行提示(1) 硬保证：签名失败绝不 swap）。
+ * 故 `ConfigRepo` 通过 `SegmentVerifier` 接口持有本校验器，在 swap 前调用
+ * `verify`；`hasEntry` 供 repo 仅对清单覆盖的文件触发校验，避免误判无清单文件。
  */
 export class SignatureVerifier {
   constructor(private readonly manifest: SignatureManifest) {}
+
+  /** 该文件是否在签名清单中（是 → load 时校验 safety 段 sha）。 */
+  hasEntry(filePath: string): boolean {
+    return this.manifest.entries.some((e) => e.filePath === filePath);
+  }
 
   /**
    * 校验 `filePath` 的 `content` 中 safety 段 sha256 与 manifest 一致。

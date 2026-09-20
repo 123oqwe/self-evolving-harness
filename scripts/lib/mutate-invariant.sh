@@ -115,6 +115,21 @@ _sha256() {
   fi
 }
 
+# 对单个锁定文件执行 §1.2 规范 hash 比对。
+# 关闭 gap (4): 原自检只比 before==after（被测文件当前 hash），若文件已被
+# 先行篡改则原自检照样通过。现先与 TEST-LOCK.md §2 规范 hash 比对——不
+# 匹配即拒（突变门不得在已篡改基线上启动）。
+# 委托 scripts/lib/test-lock-check.mjs --file（同一 parser，单一真相源）。
+_assert_lock_intact() {
+  local rel="$1"
+  local abs="$REPO_ROOT/$rel"
+  if ! node "$SCRIPT_DIR/test-lock-check.mjs" --quiet --file "$abs" >/dev/null 2>&1; then
+    echo "mutate-invariant: $rel sha256 ≠ TEST-LOCK §2 canonical (file already tampered?)" >&2
+    return 1
+  fi
+  return 0
+}
+
 usage() {
   cat >&2 <<EOF
 usage: mutate-invariant.sh <variant>            # 跑完整突变门
@@ -152,6 +167,10 @@ run_gate() {
     echo "mutate-invariant: locked spec not found: $rel" >&2
     return 1
   fi
+
+  # §1.2 规范 hash 入口比对：锁定文件必须与 TEST-LOCK.md §2 一致才能起跳。
+  # 若文件已被先行篡改，下游 before==after 自检会照过——此处先行拒掉。
+  _assert_lock_intact "$rel" || return 1
 
   # sha256 自检：跑前快照锁定文件
   lock_sha_before="$(_sha256 "$locked")"

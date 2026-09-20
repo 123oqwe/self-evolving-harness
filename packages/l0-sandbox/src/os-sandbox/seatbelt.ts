@@ -48,6 +48,11 @@
 import { realpathSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 import { runShell } from "./spawn.js";
+import {
+  hasVisibleNetDeny,
+  mergeNetVerifyEvidence,
+  netIsolationDemanded,
+} from "./net-deny-surface.js";
 import type {
   FsRules,
   NetRules,
@@ -72,6 +77,30 @@ const PROBE_PROFILE = "(version 1)\n(allow default)\n";
 
 /** 嵌套探测命令：固定路径 /usr/bin/true，绝不执行用户命令。 */
 const PROBE_BIN = "/usr/bin/true";
+
+/**
+ * 网络拒绝 surfacing 探针（逃逸门硬约束，cloud CI 实证 macos bug）：
+ * 静默工具（`curl -s`）吞掉内核拒绝消息时 stderr 为空。探针 = 同一
+ * profile 内两次固定 egress 尝试（loopback connect + DNS 解析），均带
+ * `-sS`（静默进度但保留错误输出）：
+ * - `(deny network*)` 生效 → connect/DNS 得 EPERM → curl 输出含
+ *   `Operation not permitted` / `Could not resolve`（真实拒绝签名）；
+ * - 未沙箱化 → `Connection refused`（不算拒绝证据，不采纳）；
+ * - profile 由 sandbox-exec 应用成功后由内核强制，探针绝无真实外联。
+ * 收集/合并逻辑与 bwrap 后端共享（net-deny-surface.ts）。
+
+/**
+ * 网络拒绝 surfacing（逃逸门硬约束，cloud CI 实证 macos bug）：调用方
+ * 要求网络隔离但命令失败且 stderr 无任何可见拒绝签名时，用自有探针复测
+ * 并把真实探针输出补入 stderr。根因：静默工具（如 `curl -s`）会吞掉内核
+ * 拒绝消息（`-s` 抑制错误输出）——沙箱确实拒了，但结果里看不见，逃逸门
+ * （拒绝必须可见）被静默绕过。门控/证据提取/合并逻辑见
+ * net-deny-surface.ts（与 bwrap 后端共享）。
+ */
+
+/** egress 探针命令：loopback connect + DNS 解析，-sS 保留错误输出。 */
+const NET_PROBE_CMD =
+  "curl -sS --max-time 2 http://127.0.0.1:1/ ; curl -sS --max-time 2 http://example.com/";
 
 /**
  * 进程级缓存：null = 未探测；true = 探针确认本进程处于嵌套沙箱（任何 profile
@@ -193,10 +222,34 @@ export class SeatbeltBackend implements OssandboxBackend {
       if (EPERM_RE.test(line)) epermHits.push(line);
     }
 
+    // 网络拒绝 surfacing（逃逸门）：静默工具（curl -s 等）吞掉内核拒绝
+    // 消息时 stderr 为空。仅当：调用方要求网络隔离 && 命令失败 && stderr
+    // 无任何可见拒绝签名，才用自有探针（同一 profile 内 loopback connect）
+    // 复测并追加真实探针拒绝输出（见 NET_DENY_EVIDENCE_RE 注释）。探针
+    // apply 自身被拒（嵌套等）时输出不采纳——那是 apply 失败，非 egress
+    // 拒绝证据。
+    let stderr = res.stderr;
+    if (
+      res.exitCode !== 0 &&
+      !hasVisibleNetDeny(res.stderr) &&
+      netIsolationDemanded(opts.netRules)
+    ) {
+      const probe = await runShell(
+        ["sandbox-exec", "-p", profile, "sh", "-c", NET_PROBE_CMD],
+        { cwd: opts.cwd, timeout_ms: 10_000 },
+      );
+      if (!isApplyDenied(probe)) {
+        const merged = mergeNetVerifyEvidence(stderr, epermHits, probe.stderr);
+        stderr = merged.stderr;
+        epermHits.length = 0;
+        epermHits.push(...merged.epermHits);
+      }
+    }
+
     return {
       exitCode: res.exitCode,
       stdout: res.stdout,
-      stderr: res.stderr,
+      stderr,
       epermHits,
     };
   }

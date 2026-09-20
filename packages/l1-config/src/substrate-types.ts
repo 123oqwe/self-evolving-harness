@@ -14,15 +14,27 @@ export interface Substrate {
 }
 
 /**
- * 变异候选（元循环产出，落 `staging/`，不进 active）。
- * 由 T04a/T05a 的 evolution-driver 产出，T04b/T05b 的 select-retain 消费。
- * 此处仅定义最小共享形状，后续任务可扩展。
+ * 变异候选（元循环产出）。
+ * 由 T04a/T05a 的 evolution-driver 产出（只产候选集，不打分不落盘——
+ * spec §L1-T04a：「本任务只产候选集，打分与 select 在 T04b」），
+ * T04b/T05b 的 select-retain 消费并经 commit-on-success 落 active + staging。
+ *
+ * 字段名/可选性严格对齐 execution/L1-config/TASKS.md §L1-T04a 接口签名
+ * （ERRATA-w2plus L1-02/L1-03 裁决：SandboxExecutor shape + opts 可选字段）。
  */
 export interface VariantCandidate {
-  readonly kind: "compaction" | "phase";
-  readonly variantPath: string;
+  /** uuid */
+  readonly id: string;
+  readonly substrate: "compaction";
+  /** baseline sha（变异父本 sha256） */
+  readonly parentSha: string;
+  /** 变异后的 prompt 全文 */
   readonly content: string;
-  readonly source: "mutation" | "human";
+  readonly provenance: {
+    readonly trajectoryId: string;
+    readonly mutatorSession: string;
+    readonly generatedAt: number;
+  };
 }
 
 /**
