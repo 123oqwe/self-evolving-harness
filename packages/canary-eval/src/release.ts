@@ -56,7 +56,24 @@ export interface CanaryObservations {
 
 /** canaryRelease 选项（注入 baselineResolveRate 作为退化判定对照基线，manifest 无此字段）。 */
 export interface CanaryReleaseOptions {
-  baselineResolveRate?: number;
+  /**
+   * baseline resolve_rate（退化判定对照基线，`drop = baseline - current`）。
+   * **必填**——canaryRelease 裁决口 fail-closed：省略即抛错，绝不静默跳过
+   * resolveRate-drop 检测（避免主退化信号因可选入参被禁用 = fail-open）。
+   */
+  baselineResolveRate: number;
+}
+
+/**
+ * 缺失 baselineResolveRate（主退化信号裁决对照基线）。canaryRelease 为发布管线
+ * 最终裁决口——省略 baselineResolveRate = 无法判定 resolveRate 降 = fail-closed
+ * 抛错，拒绝静默 PROMOTE。
+ */
+export class MissingBaselineResolveRateError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MissingBaselineResolveRateError";
+  }
 }
 
 /**
@@ -76,12 +93,18 @@ function detectDegradation(
 ): boolean {
   const { revertThresholds } = policy;
 
-  // resolveRate 降（drop = baseline - current）。
-  if (opts?.baselineResolveRate !== undefined) {
-    const drop = opts.baselineResolveRate - observations.resolveRate;
-    if (drop >= revertThresholds.resolveRateDrop) {
-      return true;
-    }
+  // resolveRate 降（drop = baseline - current）——主退化信号，**fail-closed**：
+  // baselineResolveRate 为发布裁决对照基线，缺失即抛错，绝不静默跳过（避免
+  // observations.resolveRate 崩盘但调用方未注入 baseline → 静默 PROMOTE 的 fail-open）。
+  if (opts?.baselineResolveRate === undefined) {
+    throw new MissingBaselineResolveRateError(
+      "canaryRelease fail-closed: opts.baselineResolveRate is required to evaluate the resolveRate-drop " +
+        "degradation signal — omitting it silently disables the primary regression signal (fail-open)",
+    );
+  }
+  const drop = opts.baselineResolveRate - observations.resolveRate;
+  if (drop >= revertThresholds.resolveRateDrop) {
+    return true;
   }
 
   // PII 命中数超阈值（threshold = 允许上限；observed > threshold 才算违规。

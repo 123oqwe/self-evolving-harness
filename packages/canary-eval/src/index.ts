@@ -132,7 +132,7 @@ export type { SaturationGap } from "./saturation-gap.js";
 //   `opts.baselineResolveRate` 注入，`drop = baseline - current`。
 //   runtime mutation of revert thresholds 由 L0C pre-commit/breaker 守卫，
 //   CE 侧仅守 `isRevertMechanismStaticCore()===true` 不变量 + 不 mutate policy。
-export { canaryRelease, isRevertMechanismStaticCore } from "./release.js";
+export { canaryRelease, isRevertMechanismStaticCore, MissingBaselineResolveRateError } from "./release.js";
 
 export type {
   ReleasePolicy,

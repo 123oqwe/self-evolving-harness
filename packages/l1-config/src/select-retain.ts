@@ -68,6 +68,22 @@ export class NoWeightedSumError extends Error {
   }
 }
 
+/**
+ * retain 退化门拒绝（fail-closed）。候选在 strict-improvement 硬门或 Pareto
+ * 前沿上失败 → `commitOnSuccess` 抛此错并**不触盘**（不写 active / staging /
+ * pinSha）。对照 L3 `Retain.commit(mutant, gate)` 的 `if (!gate...) return null`
+ * fail-closed 守卫——L1 侧以 throw 形式落地（commitOnSuccess 返回 void）。
+ */
+export class RetainGateError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RetainGateError";
+  }
+}
+
+/** strict-improvement 门默认退化容忍阈值 τ（PRD §6.7；与 T04b/T05b spec 一致）。 */
+const DEFAULT_STRICT_TAU = 0.02;
+
 // ── 纯函数：strict-improvement 门 + Pareto 前沿 ─────────────────────────────
 
 /**
@@ -187,6 +203,37 @@ export class SelectRetain {
   }
 
   /**
+   * fail-closed 退化门裁决（commitOnSuccess 前置）。从 `scores` 抽取基线
+   * （`isBaseline===true`）与候选分数集，对每个候选强制跑 `strictImprovementGate`
+   * + `paretoFront`：任一退化 ≥ τ 或被帕累托支配 → 抛 `RetainGateError`（不触盘）。
+   * 仅基线无候选分数时不裁决（向后兼容；生产须串 select）。
+   */
+  private enforceGate(scores: CandidateScore[], tau: number): void {
+    const baseline = scores.find((s) => s.isBaseline);
+    if (!baseline) return; // 无基线参照 → 无法裁决退化，交由调用方契约
+    const candidates = scores.filter((s) => !s.isBaseline);
+    for (const c of candidates) {
+      if (!strictImprovementGate(c, baseline, tau)) {
+        throw new RetainGateError(
+          `commitOnSuccess rejected: candidate '${c.candidateId}' failed strict-improvement gate ` +
+            `(recall/resolveRate/cacheHit 退化 ≥ τ=${tau}; PRD §6.7) — fail-closed, no active/staging write`,
+        );
+      }
+    }
+    if (candidates.length === 0) return;
+    const front = this.paretoFront(candidates, baseline);
+    const frontIds = new Set(front.map((f) => f.candidateId));
+    for (const c of candidates) {
+      if (!frontIds.has(c.candidateId)) {
+        throw new RetainGateError(
+          `commitOnSuccess rejected: candidate '${c.candidateId}' is Pareto-dominated ` +
+            `(PRD §6.7) — fail-closed, no active/staging write`,
+        );
+      }
+    }
+  }
+
+  /**
    * Pareto 非支配前沿。入参声明 `unknown[]`：运行时逐元素形状校验，非完整
    * `CandidateScore` 形状或含 `score` 单值字段 → throw `NoWeightedSumError`
    * （禁加权求和路径）。`baseline` 作参照但不进前沿输出。
@@ -215,15 +262,32 @@ export class SelectRetain {
   }
 
   /**
-   * commit-on-success：候选过门 → 写 active（`prompts/compaction-summary.md`，
+   * commit-on-success：候选**过门**才写 active（`prompts/compaction-summary.md`，
    * 内容更新）+ staging 版本后缀（`staging/compaction-summary.v{N}.md`，可回滚）+
    * 调 `ConfigRepo.pinSha` 重锁。写 active 前把基线内容存入 `rollbackStore`，
    * 供 `CanaryConfigPlane.rollback` 恢复（退化信号 → 回滚 active sha 复原）。
    *
    * 版本后缀是回滚的物理基础（PRD §6.4 keep-all variant）——绝不直接覆盖
    * active 而不留版本后缀。
+   *
+   * **fail-closed 守卫**（对照 L3 `Retain.commit(mutant, gate)` 内部
+   * `if (!gate.strictImprovement || !gate.paretoFront) return null`）：方法名
+   * `commitOnSuccess` 语义即「过门才 commit」——此处**强制**对传入 `scores` 跑
+   * `strictImprovementGate`（任一指标退化 ≥ τ → 抛 `RetainGateError`，不触盘）
+   * 与 `paretoFront`（候选被支配 → 抛 `RetainGateError`）。门裁决**不再**交由调用方
+   * 手动前置；退化 candidate 经此路径不会写 active / pinSha 重锁。
+   *
+   * `scores` 入参须含且仅含一个 `isBaseline===true` 基线分数 + ≥0 个候选分数。
+   * 若调用方未注入任何候选分数（仅基线），则无可裁决退化——此路径保留向后兼容
+   * （rollback 演练用例的 setup），但生产 driver 须先 `select` 再 `commitOnSuccess`
+   * 串接（见 L1-T04b driver），不得绕过 select 直 commit。
    */
-  commitOnSuccess(candidate: VariantCandidate, _scores: CandidateScore[]): void {
+  commitOnSuccess(
+    candidate: VariantCandidate,
+    scores: CandidateScore[],
+    tau: number = DEFAULT_STRICT_TAU,
+  ): void {
+    this.enforceGate(scores, tau);
     const root = this.repo.getRoot();
     const activeAbs = join(root, COMPACTION_ACTIVE);
 
