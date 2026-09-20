@@ -55,6 +55,7 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y bubblewrap
       - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        if: runner.os == 'Linux'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -114,6 +115,7 @@ jobs:
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y bubblewrap
       - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        if: runner.os == 'Linux'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Install deps
         run: pnpm install --frozen-lockfile
@@ -168,6 +170,7 @@ jobs:
       - name: Install bubblewrap
         run: sudo apt-get update && sudo apt-get install -y bubblewrap
       - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        if: runner.os == 'Linux'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Install deps (root)
         run: pnpm install --frozen-lockfile
@@ -181,4 +184,4 @@ jobs:
       # 以非 root uid 跑 L0S 测试: bwrap mode-000 遮蔽在非 root 下生效 (L0S-R1)。
       - name: Run L0S tests as non-root user
         run: |
-          su l0s-runner -c "cd \"$GITHUB_WORKSPACE\" && id -u && pnpm vitest run tests/L0S/T01.brain-no-credential.spec.ts tests/L0S/T01.session-log-append-only.spec.ts tests/L0S/T01.session-wake-idempotent.spec.ts tests/L0S/T02.sandbox-deny-ssh.spec.ts tests/L0S/T02.sandbox-deny-egress.spec.ts tests/L0S/T02.sandbox-platform-skip.spec.ts tests/L0S/T03.deny-read-ssh.spec.ts tests/L0S/T03.narrower-allow-reopens.spec.ts tests/L0S/T03.symlink-bypass-blocked.spec.ts tests/L0S/T03.worktree-write-scoped.spec.ts tests/L0S/T06.timeout-kills.spec.ts tests/L0S/T06.teardown-on-throw.spec.ts tests/L0S/T06.concurrency-limit.spec.ts tests/L0S/T06.orphan-list.spec.ts"
+          sudo -u l0s-runner env "PATH=$PATH" "HOME=/home/l0s-runner" bash -c "cd \"$GITHUB_WORKSPACE\" && id -u && pnpm vitest run tests/L0S/T01.brain-no-credential.spec.ts tests/L0S/T01.session-log-append-only.spec.ts tests/L0S/T01.session-wake-idempotent.spec.ts tests/L0S/T02.sandbox-deny-ssh.spec.ts tests/L0S/T02.sandbox-deny-egress.spec.ts tests/L0S/T02.sandbox-platform-skip.spec.ts tests/L0S/T03.deny-read-ssh.spec.ts tests/L0S/T03.narrower-allow-reopens.spec.ts tests/L0S/T03.symlink-bypass-blocked.spec.ts tests/L0S/T03.worktree-write-scoped.spec.ts tests/L0S/T06.timeout-kills.spec.ts tests/L0S/T06.teardown-on-throw.spec.ts tests/L0S/T06.concurrency-limit.spec.ts tests/L0S/T06.orphan-list.spec.ts"
