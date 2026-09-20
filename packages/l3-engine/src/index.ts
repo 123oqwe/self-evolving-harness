@@ -121,6 +121,27 @@ export type {
 export { ExpelCounter } from "./archive/expel-counter.js";
 export type { ExpelCounterOptions } from "./archive/expel-counter.js";
 
+// ---------------------------------------------------------------------------
+// L3-T08: Voyager commit-on-success retain + auto-revert (canary shadow +
+// regression-signal → CE-T06 git checkout). Barrel additions only.
+// Static-core invariant: rollbackThreshold frozen; optimizer cannot mutate;
+// revertExec delegates to CE-T06 (git checkout), not implemented in L3.
+// ---------------------------------------------------------------------------
+export { Retain, bumpVersion, baseName } from "./retain/commit-on-success.js";
+export type {
+  RetainGate,
+  CommitResult,
+  VectorIndex,
+} from "./retain/commit-on-success.js";
+export { AutoRevert } from "./retain/auto-revert.js";
+export type {
+  RegressionSignal,
+  CanaryHandle,
+  RevertResult,
+  AutoRevertOptions,
+} from "./retain/auto-revert.js";
+export { buildRollbackCommand } from "./retain/git-client.js";
+
 // runEvolutionCycle (XM-T01 E2E entry) + E2E contract types.
 export { runEvolutionCycle } from "./adapters/e2e-adapter.js";
 export type {
