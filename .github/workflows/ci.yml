@@ -14,6 +14,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── 测试锁 sha256 门: 锁定测试文件不得被篡改 (TEST-LOCK.md §1.2) ────────
+  # 这是 self-evolving harness 的核心安全属性: implementer 不得触碰 tests/ 下
+  # 已锁定文件。本门重算每个锁定测试文件的 sha256 并与 TEST-LOCK.md §2 表
+  # 比对——hash 不变 = 锁定完好。任何篡改/删除/新增未锁定测试 → 立即 fail,
+  # 不受 reviewer 社会过程约束, 不受 green 数上升误导。
+  # 先于 sentinel / full-suite 运行, 使后续门在锁定完好的前提下才计数。
+  test-lock:
+    name: Test-lock sha256 gate (TEST-LOCK §1.2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/setup-node@924ae3a1cded613372ab5595356fb5720e22ba16  # v6.5.0
+        with:
+          node-version: 22
+      - name: Verify locked test sha256 against TEST-LOCK.md §2
+        run: node scripts/lib/test-lock-check.mjs
+
   # ── 哨兵门: 已实现任务的测试必须全绿, 不许回归 ─────────────────────
   # 这是权威验收: 本地跑的不算数, 这里 exit 0 才算过
   sentinel:
@@ -96,6 +114,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bubblewrap
       - name: Install deps
         run: pnpm install --frozen-lockfile
+      - name: Test-lock sha256 gate (defense in depth)
+        run: node scripts/lib/test-lock-check.mjs
       - name: Run full suite, count greens
         id: suite
         run: |

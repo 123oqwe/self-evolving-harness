@@ -17,6 +17,11 @@
 ### 1.2 锁定与驳回规则
 
 - **锁定生效**：本文件 §2 表中每一行的 `sha256` 即该测试文件的锁定值。`implementer` 领单时由 `verify.sh` 或 test-lock 门重新计算 sha256 并与本表比对——hash 不变 = 锁定完好。
+  - **代码层兑现（非仅社交契约）**：`scripts/lib/test-lock-check.mjs` 解析本表 §2、重算每个锁定文件 sha256 并比对，篡改/删除/新增未锁定测试即 exit 1。三层强制：
+    1. `scripts/verify.sh` 领单入口（`dispatch_task` 前先跑 test-lock-check）；
+    2. `.github/workflows/ci.yml` 的 `test-lock` job（不可绕过，先于 sentinel/full-suite）；
+    3. `scripts/install-pre-commit.sh` 安装的 `.git/hooks/pre-commit`（本地快反馈，`--no-verify` 可绕但 CI 为硬后盾）。
+  - `scripts/lib/mutate-invariant.sh` 的 `run_gate` 入口亦先比对 §2 规范 hash（非仅 before==after），杜绝在已篡改脏基线上跑突变门。
 - **直接 reject**：`implementer` 的 diff 若触碰 `tests/` 下任一已锁定文件（含内容改动、删行、重命名、新增用例、改 import）——`reviewer` 不进入对抗审查，直接 verdict=`reject`，round 计数 +1；附 reason=`test-lock-violation`。
 - **唯一修订通道**（测试有错的唯一合法路径）：
   1. `implementer` 向 `test-author` 申诉（提交申诉单：task ID + 测试文件 + 失败证据 + 申诉理由，不得自行改测试）。
