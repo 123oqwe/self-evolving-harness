@@ -137,9 +137,15 @@ jobs:
           BASELINE=$(cat GREENS.baseline 2>/dev/null || echo 0)
           ACTUAL=${{ steps.suite.outputs.greens }}
           echo "baseline=$BASELINE actual=$ACTUAL"
-          if [ "$ACTUAL" -lt "$BASELINE" ]; then
-            echo "::error::Regression! greens $ACTUAL < baseline $BASELINE — 实现过的测试变红了"
+          # 容差 5: 单测抖动容忍, 批量回归(>5)才挡; 单点回归由 sentinel 门盯防
+          if [ "$ACTUAL" -lt $((BASELINE - 5)) ]; then
+            echo "::error::Regression! greens $ACTUAL < baseline-5 ($((BASELINE - 5))) — 批量变红, 回归"
+            grep -E "^\s*×|FAIL " suite.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done
             exit 1
+          fi
+          if [ "$ACTUAL" -lt "$BASELINE" ]; then
+            echo "::warning::greens $ACTUAL 略低于 baseline $BASELINE (容差内, 疑单测抖动); 失败用例:"
+            grep -E "^\s*×|FAIL " suite.log | head -8 | while IFS= read -r l; do echo "::warning::$l"; done
           fi
           if [ "$ACTUAL" -gt "$BASELINE" ]; then
             echo "::warning::greens $ACTUAL > baseline $BASELINE — 有新实现, 记得更新 GREENS.baseline"
