@@ -119,3 +119,10 @@ export type {
   DebiasConfig,
   JudgeResult,
 } from "./judge-debias.js";
+
+// CE-T09 落地：canary Context Saturation Gap Δ 度量器
+// （MAG perf − brute-force full-context baseline）。
+// 阈值 5pp（DISCRIMINATION_THRESHOLD）与 CE-T08 McNemar n≈30 噪声带对齐。
+export { computeSaturationGap, DISCRIMINATION_THRESHOLD } from "./saturation-gap.js";
+
+export type { SaturationGap } from "./saturation-gap.js";

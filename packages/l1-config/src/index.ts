@@ -10,3 +10,5 @@ export * from "./phase-types.js";
 export * from "./phase-substrate.js";
 // L1-T04a: compaction prompt 进化 loop-a beam-search reflective mutation 驱动器。
 export * from "./evolution-driver.js";
+// L1-T05a: phase prompt 进化 loop-a beam-search reflective mutation 驱动器。
+export * from "./phase-evolution-driver.js";

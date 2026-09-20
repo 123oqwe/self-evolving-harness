@@ -92,6 +92,12 @@ export type { TelemetrySpan } from "./adapters/fitness-bridge.js";
 // EvolveSkillAdapter + runEvolutionLoop (closed-loop body).
 export { EvolveSkillAdapter, runEvolutionLoop } from "./adapters/evolve-skill-adapter.js";
 
+// ---------------------------------------------------------------------------
+// L3-T06a: DGM open-ended tree archive (keep-all variant; interesting =
+// non-strictly-dominated). Barrel additions only.
+// ---------------------------------------------------------------------------
+export { TreeArchive, DuplicateArchiveEntry, ArchiveEntryNotFound } from "./archive/tree-archive.js";
+
 // runEvolutionCycle (XM-T01 E2E entry) + E2E contract types.
 export { runEvolutionCycle } from "./adapters/e2e-adapter.js";
 export type {
