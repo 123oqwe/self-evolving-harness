@@ -189,4 +189,4 @@ jobs:
           exit "${PIPESTATUS[0]}"
       - name: Surface L0S failures
         if: failure()
-        run: grep -E "FAIL |AssertionError" /tmp/l0s.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done || true
+        run: tail -30 /tmp/l0s.log | while IFS= read -r l; do echo "::error::$l"; done || true
