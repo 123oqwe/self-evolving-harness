@@ -25,9 +25,7 @@ describe("L0S-T04a", () => {
     proxy = undefined;
   });
 
-  test.skipIf(!canHostLoopback)("
-    // loopback socket 内核级被拒时跳过(嵌套沙箱环境); CI 干净环境覆盖
-    "allowed domain resolving to denyOut IP is blocked", async () => {
+  test.skipIf(!canHostLoopback)(/* loopback 门控: 嵌套沙箱内核拒时跳过, CI 干净环境覆盖 */ "allowed domain resolving to denyOut IP is blocked", async () => {
     // 强制 dns.lookup 返回 cloud metadata IP（命中 denyOutCidr）。
     vi.doMock("node:dns", () => ({
       lookup: (

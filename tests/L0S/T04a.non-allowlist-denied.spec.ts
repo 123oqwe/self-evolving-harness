@@ -26,9 +26,7 @@ describe("L0S-T04a", () => {
     proxy = undefined;
   });
 
-  test.skipIf(!canHostLoopback)("
-    // loopback socket 内核级被拒时跳过(嵌套沙箱环境); CI 干净环境覆盖
-    "non-allowlist domain connection refused", async () => {
+  test.skipIf(!canHostLoopback)(/* loopback 门控: 嵌套沙箱内核拒时跳过, CI 干净环境覆盖 */ "non-allowlist domain connection refused", async () => {
     proxy = new SocatProxy({
       allowedDomains: [],
       denyOutCidr: [],
