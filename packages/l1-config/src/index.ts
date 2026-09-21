@@ -23,3 +23,5 @@ export * from "./tool-registry.js";
 export * from "./tool-subset-defer.js";
 // L1-T09: history-processors 链 config + 进化（cut 边界 static-core）。
 export * from "./history-processors.js";
+// L1-T10: per-tool maxLines/maxBytes + timeout 进化（下限锁；错误类禁 head；破坏性工具人审）。
+export * from "./tool-truncation-timeout.js";

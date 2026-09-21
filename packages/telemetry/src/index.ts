@@ -27,3 +27,5 @@ export * from "./distill-selector";
 // TL-T10: trajectory replay + distillation flywheel（ATIF 格式 + eval dataset + LLM-judge score）
 export * from "./atif";
 export * from "./flywheel";
+// TL-T12: managed tracing backend（Langfuse/LangSmith OTLP + metadata 传播 + PII 出站硬门）
+export * from "./otlp-backend";
