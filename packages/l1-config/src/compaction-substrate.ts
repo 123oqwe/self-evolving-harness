@@ -9,6 +9,7 @@
 
 import type { ConfigRepo, ConfigSet } from "./repo-layout.js";
 import type { Substrate, RecallSignal } from "./substrate-types.js";
+import type { SignatureVerifier } from "./signature.js";
 
 /**
  * Telemetry sink 接口（由 TL-T01 实现，此处依赖注入便于 mock）。
@@ -77,9 +78,23 @@ export class CompactionSubstrate {
 
   /**
    * 加载 compaction 基质 active 快照。
+   *
+   * 与 `PhaseSubstrate.load` 同构：当传入 `verifier`（L0 static-core
+   * SignatureManifest）时，先 `repo.setSegmentVerifier(verifier)` 接线 runtime
+   * 第二层守卫，再调 `repo.loadActive()`——loadActive 内部在 sha 钉死通过后、
+   * `ConfigSet` swap 之前校验 safety 段签名，失配即 throw，绝不返回半加载快照
+   * （active 不被毒化）。未传 verifier → 退化为纯 sha 钉死（向后兼容 T01 单基质
+   * 场景）。
+   *
    * baseline 文件缺失/校验失败 → throw `MissingSubstrateError`。
    */
-  load(repo: ConfigRepo): Substrate {
+  load(repo: ConfigRepo, verifier?: SignatureVerifier | null): Substrate {
+    // 接线 safety 段签名校验器到 repo（T03 runtime 第二层守卫）：
+    // loadActive 在 sha 钉死通过后、ConfigSet swap 之前校验 safety 段签名，
+    // 失配 → throw，绝不返回半加载快照（active 不被毒化）。
+    if (verifier) {
+      repo.setSegmentVerifier(verifier);
+    }
     let cs: ConfigSet;
     try {
       cs = repo.loadActive();

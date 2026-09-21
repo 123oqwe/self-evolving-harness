@@ -39,6 +39,7 @@ import { join } from "node:path";
 import type { ConfigRepo } from "./repo-layout.js";
 import type { PhaseVariantCandidate } from "./phase-evolution-driver.js";
 import { rollbackStore } from "./canary-config-plane.js";
+import type { SignatureVerifier } from "./signature.js";
 
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
@@ -184,11 +185,18 @@ function phaseGate(tau: number, tauCache: number): MultiObjectiveGate<PhaseCandi
  * PhaseSelectRetain 构造 opts。
  *
  * `repo`：ConfigRepo（commit-on-success 写 active + staging + pinSha）。
+ * `verifier`：可选 safety 段签名校验器（L0 static-core SignatureManifest）——
+ * 接线后 `commitOnSuccess` 在写 active 前对 candidate.content 跑
+ * `SignatureVerifier.verify`（safety 段 sha vs manifest），失配即抛
+ * `PhaseRetainGateError` 不触盘（PRD §11.3 breaker clause）。缺省（未接线）
+ * 退化为纯 strict-improvement 门（向后兼容，与 `ConfigRepo.setSegmentVerifier(null)`
+ * no-op 语义一致）。
  * `select` 为纯函数无 IO，repo 可选（仅 select 调用时可不传）。ERRATA-w2plus
  * 风格：opts 结构化注入。
  */
 export interface PhaseSelectRetainOptions {
   readonly repo?: ConfigRepo;
+  readonly verifier?: SignatureVerifier;
 }
 
 const PHASE_STAGING_DIR = "staging";
@@ -202,9 +210,11 @@ const PHASE_STAGING_DIR = "staging";
  */
 export class PhaseSelectRetain {
   private readonly repo: ConfigRepo | undefined;
+  private readonly verifier: SignatureVerifier | null;
 
   constructor(opts: PhaseSelectRetainOptions) {
     this.repo = opts.repo;
+    this.verifier = opts.verifier ?? null;
   }
 
   /**
@@ -276,6 +286,30 @@ export class PhaseSelectRetain {
   }
 
   /**
+   * safety 段内容完整性门（PRD §11.3 breaker clause）。
+   *
+   * 对 `activePath`（相对 repo root 的 posix 路径）的 `content` 跑
+   * `SignatureVerifier.verify`：safety 段 sha256 vs L0 SignatureManifest。
+   * - 未接线 verifier → no-op（向后兼容未接线场景）。
+   * - 该文件不在 manifest 清单（`hasEntry=false`）→ no-op（与
+   *   `ConfigRepo.verifySignatures` 一致，仅校验清单覆盖文件）。
+   * - sha 失配 / 段缺失 → 包装为 `PhaseRetainGateError`（不触盘）。
+   */
+  private verifySafetySegment(activePath: string, content: string): void {
+    if (!this.verifier) return;
+    if (!this.verifier.hasEntry(activePath)) return;
+    try {
+      this.verifier.verify(activePath, content);
+    } catch (err) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: safety segment content-integrity check failed for ${activePath} ` +
+          `(${err instanceof Error ? err.message : String(err)}; PRD §11.3 breaker clause: ` +
+          `delete OR weaken safety rule auto-reject) — fail-closed, no active/staging write`,
+      );
+    }
+  }
+
+  /**
    * commit-on-success：候选**过门**才写 active phase prompt
    * （`prompts/phase-<phase>.md`）+ staging 版本后缀
    * （`staging/phase-<phase>.v{N}.md`，可回滚）+ 调 `ConfigRepo.pinSha` 重锁。
@@ -308,6 +342,11 @@ export class PhaseSelectRetain {
     this.enforceGate(candidate, scores, tau, tauCache);
     const root = this.repo.getRoot();
     const activeRel = `prompts/phase-${candidate.phase}.md`;
+    // safety 段内容完整性门（PRD §11.3 breaker clause）：写 active 前对
+    // candidate.content 跑 SignatureVerifier.verify（safety 段 sha vs L0
+    // SignatureManifest）。mutator 改写 safety 段弱化规则 → sha 失配 → 抛
+    // PhaseRetainGateError 不触盘。未接线 verifier（缺省）→ no-op（向后兼容）。
+    this.verifySafetySegment(activeRel, candidate.content);
     const activeAbs = join(root, activeRel);
 
     // 写 active 前存基线快照（供 CanaryConfigPlane.rollback 恢复）

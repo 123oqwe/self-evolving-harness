@@ -45,6 +45,7 @@ import type { Substrate } from "./substrate-types.js";
 import type { TelemetrySink } from "./compaction-substrate.js";
 import type { ConfigRepo, ConfigSet } from "./repo-layout.js";
 import type { SignatureVerifier } from "./signature.js";
+import { computeSegmentHash } from "./signature.js";
 
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
@@ -179,8 +180,13 @@ export class PhaseEvolutionDriver {
     baselineContent: string,
     candidateContent: string,
   ): { valid: boolean; reason: string } {
-    // safety 段存在性（复用 T04a `validateCandidate` 纯函数）
-    const safety = validateCandidate({ content: candidateContent });
+    // safety 段内容完整性（复用 T04a `validateCandidate` 纯函数，传 baseline
+    // safety sha 升级为 sha 比对——candidate 改写 safety 段 → sha 失配 → reject）
+    const baselineSafetySha = computeSegmentHash(baselineContent, "safety");
+    const safety = validateCandidate(
+      { content: candidateContent },
+      baselineSafetySha ?? undefined,
+    );
     if (!safety.valid) {
       return safety;
     }

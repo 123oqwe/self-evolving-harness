@@ -35,6 +35,7 @@ import { join } from "node:path";
 import type { ConfigRepo } from "./repo-layout.js";
 import type { VariantCandidate } from "./substrate-types.js";
 import { rollbackStore } from "./canary-config-plane.js";
+import type { SignatureVerifier } from "./signature.js";
 
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
@@ -170,10 +171,17 @@ function dominates(a: CandidateScore, b: CandidateScore): boolean {
 
 /**
  * SelectRetain 构造 opts。`repo`：ConfigRepo（commit-on-success 写 active +
- * staging + pinSha）。ERRATA-w2plus 风格：opts 结构化注入。
+ * staging + pinSha）。`verifier`：可选 safety 段签名校验器（L0 static-core
+ * SignatureManifest）——接线后 `commitOnSuccess` 在写 active 前对 candidate.content
+ * 跑 `SignatureVerifier.verify`（safety 段 sha vs manifest），失配即抛
+ * `RetainGateError` 不触盘（PRD §11.3 breaker clause：删/改 safety rule 的 diff
+ * 自动 reject）。缺省（未接线）退化为纯 strict-improvement 门（向后兼容 T01
+ * 单基质场景，与 `ConfigRepo.setSegmentVerifier(null)` no-op 语义一致）。
+ * ERRATA-w2plus 风格：opts 结构化注入。
  */
 export interface SelectRetainOptions {
   readonly repo: ConfigRepo;
+  readonly verifier?: SignatureVerifier;
 }
 
 const COMPACTION_ACTIVE = "prompts/compaction-summary.md";
@@ -188,9 +196,11 @@ const COMPACTION_STAGING_DIR = "staging";
  */
 export class SelectRetain {
   private readonly repo: ConfigRepo;
+  private readonly verifier: SignatureVerifier | null;
 
   constructor(opts: SelectRetainOptions) {
     this.repo = opts.repo;
+    this.verifier = opts.verifier ?? null;
   }
 
   /** strict-improvement 硬门（纯函数委托）。 */
@@ -260,6 +270,31 @@ export class SelectRetain {
   }
 
   /**
+   * safety 段内容完整性门（PRD §11.3 breaker clause）。
+   *
+   * 对 `activePath`（相对 repo root 的 posix 路径）的 `content` 跑
+   * `SignatureVerifier.verify`：safety 段 sha256 vs L0 SignatureManifest。
+   * - 未接线 verifier → no-op（向后兼容 T01 单基质 / 未接线场景）。
+   * - 该文件不在 manifest 清单（`hasEntry=false`）→ no-op（仅校验清单覆盖文件，
+   *   与 `ConfigRepo.verifySignatures` 一致）。
+   * - sha 失配 / 段缺失 → `SignatureVerifier.verify` 抛 `SignatureTamperError`，
+   *   此处包装为 `RetainGateError`（不触盘）。
+   */
+  private verifySafetySegment(activePath: string, content: string): void {
+    if (!this.verifier) return;
+    if (!this.verifier.hasEntry(activePath)) return;
+    try {
+      this.verifier.verify(activePath, content);
+    } catch (err) {
+      throw new RetainGateError(
+        `commitOnSuccess rejected: safety segment content-integrity check failed for ${activePath} ` +
+          `(${err instanceof Error ? err.message : String(err)}; PRD §11.3 breaker clause: ` +
+          `delete OR weaken safety rule auto-reject) — fail-closed, no active/staging write`,
+      );
+    }
+  }
+
+  /**
    * Pareto 非支配前沿。入参声明 `unknown[]`：运行时逐元素形状校验，非完整
    * `CandidateScore` 形状或含 `score` 单值字段 → throw `NoWeightedSumError`
    * （禁加权求和路径）。`baseline` 作参照但不进前沿输出。
@@ -315,6 +350,13 @@ export class SelectRetain {
     tau: number = DEFAULT_STRICT_TAU,
   ): void {
     this.enforceGate(candidate, scores, tau);
+    // safety 段内容完整性门（PRD §11.3 breaker clause）：写 active 前对
+    // candidate.content 跑 SignatureVerifier.verify（safety 段 sha vs L0
+    // SignatureManifest）。mutator 改写（非删除）safety 段弱化规则 → sha 失配
+    // → 抛 RetainGateError 不触盘（不写 active / staging / pinSha）。此门在
+    // strict-improvement 门之后、触盘之前——reward-hacking 改写 safety 的候选
+    // 即使指标过门也被拒。未接线 verifier（缺省）→ no-op（向后兼容）。
+    this.verifySafetySegment(COMPACTION_ACTIVE, candidate.content);
     const root = this.repo.getRoot();
     const activeAbs = join(root, COMPACTION_ACTIVE);
 
