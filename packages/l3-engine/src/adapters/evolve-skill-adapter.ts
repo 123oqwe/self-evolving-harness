@@ -219,11 +219,14 @@ export class EvolveSkillAdapter {
       const fitness = await this.score(mutant);
 
       // CE-T07 fresh-evidence 终审门（嵌入 L3 select 步，strict-improvement 前置）。
-      // 铁律：no fresh exit-code evidence → no select。无 VerifierRun 或缺数值
-      // exitCode → throw AbortSelectError → candidate fail-closed rejected
-      // （不入 archive、不 commit）。这阻断了「裸 Fitness 即 select」的伪造信号
-      // fail-open 路径——strict-improvement 门只比对 Fitness，不校验 Fitness 来源；
-      // 本门在 select 前强制 Fitness 须由 ≥1 条机械命令 exit-code 裁决背书。
+      // 铁律：no fresh passing exit-code evidence → no select。无 VerifierRun、缺数值
+      // exitCode、或任一条 exitCode!==0（FAIL 裁决）→ throw AbortSelectError →
+      // candidate fail-closed rejected（不入 archive、不 commit）。这阻断了「裸 Fitness
+      // 即 select」的伪造信号 fail-open 路径——strict-improvement 门只比对 Fitness，
+      // 不校验 Fitness 来源；本门在 select 前强制 Fitness 须由 ≥1 条机械命令
+      // exit-code=0（pass）裁决背书，使 FAIL 裁决 fail-closed reject（PRD §5.6
+      // terminal-verdict），阻断 prompt injection 使 LLM judge 通道报 pass=true 而机械
+      // canary FAIL 的伪造信号晋升路径。
       let verifications: VerifierRun[];
       try {
         verifications = await this.collectEvidence(mutant);
