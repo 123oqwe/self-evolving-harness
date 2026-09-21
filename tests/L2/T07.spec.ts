@@ -15,7 +15,7 @@ import {
 } from "@harness/l2-memory";
 import type { Note, MemCtx } from "@harness/l2-memory";
 
-function ctx(baseDir: string, judgeOverride?: () => Promise<{ link?: boolean; reason?: string }>): MemCtx {
+function ctx(baseDir: string, judgeOverride?: () => Promise<{ link?: boolean; reason?: string }> | { link?: boolean; reason?: string }): MemCtx {
   return {
     userId: "u1",
     projectId: "p1",
@@ -29,7 +29,9 @@ function ctx(baseDir: string, judgeOverride?: () => Promise<{ link?: boolean; re
   } as unknown as MemCtx;
 }
 
-const LINK_TRUE = async () => ({ link: true, reason: "causal dependency" });
+// sync LLM（返回普通对象）：addNote 同步契约下真正走 link-judge 裁决路径
+// （position-swap debias + reason provenance），reason 入 provenance。
+const LINK_TRUE = () => ({ link: true, reason: "causal dependency" });
 
 describe("L2-T07", () => {
   let baseDir: string;
@@ -67,8 +69,9 @@ describe("L2-T07", () => {
     // link-judge 返回 link=true → note.links 须含该 link
     expect(note.links.length).toBeGreaterThanOrEqual(1);
     expect(note.links[0].targetId).toBeDefined();
-    expect(typeof note.links[0].reason).toBe("string");
-    expect(note.links[0].reason.length).toBeGreaterThan(0);
+    // 非空泛守门：reason 必须是 LLM 返回值（"causal dependency"），
+    // 而非硬编码默认值——防止 optimistic 伪链 vacuous pass。
+    expect(note.links[0].reason).toBe("causal dependency");
   });
 
   it("link has reason provenance", async () => {

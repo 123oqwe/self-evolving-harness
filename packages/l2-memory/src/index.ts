@@ -13,3 +13,6 @@ export * from "./expel/evidence-guard.js";
 export * from "./expel/insight-store.js";
 export * from "./episodic/trajectory-store.js";
 export * from "./semantic/fact-store.js";
+export * from "./a-mem/note-store.js";
+export * from "./a-mem/link-judge.js";
+export * from "./shared/embedding.js";
