@@ -1,0 +1,14 @@
+# L1-T21 · resource 排序 active 基线（config/resource_ranker.yaml）
+# host 侧 resourceSelectionRanker 排序权重。进化的对象 = 本文件。
+# 排序信号 = 机械信号（task 成功 + token + 引用率），不用 LLM judge
+# （02-tools-mcp 组件6）。
+#
+# control-model 分配（tools=model / resources=host / prompts=user）= static-core。
+# audience:[user]-only 内容永不注入 model context（硬拒，见 assertAudienceUserNotInjectedToModel）。
+# 破坏性 prompt（含 execute 指令）须人审（见 assertDestructivePromptHumanGated）。
+
+# 排序权重（relevance + priority + recency 归一化为 1.0）。
+weights:
+  relevance: 0.5   # task-relevance 信号权重（注入的 resource 被模型引用/使用率）
+  priority: 0.3    # MCP resource annotations.priority 权重
+  recency: 0.2     # lastModified 新鲜度权重

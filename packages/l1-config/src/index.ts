@@ -47,3 +47,5 @@ export * from "./steering-policy.js";
 export * from "./failure-recovery.js";
 // L1-T20: 多 agent aggregation router + debate config（martingale 消融；token 多目标；投票独立先解）。
 export * from "./aggregation-router.js";
+// L1-T21: resource 排序函数 + prompts 模板体进化（audience:[user] 永不注入 model；破坏性 prompt 人审）。
+export * from "./resource-ranker.js";
