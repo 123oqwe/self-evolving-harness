@@ -73,9 +73,9 @@
 | L0S-T03 | `tests/L0S/T03.symlink-bypass-blocked.spec.ts` | `22e03e9b36bf54c429544bca4ae10fd1d2913668ed8c58e9c9bb23dd56055256` |
 | L0S-T03 | `tests/L0S/T03.worktree-write-scoped.spec.ts` | `9ec24eb8f23d479eef01e51f8abb0b3f810705c46769ebea145aa96b85417645` |
 | L0S-T04a | `tests/L0S/T04a.allowlist-subdomain.spec.ts` | `113f6076c309a7f4601731cd1c114c7d78860a43b50a7c96dfdf8239408aa7cc` |
-| L0S-T04a | `tests/L0S/T04a.dns-rebinding-blocked.spec.ts` | `13e77deef045150a3693089a51db9ca40e4aef895e568b7e286d544106728afc` |
-| L0S-T04a | `tests/L0S/T04a.non-allowlist-denied.spec.ts` | `7b731389b750a4b7668a7b82207f4cfa6e1ff8deff2991019bd0de57d34f4430` |
-| L0S-T04a | `tests/L0S/T04a.proxy-egress-log.spec.ts` | `d10a71d22f4792e23150a1c46689144d91748e1b5a62dba531a67bc042fcc7c4` |
+| L0S-T04a | `tests/L0S/T04a.dns-rebinding-blocked.spec.ts` | `6b4b9eabf33bfd953e0bc23fa3bb0c40f39f0c00883ffe4ffb519c3f23ad01b8` |
+| L0S-T04a | `tests/L0S/T04a.non-allowlist-denied.spec.ts` | `4515b42686f4ef79e0faedd8e6a2b60f67efddb8e8410aca4afe08d943f7375b` |
+| L0S-T04a | `tests/L0S/T04a.proxy-egress-log.spec.ts` | `e7d93e12437a9f98d1c233d9fa94292cda87d927346445f0e3535c577782e489` |
 | L0S-T04b | `tests/L0S/T04b.egress-no-real-secret.spec.ts` | `cb1326c906b282f157016fa1467bcbd069bb0ba40b745ae16ae6fb71bc38c0a8` |
 | L0S-T04b | `tests/L0S/T04b.env-strip.spec.ts` | `c394bfac4ac20f2e6310f527e9c1f8dcc1832b1c49b798fb035302d124478b89` |
 | L0S-T04b | `tests/L0S/T04b.injectHosts-subset.spec.ts` | `6d0bf0700c558e5553c074bb11673f1aafa9e1aeb79d8b67593df10dc0149b69` |
