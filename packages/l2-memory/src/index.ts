@@ -48,3 +48,16 @@ export {
   type TriggerThreshold,
   type TriggerState,
 } from "./router/write-router.js";
+// L2-T15: 包管理信任门（barrel 只追加）。
+// breakerScan/BreakerFlag 已由 skill-evo/body-evo.ts 经 `export *` 导出，
+// 此处不再重复导出，避免 barrel 重名冲突（spec REFACTOR 共享语义由
+// trust/package-gate.ts 内部 re-export 满足）。
+export {
+  trustGate,
+  stripSecrets,
+  neverAutoInstallProject,
+  type PackageSource,
+  type PkgRef,
+  type Allow,
+  type PkgRejectReason,
+} from "./trust/package-gate.js";
