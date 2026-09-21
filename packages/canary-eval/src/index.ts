@@ -179,3 +179,14 @@ export type {
   MemoryBenchResult,
   MemoryBenchOptions,
 } from "./memory-bench.js";
+
+// CE-T12 落地：benchmark 投毒检测 — 变体在 clean canary 反降分 → 疑似投毒隔离
+// （PRD §10 R3 / §11.1 canary 子集）。隔离 ≠ 删除（never-auto-delete），
+// 投毒变体入 `release_policy.yaml` 的 quarantine 区供诊断。
+// ERRATA-w2plus CE-24：detectPoison 三参 `(variant, cleanCanary, opts?)`；
+//   opts.cleanCanaryScore/baselineCleanScore 注入；τ 默认 CE-T08 σ=5.4pp 下界。
+// `Variant` 复用 CE-T05 首处定义（judge-debias.ts），`CanaryManifest` 复用
+//   CE-T01a canary/types.ts（不重复定义）。
+export { detectPoison, POISON_TAU } from "./poison-detector.js";
+
+export type { PoisonCheck, PoisonDetectOptions } from "./poison-detector.js";

@@ -21,3 +21,5 @@ export * from "./phase-select-retain.js";
 export * from "./tool-registry.js";
 // L1-T08: tool sub-set/defer config + 进化（defer 不隐藏安全关键工具）。
 export * from "./tool-subset-defer.js";
+// L1-T09: history-processors 链 config + 进化（cut 边界 static-core）。
+export * from "./history-processors.js";

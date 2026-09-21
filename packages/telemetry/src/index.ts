@@ -24,3 +24,6 @@ export * from "./clusterer-config";
 export * from "./clustering";
 // TL-T09: distillation 选择器（token 效率 + 成功率 + 多样性优先）
 export * from "./distill-selector";
+// TL-T10: trajectory replay + distillation flywheel（ATIF 格式 + eval dataset + LLM-judge score）
+export * from "./atif";
+export * from "./flywheel";

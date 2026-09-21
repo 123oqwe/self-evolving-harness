@@ -7,4 +7,5 @@ export * from "./shared/cap-guard.js";
 export * from "./shared/redact.js";
 export * from "./shared/provenance.js";
 export * from "./auto-memory/reflexion-writer.js";
+export * from "./auto-memory/memory-bank.js";
 export * from "./expel/cluster-feed.js";

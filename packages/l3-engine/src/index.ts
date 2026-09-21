@@ -192,3 +192,25 @@ export type {
   SurrogatePrediction,
 } from "./optimizers/bayesian-surrogate.js";
 export { factorizeInstructionDemo } from "./optimizers/instruction-demo-factorize.js";
+
+// ---------------------------------------------------------------------------
+// L3-T12: TextGrad per-variable 文本梯度适配 (reverse pass: failure →
+// per-variable text gradient → isolated per-variable rewrite). Defining
+// invariant vs L3-T03 reflective mutation: PER-VARIABLE ISOLATION (a
+// gradient on variable A must never change variable B). Prompt/skill
+// substrates only; weight channel → NotImplementedError (V2 placeholder).
+// Barrel additions only.
+// ---------------------------------------------------------------------------
+export { TextGradOptimizer } from "./optimizers/textgrad.js";
+export type {
+  TextGradVariable,
+  TextGrad,
+  TextLoss,
+  TextGradOptimizerOptions,
+  TextGradContext,
+} from "./optimizers/textgrad.js";
+export {
+  parseVariables,
+  assembleContent,
+  SEGMENT_SEPARATOR,
+} from "./optimizers/variable-parser.js";
