@@ -48,6 +48,33 @@ export interface ToolDoc {
   }>;
   readonly fieldDoc: Readonly<Record<string, string>>;
   readonly examples: readonly string[];
+  /**
+   * 该工具是否属执行类/高风险（registry YAML `dangerous: true`）。
+   *
+   * hook-policy breaker（L1-T12a）据此动态派生 forbidden 集合，使新注册的
+   * 执行类工具自动进入 deny/ask→allow 拦截保护——避免 forbidden 列表为
+   * frozen 字面量、新执行工具永不进入 breaker 保护的结构性静默放行面。
+   * 缺省 false（向后兼容未声明 `dangerous` 的既有 registry）。
+   */
+  readonly dangerous: boolean;
+}
+
+/**
+ * 从已加载的 ToolDoc 集合中提取标记 `dangerous: true` 的工具名（小写归一）。
+ *
+ * 供 hook-policy breaker 动态派生 forbidden 集合：baseline 种子
+ * `DENY_TO_ALLOW_FORBIDDEN`（bash/write/edit）∪ 本函数返回集 = 运行时
+ * forbidden 全集。新注册的执行类工具（registry 标 `dangerous: true`）自动
+ * 进入 breaker 保护，无需改 frozen 字面量。
+ */
+export function dangerousToolNames(
+  docs: Readonly<Record<string, ToolDoc>>,
+): readonly string[] {
+  const out: string[] = [];
+  for (const doc of Object.values(docs)) {
+    if (doc.dangerous) out.push(doc.name.toLowerCase());
+  }
+  return Object.freeze(out) as readonly string[];
 }
 
 /**
@@ -318,6 +345,8 @@ function buildToolDoc(parsed: Record<string, unknown>): ToolDoc {
     | undefined;
   const fieldDoc = toStringMap(parsed.fieldDoc);
   const examples = toStringArray(parsed.examples);
+  // dangerous 标记：registry YAML `dangerous: true` → true，否则 false（向后兼容）。
+  const dangerous = parsed.dangerous === true;
 
   const inputSchema: ToolDoc["inputSchema"] = {
     types: Object.freeze(types) as readonly string[],
@@ -334,6 +363,7 @@ function buildToolDoc(parsed: Record<string, unknown>): ToolDoc {
     inputSchema: Object.freeze(inputSchema) as ToolDoc["inputSchema"],
     fieldDoc,
     examples: Object.freeze(examples.slice()) as readonly string[],
+    dangerous,
   };
   return Object.freeze(doc) as ToolDoc;
 }

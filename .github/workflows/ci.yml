@@ -159,8 +159,11 @@ jobs:
 
   # ── L0S 沙箱测试: 非 root uid 执行 (ERRATA-w01 §L0S-R1 / CLN-T03) ──
   # Linux CI 以 root uid 运行时 bwrap mode-000 遮蔽失效 (root 绕过文件权限),
-  # 导致 L0S-T02 sandbox 隔离契约在 root 下不可信。本 job 以非 root uid 跑
-  # L0S 测试, 使 bwrap mode-000 遮蔽在非 root 下生效。
+  # 导致 L0S-T02 sandbox 隔离契约在 root 下不可信。本 job 显式创建非 root
+  # user 并以该 user 身份跑 L0S 测试, 使 bwrap mode-000 遮蔽在非 root 下生效。
   # 注: 原 ERRATA L0S-R1 缓解 (b) "bwrap 加 --cap-drop ALL" 已更正废除——
   # --cap-drop 是 Docker/podman 旗标, bwrap 无此选项 (cloud CI 实证)。权限
   # 约束由 bwrap 非特权 user namespace 本身完成。见 ERRATA-w01 更正记录。
+  # 注: 不依赖 GitHub runner 默认非 root user —— 显式 useradd + chown + su
+  # 使非 root 执行可被 CLN-T03 spec 锁定测试机械验证 (grep 证据), 且强化
+  # bwrap mode-000 遮蔽在非 root uid 下生效的契约。

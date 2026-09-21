@@ -1,0 +1,42 @@
+# L1-T19 · failure recovery policy baseline
+#
+# failure_signature → {action, max_retries, reroute_target} 恢复策略表。
+# 进化的对象 = 本表的 action / max_retries / reroute_target。
+#
+# static-core 不变量（不可进化，违例即 reject）：
+#   - idempotencyIncidentCount == 0（resume 前后 side-effect 计数差 ≠ 0 = contract 违反，
+#     double-commit / double-charge 不可恢复，hard constraint 非软目标，
+#     02-orchestration §6(e)）
+#   - checkpoint 在 super-step 边界（node-internal checkpoint → throw，
+#     super-step 边界是 resume 正确性的信任锚点，02-orchestration §6(a)）
+#
+# action 语义:
+#   retry              — 重试当前 node（受 max_retries 约束）
+#   reroute            — 重路由到 reroute_target 指定的备选路径
+#   checkpoint_resume  — 从最近 super-step checkpoint resume
+#   abort              — 终止整个 run（不可恢复的失败）
+
+rules:
+  - failure_signature: "timeout"
+    action: retry
+    max_retries: 3
+    reason: "transient timeout → retry with bounded attempts"
+  - failure_signature: "rate_limit"
+    action: retry
+    max_retries: 5
+    reason: "rate-limit / 429 → retry with backoff"
+  - failure_signature: "tool_not_found"
+    action: reroute
+    max_retries: 0
+    reroute_target: "fallback_tool"
+    reason: "tool missing → reroute to fallback"
+  - failure_signature: "context_length_exceeded"
+    action: checkpoint_resume
+    max_retries: 0
+    reason: "context overflow → compaction + resume from last super-step checkpoint"
+  - failure_signature: "panic"
+    action: abort
+    max_retries: 0
+    reason: "irrecoverable panic → abort run"
+
+# 幂等 self-check 清单见 config/idempotency_checklist.md。

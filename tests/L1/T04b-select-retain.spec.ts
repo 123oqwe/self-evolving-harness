@@ -127,7 +127,10 @@ describe("L1-T04b", () => {
       content: BASELINE + "\n<!-- v2 -->",
       provenance: { trajectoryId: "t1", mutatorSession: "mut-1", generatedAt: Date.now() },
     };
-    sr.commitOnSuccess(candidate, [score({ isBaseline: true, recall: 10, resolveRate: 0.48, cacheHit: 0.6 })]);
+    sr.commitOnSuccess(candidate, [
+      score({ isBaseline: true, recall: 10, resolveRate: 0.48, cacheHit: 0.6 }),
+      score({ candidateId: "v-uuid-2", recall: 5, resolveRate: 0.50, cacheHit: 0.6 }),
+    ]);
     const afterCommit = sha(readFileSync(join(root, "prompts/compaction-summary.md"), "utf8"));
     // 注入退化 → rollback
     canary.rollback(join(root, "prompts/compaction-summary.md"));

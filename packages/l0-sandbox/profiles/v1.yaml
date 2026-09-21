@@ -1,0 +1,15 @@
+# L0S-T07 baseline profile (C1 fs profile / syscall deny)
+# 自指 denyRead 由 loader 在加载时注入（profile 目录自身），
+# 故此处不重复列出 profiles/ 目录路径。
+version: v1
+fs:
+  denyRead:
+    - ~/.ssh
+    - ~/.aws
+  denyWrite: []
+  allowRead: []
+  allowWrite: []
+syscalls:
+  deny:
+    - ptrace
+    - keyctl

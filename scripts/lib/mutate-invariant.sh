@@ -176,7 +176,9 @@ run_gate() {
   lock_sha_before="$(_sha256 "$locked")"
 
   # 创建 tmp 工作区（mktemp 跨平台；登记到全局清理表）
-  tmp_dir="$(mktemp -d 2>/dev/null || mktemp -d -t mut)"
+  # BSD mktemp 默认模板落 /var/folders（忽略 $TMPDIR），嵌套沙箱拒写 → EPERM。
+  # 显式模板钉在 $TMPDIR（沙箱可写区），GNU/BSD mktemp 均兼容。
+  tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/mut.XXXXXXXXXX" 2>/dev/null || mktemp -d -t mut)"
   _MUTATE_TMP_DIRS+=("$tmp_dir")
   tmp_spec="$tmp_dir/mutated.spec.ts"
   tmp_cfg="$tmp_dir/vitest.config.ts"

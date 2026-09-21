@@ -1,0 +1,30 @@
+# L1-T18 · steering policy baseline
+#
+# SteeringPolicy allowlist：哪些 SteeringCommand 类型对哪类 child 允许
+# HINT / REDIRECT / PAUSE / KILL。进化的对象 = 本表的 allowed 列 +
+# prompts/steering-templates/ 措辞模板。
+#
+# static-core 不变量（不可进化，违例即 reject）：
+#   - steering 只在 checkpoint 排空时注入（mid-stream / mid-tool 注入 → throw）
+#   - REDIRECT 须 abort in-flight child
+#   - adoption consume-once（一条 steering 只被消费一次）
+#   - KILL/PAUSE 权限放宽 = 人工 gate（无签 reject，02-orchestration §5(f)）
+#
+# commandType 语义:
+#   HINT     — 软提示（可忽略，非破坏性）
+#   REDIRECT — 重定向（须 abort 当前 in-flight child 后再注入新意图）
+#   PAUSE    — 暂停 child（人工 gate；权限放宽须人签）
+#   KILL     — 终止 child（人工 gate；权限放宽须人签）
+
+rules:
+  - childType: coder
+    allowed: [HINT]
+    reason: "coder 允许软提示；REDIRECT/PAUSE/KILL 须人工 gate 放宽"
+  - childType: reviewer
+    allowed: [HINT]
+    reason: "reviewer 仅允许软提示"
+  - childType: planner
+    allowed: [HINT, REDIRECT]
+    reason: "planner 允许重定向（须 abort in-flight）"
+
+# 措辞模板基线见 prompts/steering-templates/。

@@ -117,7 +117,10 @@ describe("L1-T05b", () => {
       content: CODING + "\n<!-- v2 -->",
       provenance: { trajectoryId: "t1", mutatorSession: "mut-1", generatedAt: Date.now() },
     } as PhaseVariantCandidate;
-    sr.commitOnSuccess(candidate, [baseline]);
+    sr.commitOnSuccess(candidate, [
+      baseline,
+      ps({ candidateId: "pv-2", resolveRate: 0.50, sweRebenchGeneralization: 0.45, cacheHitSteadyState: null }),
+    ]);
     canary.rollback(join(root, "prompts/phase-coding.md"));
     expect(sha(readFileSync(join(root, "prompts/phase-coding.md"), "utf8"))).toBe(sha(CODING));
   });

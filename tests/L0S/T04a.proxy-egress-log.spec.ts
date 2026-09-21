@@ -1,4 +1,5 @@
 import { describe, test, expect, afterEach } from "vitest";
+import { canHostLoopback } from "./t04a-env";
 import { readFileSync } from "node:fs";
 import { SocatProxy } from "@harness/l0-sandbox";
 
@@ -24,7 +25,7 @@ describe("L0S-T04a", () => {
     proxy = undefined;
   });
 
-  test("egress log records allowlist hit", async () => {
+  test.skipIf(!canHostLoopback)(/* loopback 门控: 嵌套沙箱内核拒时跳过, CI 干净环境覆盖 */ "egress log records allowlist hit", async () => {
     proxy = new SocatProxy({
       allowedDomains: ["api.github.com"],
       denyOutCidr: [],

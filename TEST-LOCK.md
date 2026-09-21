@@ -73,9 +73,9 @@
 | L0S-T03 | `tests/L0S/T03.symlink-bypass-blocked.spec.ts` | `22e03e9b36bf54c429544bca4ae10fd1d2913668ed8c58e9c9bb23dd56055256` |
 | L0S-T03 | `tests/L0S/T03.worktree-write-scoped.spec.ts` | `9ec24eb8f23d479eef01e51f8abb0b3f810705c46769ebea145aa96b85417645` |
 | L0S-T04a | `tests/L0S/T04a.allowlist-subdomain.spec.ts` | `113f6076c309a7f4601731cd1c114c7d78860a43b50a7c96dfdf8239408aa7cc` |
-| L0S-T04a | `tests/L0S/T04a.dns-rebinding-blocked.spec.ts` | `13e77deef045150a3693089a51db9ca40e4aef895e568b7e286d544106728afc` |
-| L0S-T04a | `tests/L0S/T04a.non-allowlist-denied.spec.ts` | `7b731389b750a4b7668a7b82207f4cfa6e1ff8deff2991019bd0de57d34f4430` |
-| L0S-T04a | `tests/L0S/T04a.proxy-egress-log.spec.ts` | `d10a71d22f4792e23150a1c46689144d91748e1b5a62dba531a67bc042fcc7c4` |
+| L0S-T04a | `tests/L0S/T04a.dns-rebinding-blocked.spec.ts` | `2cb12ad6f866093337c3b4d113c85ac705b940af18ba7ea2e8e75c131db98d72` |
+| L0S-T04a | `tests/L0S/T04a.non-allowlist-denied.spec.ts` | `db62d945f1ef485615504420160c5ede9e81988d1f1f7a964864cb327a4529bb` |
+| L0S-T04a | `tests/L0S/T04a.proxy-egress-log.spec.ts` | `509f8065f1d234e209f9b40f42d6509f29c5a833bab566b6b0976c07a0d6e4ee` |
 | L0S-T04b | `tests/L0S/T04b.egress-no-real-secret.spec.ts` | `cb1326c906b282f157016fa1467bcbd069bb0ba40b745ae16ae6fb71bc38c0a8` |
 | L0S-T04b | `tests/L0S/T04b.env-strip.spec.ts` | `c394bfac4ac20f2e6310f527e9c1f8dcc1832b1c49b798fb035302d124478b89` |
 | L0S-T04b | `tests/L0S/T04b.injectHosts-subset.spec.ts` | `6d0bf0700c558e5553c074bb11673f1aafa9e1aeb79d8b67593df10dc0149b69` |
@@ -140,9 +140,9 @@
 | L1-T02 | `tests/L1/T02-compaction-substrate.spec.ts` | `df87c4e1c9b60c07590411c6753801e2392732d53789f1abc6dd6d27fde29712` |
 | L1-T03 | `tests/L1/T03-signature-phase.spec.ts` | `013fa0bb818a1630dd0a4834cd0316078dc0a38b1eef5adcb1bb43d973ed0679` |
 | L1-T04a | `tests/L1/T04a-evolution-driver.spec.ts` | `74d947674a94d5035e338e7abdaa39b14d4ef974e99a59685f539b53b4b99431` |
-| L1-T04b | `tests/L1/T04b-select-retain.spec.ts` | `ca2c78033f570bbb7bcf016a846304a3be7bd80e40b75412186f85db586e6812` |
+| L1-T04b | `tests/L1/T04b-select-retain.spec.ts` | `ef204c4372772ce8f0c989ea9acd9edc5ef0450b487b06ff19e4538c2d2ac86b` |
 | L1-T05a | `tests/L1/T05a-phase-evolution-driver.spec.ts` | `60e375fce794f5c532a1759a5f2ccbd911048309c603fe3ad8a04ac1e586db70` |
-| L1-T05b | `tests/L1/T05b-phase-select-retain.spec.ts` | `5f1bc4873dd2f16584e43fc85787a3637150dc9eccd63164a1e50cb2f900da2f` |
+| L1-T05b | `tests/L1/T05b-phase-select-retain.spec.ts` | `34436d854aa93ced6985747bd991e53e96be2dac50188961ccbe484fc940db9f` |
 | L1-T06 | `tests/L1/T06-tool-registry.spec.ts` | `2a6fc97516800f3f895fd65f2aef1e0fa6ab39ccd5d5affb2acb2c1ee79e2a05` |
 | L1-T07 | `tests/L1/T07-tool-evolution.spec.ts` | `07f476e4c7c3837dcd75bdc31dada16e5b8599e63a9b3e41d3618ea76f3568d1` |
 | L1-T08 | `tests/L1/T08-tool-subset-defer.spec.ts` | `830b5601d7b9ea517460148e3a30a8569a1a452e9c297d28316a04bb2c06eb28` |

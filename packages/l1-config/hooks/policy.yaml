@@ -1,0 +1,12 @@
+# L1-T12a baseline hook policy (PreToolUse rules).
+# git-versioned + sha 钉死（repo.lock.json）。schema: matcher/ifPredicate/decision/reason/fallback.
+# breaker clause（bash/write/edit deny/ask→allow 自动 reject）+ silence≠approve 由 src/hook-policy.ts 守。
+rules:
+  - matcher: Bash
+    ifPredicate: "command matches 'rm -rf'"
+    decision: deny
+    reason: destructive rm -rf; require human approval
+    fallback: use a scoped safer command or ask the user
+  - matcher: Write
+    decision: ask
+    reason: confirm write intent

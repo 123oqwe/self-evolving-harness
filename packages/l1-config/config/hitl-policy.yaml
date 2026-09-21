@@ -1,0 +1,24 @@
+# L1-T13 · HITL pause/approve policy baseline
+#
+# 哪些 tool/action 触发人审中断、approve 粒度。进化的对象 = 本表的 action/predicate。
+# 重复副作用（duplicate side effects）= hard constraint = 0；false-pause rate↓ = 软目标。
+# RunState 的 unsent_tool_call_ids 跟踪 = static-core，breaker 自动 reject 任何放松跟踪的 diff。
+#
+# action 语义:
+#   pause          — 粗粒度中断（整 tool 暂停等人审）
+#   approve-coarse — 粗粒度审批（按 tool 批准）
+#   approve-fine   — 细粒度审批（按 invocation 批准）
+
+rules:
+  - tool: bash
+    action: pause
+    predicate: always
+    reason: "destructive shell commands require human approval before execution"
+  - tool: write
+    action: pause
+    predicate: always
+    reason: "file writes are side-effecting; pause for human review"
+  - tool: edit
+    action: approve-fine
+    predicate: "path matches sensitive globs"
+    reason: "fine-grained approval for edits touching sensitive paths"
