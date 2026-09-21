@@ -19,3 +19,4 @@ export * from "./action-classifier/index.js";
 export * from "./worktree-policy/index.js";
 export * from "./credential-policy/index.js";
 export * from "./hands-replace/index.js";
+export * from "./envelope/index.js";

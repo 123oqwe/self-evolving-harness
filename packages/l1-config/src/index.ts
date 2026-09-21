@@ -39,3 +39,5 @@ export * from "./delegation-substrate.js";
 export * from "./context-mode-router.js";
 // L1-T16: reducer 表 + partition 策略进化（barrier await+tool_use_id static-core；custom_lua 沙箱；partition 不重叠）。
 export * from "./reducer-partition.js";
+// L1-T17: handoff description + input_type schema 进化（on_handoff/is_enabled static-core；鉴权字段人工 gate）。
+export * from "./handoff-schema.js";
