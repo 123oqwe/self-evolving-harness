@@ -31,3 +31,5 @@ export * from "./tool-truncation-timeout.js";
 export * from "./steering-patch.js";
 // L1-T12a: hook policy（PreToolUse 规则）基质 + breaker clause + silence≠approve。
 export * from "./hook-policy.js";
+// L1-T13: HITL pause/approve policy 进化（重复副作用=0 hard；false-pause↓；RunState static-core；breaker）。
+export * from "./hitl-policy.js";
