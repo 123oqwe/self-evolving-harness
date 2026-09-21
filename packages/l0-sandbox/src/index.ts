@@ -16,3 +16,4 @@ export * from "./lifecycle/index.js";
 export * from "./profiles/index.js";
 export * from "./net-policies/index.js";
 export * from "./action-classifier/index.js";
+export * from "./worktree-policy/index.js";

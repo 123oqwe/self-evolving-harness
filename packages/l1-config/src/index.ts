@@ -33,3 +33,5 @@ export * from "./steering-patch.js";
 export * from "./hook-policy.js";
 // L1-T13: HITL pause/approve policy 进化（重复副作用=0 hard；false-pause↓；RunState static-core；breaker）。
 export * from "./hitl-policy.js";
+// L1-T14: delegation spec/effort-scaling 基质 + 进化（必填字段名 static-core；变异器独立 session）。
+export * from "./delegation-substrate.js";
