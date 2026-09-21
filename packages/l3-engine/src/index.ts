@@ -228,3 +228,13 @@ export { AgentDSL } from "./optimizers/agent-dsl.js";
 export type { AST, ASTNode, AgentDSL as AgentDSLInterface } from "./optimizers/agent-dsl.js";
 export { validateBreakerFlags } from "./optimizers/dsl-validator.js";
 export type { DslValidationResult } from "./optimizers/dsl-validator.js";
+
+// ---------------------------------------------------------------------------
+// L3-T14: AFlow MCTS 适配层 [V2] — workflowScript 作搜索空间；UCT + experience
+// per node；held-out + cost Pareto. Barrel additions only.
+// ---------------------------------------------------------------------------
+export { AFlowMctsOptimizer } from "./optimizers/aflow-mcts.js";
+export type { AFlowMctsOptimizerOptions } from "./optimizers/aflow-mcts.js";
+export type { MctsNode } from "./optimizers/mcts-tree.js";
+export { MctsTree, zeroFitness, accumulateFitness } from "./optimizers/mcts-tree.js";
+export { WorkflowMutator } from "./optimizers/workflow-mutator.js";

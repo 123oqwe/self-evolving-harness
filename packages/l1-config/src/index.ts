@@ -29,3 +29,5 @@ export * from "./history-processors.js";
 export * from "./tool-truncation-timeout.js";
 // L1-T11: CLAUDE.md/steering patch 基质（ExpeL insight；人审每 diff；decontaminated 验证）。
 export * from "./steering-patch.js";
+// L1-T12a: hook policy（PreToolUse 规则）基质 + breaker clause + silence≠approve。
+export * from "./hook-policy.js";
