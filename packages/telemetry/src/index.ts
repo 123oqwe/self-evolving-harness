@@ -22,3 +22,5 @@ export * from "./capture-policy";
 // TL-T08: Clio 式失败聚类 v0（embedding + clusterer_config 产出失败簇）
 export * from "./clusterer-config";
 export * from "./clustering";
+// TL-T09: distillation 选择器（token 效率 + 成功率 + 多样性优先）
+export * from "./distill-selector";

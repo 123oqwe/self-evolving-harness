@@ -166,3 +166,16 @@ export type { ExpandedCanary } from "./canary/expand.js";
 
 // CE-T11 REFACTOR：McNemar power 分析抽 src/power-analysis.ts。
 export { requiredNFor5pp, canDetect5ppPower } from "./power-analysis.js";
+
+// CE-T10 落地：MemoryAgentBench 四能力 eval harness + Context Saturation Gap [V1]。
+// ERRATA-w2plus CE-21：MemoryToolHandle 须导出。
+// ERRATA-w2plus CE-22：MemoryBenchResult 加可选 weakness?（selective forgetting <=0.28
+//   → weakness='selective_forgetting'）；runMemoryAgentBench 双参 (memoryTool, opts?)，
+//   opts.magPerf/opts.bruteForceFullContext 注入 SaturationGap 计算（复用 CE-T09）。
+export { runMemoryAgentBench } from "./memory-bench.js";
+
+export type {
+  MemoryToolHandle,
+  MemoryBenchResult,
+  MemoryBenchOptions,
+} from "./memory-bench.js";

@@ -127,7 +127,7 @@
 | TL-T06 | `tests/TL/T06-budget-policy.spec.ts` | `f22328e796b7eccdacb6fdaa4110c3c7f80fbd9f9e952f7c1200828a50b15bed` |
 | TL-T07 | `tests/TL/T07-capture-policy.spec.ts` | `ef80a695c2e8a687637a7604cd415570a17f9658629f4d43c10d8b7a3e6a7b30` |
 | TL-T08 | `tests/TL/T08-clustering.spec.ts` | `608b425e832325fe24fd29c9804eb9851e20bb368cee609b5fd1d598aa87ab74` |
-| TL-T09 | `tests/TL/T09-distill-selector.spec.ts` | `2e4c3c942511774a6bee70282a19047e69073dcc1e67eb28af5568f53332f879` |
+| TL-T09 | `tests/TL/T09-distill-selector.spec.ts` | `414ba152789ebb4d6424f93e3038f67ff9e796ae4549607cb2306d3a22f5d5f6` |
 | TL-T10 | `tests/TL/T10-flywheel.spec.ts` | `59ec05c8383eb5d5cc57ecc29977663ea1066087c057efe490ec503f7b906bf5` |
 | TL-T11 | `tests/TL/T11-insight.spec.ts` | `2807965f69dbf3b66525e3994a9893f3084ee70c4e5b7e1a1450c385a79c4322` |
 | TL-T12 | `tests/TL/T12-otlp-backend.spec.ts` | `e8aafdfdd91be793ec0b8e92d5d1d70667884b496ee30fe49e15793cef6eb2bf` |

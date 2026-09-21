@@ -19,5 +19,5 @@ export * from "./phase-evolution-driver.js";
 export * from "./phase-select-retain.js";
 // L1-T06: tool description/field-doc 基质 + selection-accuracy 信号采集。
 export * from "./tool-registry.js";
-// L1-T06: tool description/field-doc 基质 + selection-accuracy 信号采集。
-export * from "./tool-registry.js";
+// L1-T08: tool sub-set/defer config + 进化（defer 不隐藏安全关键工具）。
+export * from "./tool-subset-defer.js";

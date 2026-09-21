@@ -171,3 +171,24 @@ export {
   FullParetoSelector,
 } from "./full-pareto-selector.js";
 export type { NSGAFront, FullParetoSelector as FullParetoSelectorInterface } from "./full-pareto-selector.js";
+
+// ---------------------------------------------------------------------------
+// L3-T11: DSPy/MIPROv2 instruction×demo factorize + mini-batch Bayesian
+// surrogate (random-forest MVP) + train/val anti-overfit gate. Barrel
+// additions only.
+// ---------------------------------------------------------------------------
+export {
+  DspyMiproOptimizer,
+  NotImplementedError,
+} from "./optimizers/dspy-mipro.js";
+export type { DspyMiproOptimizerOptions } from "./optimizers/dspy-mipro.js";
+export {
+  BayesianSurrogate,
+  TrainValLeak,
+} from "./optimizers/bayesian-surrogate.js";
+export type {
+  BayesianSurrogateOptions,
+  SurrogateSample,
+  SurrogatePrediction,
+} from "./optimizers/bayesian-surrogate.js";
+export { factorizeInstructionDemo } from "./optimizers/instruction-demo-factorize.js";
