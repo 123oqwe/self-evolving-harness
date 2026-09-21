@@ -1,0 +1,16 @@
+# L0S-T08 — C2 网络策略 baseline v1
+#
+# 三表（denyRead 路径集 / allowedDomains 出口 allowlist / denyOutCidr IP 黑名单）。
+# 进化约束（见 net-policies/index.ts assertChangeAllowed）：
+#   - denyRead 单调收紧（只许增长，shrink 即 throw）；
+#   - deny 收紧（新增 deny 项）元循环自动；
+#   - allow 放宽（新增 allow 域 / 移除 deny CIDR）须人工签发（防 agent 自开 exfil 后门）。
+version: v1
+denyRead:
+  - ~/.ssh
+  - ~/.aws
+allowedDomains:
+  - api.github.com
+denyOutCidr:
+  - 0.0.0.0/0
+signoffs: []

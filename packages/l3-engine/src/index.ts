@@ -238,3 +238,23 @@ export type { AFlowMctsOptimizerOptions } from "./optimizers/aflow-mcts.js";
 export type { MctsNode } from "./optimizers/mcts-tree.js";
 export { MctsTree, zeroFitness, accumulateFitness } from "./optimizers/mcts-tree.js";
 export { WorkflowMutator } from "./optimizers/workflow-mutator.js";
+
+// ---------------------------------------------------------------------------
+// L3-T15: 权重通道 gate (默认 off 不变量 + 四阈值) [V2]. 本任务不实现权重
+// 训练，只提供不变量测试钩子：WEIGHT_CHANNEL_DEFAULT='off' (PRD §6.1 N1) +
+// WeightChannelGate 四阈值 (KL_MAX / ORACLE_PASS_MIN / consolidation /
+// humanSigned) + 运行时 off→on breaker. Barrel additions only.
+// ---------------------------------------------------------------------------
+export {
+  WEIGHT_CHANNEL_DEFAULT,
+  WeightChannelGate,
+  KL_MAX,
+  ORACLE_PASS_MIN,
+  CONSOLIDATION_NONINFERIOR_REQUIRED,
+  HUMAN_GATE_SIGNED_REQUIRED,
+} from "./weight-channel-gate.js";
+export type {
+  WeightChannelPreconditions,
+  WeightChannelGateResult,
+  WeightChannelGateOptions,
+} from "./weight-channel-gate.js";

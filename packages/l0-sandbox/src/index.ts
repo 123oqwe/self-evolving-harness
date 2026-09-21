@@ -14,3 +14,4 @@ export * from "./credential-masking/index.js";
 export * from "./canary-verify/index.js";
 export * from "./lifecycle/index.js";
 export * from "./profiles/index.js";
+export * from "./net-policies/index.js";
