@@ -76,23 +76,40 @@ export interface CandidateValidation {
  * 前、T05a 复用）。
  *
  * 校验：candidate.content 须保留合法 `<safety>...</safety>` 段（canonical 抽取 +
- * sha256 与 T03 `computeSegmentHash` 共用同一实现，避免双份逻辑漂移）。段缺失（被
- * mutator 删除）→ `valid=false`，视作 breaker clause 触发（PRD §11.3：删 safety rule
- * 的 diff 自动 reject）。
+ * sha256 与 T03 `computeSegmentHash` 共用同一实现，避免双份逻辑漂移）。
+ *
+ * - 段缺失（被 mutator 删除）→ `valid=false`，视作 breaker clause 触发
+ *   （PRD §11.3：删 safety rule 的 diff 自动 reject）。
+ * - 段存在但 sha256 与 `expectedSafetySha` 失配（mutator **改写** safety 段弱化
+ *   规则，而非删除）→ `valid=false`（breaker clause 同样覆盖「改」：删被拦，
+ *   内容弱化亦被拦）。`expectedSafetySha` 缺省时退化为仅 presence 校验
+ *   （向后兼容 T01 单基质 / 未接线 manifest 场景）；一旦调用方传入 baseline/
+ *   manifest 的 safety 段 sha，即升级为内容完整性门。
  *
  * 注：完整的 L0C-T08 `checkDiff` 危险 diff 检查（deny→allow / static-core field 删除
  * 等）由 pre-commit 层在 commit-on-success（T04b）时执行；本任务只产候选集不落盘，
- * 故本预检聚焦 safety 段存在性这一最关键安全不变量。
+ * 故本预检聚焦 safety 段内容完整性这一最关键安全不变量。
  */
-export function validateCandidate(candidate: {
-  readonly content: string;
-}): CandidateValidation {
+export function validateCandidate(
+  candidate: {
+    readonly content: string;
+  },
+  expectedSafetySha?: string,
+): CandidateValidation {
   const hash = computeSegmentHash(candidate.content, "safety");
   if (hash === null) {
     return {
       valid: false,
       reason:
         "safety segment deleted/missing in candidate (breaker clause: auto-reject)",
+    };
+  }
+  if (expectedSafetySha !== undefined && hash !== expectedSafetySha) {
+    return {
+      valid: false,
+      reason:
+        "safety segment sha256 mismatch: candidate rewrote safety content " +
+        "(breaker clause: auto-reject; PRD §11.3 covers delete AND weaken)",
     };
   }
   return { valid: true, reason: "safety segment present" };
@@ -179,6 +196,10 @@ export class EvolutionDriver {
     const parentSha = createHash("sha256")
       .update(substrate.content)
       .digest("hex");
+    // baseline safety 段 sha——供 validateCandidate 升级为内容完整性门
+    // （candidate 改写 safety 段内容 → sha 失配 → reject，PRD §11.3 breaker clause）。
+    // baseline 无 safety 段时（未配置）传 undefined 退化为仅 presence 校验。
+    const baselineSafetySha = computeSegmentHash(substrate.content, "safety") ?? undefined;
 
     const candidates: import("./substrate-types.js").VariantCandidate[] = [];
     // 取首条失败 trajectory 作为 provenance.trajectoryId（多条时取首条代表）
@@ -205,8 +226,8 @@ export class EvolutionDriver {
         return [];
       }
 
-      // 候选预检：safety 段存在性（删 safety → breaker clause 自动 reject）
-      const validation = validateCandidate({ content });
+      // 候选预检：safety 段内容完整性（删/改 safety → breaker clause 自动 reject）
+      const validation = validateCandidate({ content }, baselineSafetySha);
       if (!validation.valid) {
         this.emit({
           event: "candidate_rejected_safety",

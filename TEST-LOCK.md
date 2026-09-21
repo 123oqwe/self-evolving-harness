@@ -127,7 +127,7 @@
 | TL-T06 | `tests/TL/T06-budget-policy.spec.ts` | `f22328e796b7eccdacb6fdaa4110c3c7f80fbd9f9e952f7c1200828a50b15bed` |
 | TL-T07 | `tests/TL/T07-capture-policy.spec.ts` | `ef80a695c2e8a687637a7604cd415570a17f9658629f4d43c10d8b7a3e6a7b30` |
 | TL-T08 | `tests/TL/T08-clustering.spec.ts` | `608b425e832325fe24fd29c9804eb9851e20bb368cee609b5fd1d598aa87ab74` |
-| TL-T09 | `tests/TL/T09-distill-selector.spec.ts` | `2e4c3c942511774a6bee70282a19047e69073dcc1e67eb28af5568f53332f879` |
+| TL-T09 | `tests/TL/T09-distill-selector.spec.ts` | `414ba152789ebb4d6424f93e3038f67ff9e796ae4549607cb2306d3a22f5d5f6` |
 | TL-T10 | `tests/TL/T10-flywheel.spec.ts` | `59ec05c8383eb5d5cc57ecc29977663ea1066087c057efe490ec503f7b906bf5` |
 | TL-T11 | `tests/TL/T11-insight.spec.ts` | `2807965f69dbf3b66525e3994a9893f3084ee70c4e5b7e1a1450c385a79c4322` |
 | TL-T12 | `tests/TL/T12-otlp-backend.spec.ts` | `e8aafdfdd91be793ec0b8e92d5d1d70667884b496ee30fe49e15793cef6eb2bf` |
@@ -173,7 +173,7 @@
 | L2-T04b | `tests/L2/T04b.spec.ts` | `ac43d4e2a00577e77eed13d2651fd6adc017f54385ff6f522c89b2b16a94355a` |
 | L2-T05 | `tests/L2/T05.spec.ts` | `84b74ea979b3c85652ba96d6e77bd8853b87403e73cf1d78ece01ea34aaea783` |
 | L2-T06 | `tests/L2/T06.spec.ts` | `2bbf003251ff4cfed87a702a767084e7b6ca2cb0e73da2c55e83167741614fc1` |
-| L2-T07 | `tests/L2/T07.spec.ts` | `60ecdd6eeae1b330c0a75871a6e434bb733c8c6045e85bad7577ecd23caad45b` |
+| L2-T07 | `tests/L2/T07.spec.ts` | `21d49d9ea771b96460b083833c4c472c3b23bf43e857e7821ec390f0c2c974bf` |
 | L2-T08 | `tests/L2/T08.spec.ts` | `7ee096b1db9c401e52318b3768468aff6d2792d1fee385dfd8d4d4f826846800` |
 | L2-T09a | `tests/L2/T09a.spec.ts` | `e762a711067010629d4b7d458d9e3c7a772832a7ce5bedad7777eac5f982e99b` |
 | L2-T09b | `tests/L2/T09b.spec.ts` | `0e9fa972aae8c1b25f03dbfacff223d5800bf9998de8dab9766f8706b0ecc39f` |

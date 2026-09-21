@@ -1,0 +1,13 @@
+# TL-T09: distillation 选择器默认 scope 配置
+#
+# 选择哪些成功轨迹进训练集/eval dataset（token 效率 + 成功率 + 多样性优先）。
+# 字段（与 DistillSelectorConfig 接口一字不差，ERRATA-w2plus TL-T09 裁决）：
+#   weights.token_eff  — token 效率权重（低 token = 高分，research §1.4 (a) 80% 方差）
+#   weights.success    — 成功率权重（distill 只选成功轨迹）
+#   weights.diversity  — 多样性权重（embedding 距基线，去重近重复）
+#   top_k              — select 返回的最大轨迹数（默认 5）
+weights:
+  token_eff: 0.5
+  success: 0.3
+  diversity: 0.2
+top_k: 5

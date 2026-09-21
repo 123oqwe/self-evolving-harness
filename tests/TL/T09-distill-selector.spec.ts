@@ -47,7 +47,7 @@ function traj(over: Partial<Trajectory>): Trajectory {
     success: over.success ?? true,
     totalTokens: over.totalTokens ?? 10_000,
     taskType: over.taskType ?? "code",
-    embedding: over.embedding ?? [1, 0],
+    embedding: "embedding" in over ? over.embedding : [1, 0],
   };
 }
 

@@ -154,3 +154,39 @@ export type { RevertExecOptions, RevertExecResult } from "./revert.js";
 export { assertFreshEvidence, AbortSelectError } from "./fresh-evidence-gate.js";
 
 export type { FreshEvidence } from "./fresh-evidence-gate.js";
+
+// CE-T11 落地：canary 扩容至统计可信量级（为硬 ≥5pp 门准备；≥90% 覆盖）。
+// ERRATA-w2plus CE-23：ExpandedCanary 加可选 needsMoreTasks?；canDetect5pp=false →
+//   needsMoreTasks=true。canDetect5pp power analysis（α=0.05, power=0.8 反推 n）由
+//   src/power-analysis.ts 实现；阈值= 30 base+5 new 判 underpowered、30 base+100 new
+//   判 powered（相对断言）。
+export { expandCanary } from "./canary/expand.js";
+
+export type { ExpandedCanary } from "./canary/expand.js";
+
+// CE-T11 REFACTOR：McNemar power 分析抽 src/power-analysis.ts。
+export { requiredNFor5pp, canDetect5ppPower } from "./power-analysis.js";
+
+// CE-T10 落地：MemoryAgentBench 四能力 eval harness + Context Saturation Gap [V1]。
+// ERRATA-w2plus CE-21：MemoryToolHandle 须导出。
+// ERRATA-w2plus CE-22：MemoryBenchResult 加可选 weakness?（selective forgetting <=0.28
+//   → weakness='selective_forgetting'）；runMemoryAgentBench 双参 (memoryTool, opts?)，
+//   opts.magPerf/opts.bruteForceFullContext 注入 SaturationGap 计算（复用 CE-T09）。
+export { runMemoryAgentBench } from "./memory-bench.js";
+
+export type {
+  MemoryToolHandle,
+  MemoryBenchResult,
+  MemoryBenchOptions,
+} from "./memory-bench.js";
+
+// CE-T12 落地：benchmark 投毒检测 — 变体在 clean canary 反降分 → 疑似投毒隔离
+// （PRD §10 R3 / §11.1 canary 子集）。隔离 ≠ 删除（never-auto-delete），
+// 投毒变体入 `release_policy.yaml` 的 quarantine 区供诊断。
+// ERRATA-w2plus CE-24：detectPoison 三参 `(variant, cleanCanary, opts?)`；
+//   opts.cleanCanaryScore/baselineCleanScore 注入；τ 默认 CE-T08 σ=5.4pp 下界。
+// `Variant` 复用 CE-T05 首处定义（judge-debias.ts），`CanaryManifest` 复用
+//   CE-T01a canary/types.ts（不重复定义）。
+export { detectPoison, POISON_TAU } from "./poison-detector.js";
+
+export type { PoisonCheck, PoisonDetectOptions } from "./poison-detector.js";

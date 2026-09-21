@@ -4,3 +4,60 @@ export * from "./memory-tool/commands.js";
 export * from "./memory-tool/memory-index.js";
 export * from "./memory-tool/path-guard.js";
 export * from "./shared/cap-guard.js";
+export * from "./shared/redact.js";
+export * from "./shared/provenance.js";
+export * from "./auto-memory/reflexion-writer.js";
+export * from "./auto-memory/memory-bank.js";
+export * from "./expel/cluster-feed.js";
+export * from "./expel/evidence-guard.js";
+export * from "./expel/insight-store.js";
+export * from "./episodic/trajectory-store.js";
+export * from "./semantic/fact-store.js";
+export * from "./a-mem/note-store.js";
+export * from "./a-mem/link-judge.js";
+export * from "./shared/embedding.js";
+export * from "./working/block-store.js";
+export * from "./skill-evo/description-evo.js";
+export * from "./skill-evo/body-evo.js";
+export * from "./curator/lifecycle.js";
+export * from "./curator/never-delete.js";
+export * from "./commit/commit-gate.js";
+// L2-T12: Ratchet 三参数 + drift 指标采集（barrel 只追加；RatchetParams 类型
+// 复用 auto-memory/memory-bank.ts 已有导出，本处仅追加 ratchet 具名导出）。
+export {
+  validateParams,
+  type RatchetRejectReason,
+} from "./ratchet/params.js";
+export { collectDrift, type DriftMetrics } from "./ratchet/contribution.js";
+// L2-T13: library drift 监控（barrel 只追加）。
+export {
+  monitor,
+  isHealthy,
+  type DriftReport,
+} from "./drift/monitor.js";
+// L2-T14: 写路径路由表 + 触发阈值（barrel 只追加）。
+export {
+  route,
+  shouldTriggerBackground,
+  runBackgroundJob,
+  hotPathWithFallback,
+  DEFAULT_ROUTE_TABLE,
+  DEFAULT_TRIGGER_THRESHOLD,
+  type WritePath,
+  type RouteTable,
+  type TriggerThreshold,
+  type TriggerState,
+} from "./router/write-router.js";
+// L2-T15: 包管理信任门（barrel 只追加）。
+// breakerScan/BreakerFlag 已由 skill-evo/body-evo.ts 经 `export *` 导出，
+// 此处不再重复导出，避免 barrel 重名冲突（spec REFACTOR 共享语义由
+// trust/package-gate.ts 内部 re-export 满足）。
+export {
+  trustGate,
+  stripSecrets,
+  neverAutoInstallProject,
+  type PackageSource,
+  type PkgRef,
+  type Allow,
+  type PkgRejectReason,
+} from "./trust/package-gate.js";

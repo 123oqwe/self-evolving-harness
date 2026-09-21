@@ -35,6 +35,7 @@ import { join } from "node:path";
 import type { ConfigRepo } from "./repo-layout.js";
 import type { VariantCandidate } from "./substrate-types.js";
 import { rollbackStore } from "./canary-config-plane.js";
+import type { SignatureVerifier } from "./signature.js";
 
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
@@ -170,10 +171,17 @@ function dominates(a: CandidateScore, b: CandidateScore): boolean {
 
 /**
  * SelectRetain 构造 opts。`repo`：ConfigRepo（commit-on-success 写 active +
- * staging + pinSha）。ERRATA-w2plus 风格：opts 结构化注入。
+ * staging + pinSha）。`verifier`：可选 safety 段签名校验器（L0 static-core
+ * SignatureManifest）——接线后 `commitOnSuccess` 在写 active 前对 candidate.content
+ * 跑 `SignatureVerifier.verify`（safety 段 sha vs manifest），失配即抛
+ * `RetainGateError` 不触盘（PRD §11.3 breaker clause：删/改 safety rule 的 diff
+ * 自动 reject）。缺省（未接线）退化为纯 strict-improvement 门（向后兼容 T01
+ * 单基质场景，与 `ConfigRepo.setSegmentVerifier(null)` no-op 语义一致）。
+ * ERRATA-w2plus 风格：opts 结构化注入。
  */
 export interface SelectRetainOptions {
   readonly repo: ConfigRepo;
+  readonly verifier?: SignatureVerifier;
 }
 
 const COMPACTION_ACTIVE = "prompts/compaction-summary.md";
@@ -188,9 +196,11 @@ const COMPACTION_STAGING_DIR = "staging";
  */
 export class SelectRetain {
   private readonly repo: ConfigRepo;
+  private readonly verifier: SignatureVerifier | null;
 
   constructor(opts: SelectRetainOptions) {
     this.repo = opts.repo;
+    this.verifier = opts.verifier ?? null;
   }
 
   /** strict-improvement 硬门（纯函数委托）。 */
@@ -203,33 +213,84 @@ export class SelectRetain {
   }
 
   /**
-   * fail-closed 退化门裁决（commitOnSuccess 前置）。从 `scores` 抽取基线
-   * （`isBaseline===true`）与候选分数集，对每个候选强制跑 `strictImprovementGate`
-   * + `paretoFront`：任一退化 ≥ τ 或被帕累托支配 → 抛 `RetainGateError`（不触盘）。
-   * 仅基线无候选分数时不裁决（向后兼容；生产须串 select）。
+   * fail-closed 退化门裁决（commitOnSuccess 前置）。强制身份绑定：被提交的
+   * `candidate` 必须在 `scores` 中有且仅有一条基线参照（`isBaseline===true`）
+   * + ≥1 条候选分数，且须存在 `c.candidateId === candidate.id` 的条目——门
+   * **仅对该条目**跑 `strictImprovementGate` + `paretoFront` 裁决。缺失/退化/
+   * 被支配 → 抛 `RetainGateError`（不触盘）。
+   *
+   * 此身份绑定消除两个 reward-hacking 向量（对照 L3
+   * `assertFreshEvidence` 的机械 terminal-verdict 绑定）：
+   * 1) 不再有「仅基线/空候选分数不裁决」的向后兼容分支——任意 LLM-authored
+   *    变体不能借 `commitOnSuccess(candidate, [baselineOnly])` 直写 active。
+   * 2) 门裁决与被提交候选身份绑定——调用方不能省略失败候选分数或注入另一
+   *    强候选的通过分数来蒙混退化/被支配的 candidate。
    */
-  private enforceGate(scores: CandidateScore[], tau: number): void {
-    const baseline = scores.find((s) => s.isBaseline);
-    if (!baseline) return; // 无基线参照 → 无法裁决退化，交由调用方契约
-    const candidates = scores.filter((s) => !s.isBaseline);
-    for (const c of candidates) {
-      if (!strictImprovementGate(c, baseline, tau)) {
-        throw new RetainGateError(
-          `commitOnSuccess rejected: candidate '${c.candidateId}' failed strict-improvement gate ` +
-            `(recall/resolveRate/cacheHit 退化 ≥ τ=${tau}; PRD §6.7) — fail-closed, no active/staging write`,
-        );
-      }
+  private enforceGate(candidate: VariantCandidate, scores: CandidateScore[], tau: number): void {
+    const baselines = scores.filter((s) => s.isBaseline);
+    if (baselines.length !== 1) {
+      throw new RetainGateError(
+        `commitOnSuccess rejected: scores must contain exactly one baseline (isBaseline===true); got ${baselines.length} ` +
+          `— fail-closed (no bypass via missing/extra baseline; PRD §6.7), no active/staging write`,
+      );
     }
-    if (candidates.length === 0) return;
+    const baseline = baselines[0]!;
+    const candidates = scores.filter((s) => !s.isBaseline);
+    if (candidates.length === 0) {
+      throw new RetainGateError(
+        `commitOnSuccess rejected: scores contain no candidate scores (baseline-only path forbidden) ` +
+          `— fail-closed; the committed candidate must carry its own held-out score (PRD §6.7), no active/staging write`,
+      );
+    }
+    // 身份绑定：被提交候选必须有对应的 held-out 分数条目
+    const own = candidates.find((c) => c.candidateId === candidate.id);
+    if (!own) {
+      throw new RetainGateError(
+        `commitOnSuccess rejected: no score bound to candidate '${candidate.id}' ` +
+          `(requires c.candidateId === candidate.id) — fail-closed (gate verdict must be bound to the ` +
+          `committed candidate identity; PRD §6.7), no active/staging write`,
+      );
+    }
+    // 单独对被提交候选裁决 strict-improvement 硬门
+    if (!strictImprovementGate(own, baseline, tau)) {
+      throw new RetainGateError(
+        `commitOnSuccess rejected: candidate '${candidate.id}' failed strict-improvement gate ` +
+          `(recall/resolveRate/cacheHit 退化 ≥ τ=${tau}; PRD §6.7) — fail-closed, no active/staging write`,
+      );
+    }
+    // Pareto：被提交候选须在前沿（非被支配）
     const front = this.paretoFront(candidates, baseline);
     const frontIds = new Set(front.map((f) => f.candidateId));
-    for (const c of candidates) {
-      if (!frontIds.has(c.candidateId)) {
-        throw new RetainGateError(
-          `commitOnSuccess rejected: candidate '${c.candidateId}' is Pareto-dominated ` +
-            `(PRD §6.7) — fail-closed, no active/staging write`,
-        );
-      }
+    if (!frontIds.has(candidate.id)) {
+      throw new RetainGateError(
+        `commitOnSuccess rejected: candidate '${candidate.id}' is Pareto-dominated ` +
+          `(PRD §6.7) — fail-closed, no active/staging write`,
+      );
+    }
+  }
+
+  /**
+   * safety 段内容完整性门（PRD §11.3 breaker clause）。
+   *
+   * 对 `activePath`（相对 repo root 的 posix 路径）的 `content` 跑
+   * `SignatureVerifier.verify`：safety 段 sha256 vs L0 SignatureManifest。
+   * - 未接线 verifier → no-op（向后兼容 T01 单基质 / 未接线场景）。
+   * - 该文件不在 manifest 清单（`hasEntry=false`）→ no-op（仅校验清单覆盖文件，
+   *   与 `ConfigRepo.verifySignatures` 一致）。
+   * - sha 失配 / 段缺失 → `SignatureVerifier.verify` 抛 `SignatureTamperError`，
+   *   此处包装为 `RetainGateError`（不触盘）。
+   */
+  private verifySafetySegment(activePath: string, content: string): void {
+    if (!this.verifier) return;
+    if (!this.verifier.hasEntry(activePath)) return;
+    try {
+      this.verifier.verify(activePath, content);
+    } catch (err) {
+      throw new RetainGateError(
+        `commitOnSuccess rejected: safety segment content-integrity check failed for ${activePath} ` +
+          `(${err instanceof Error ? err.message : String(err)}; PRD §11.3 breaker clause: ` +
+          `delete OR weaken safety rule auto-reject) — fail-closed, no active/staging write`,
+      );
     }
   }
 
@@ -277,17 +338,25 @@ export class SelectRetain {
    * 与 `paretoFront`（候选被支配 → 抛 `RetainGateError`）。门裁决**不再**交由调用方
    * 手动前置；退化 candidate 经此路径不会写 active / pinSha 重锁。
    *
-   * `scores` 入参须含且仅含一个 `isBaseline===true` 基线分数 + ≥0 个候选分数。
-   * 若调用方未注入任何候选分数（仅基线），则无可裁决退化——此路径保留向后兼容
-   * （rollback 演练用例的 setup），但生产 driver 须先 `select` 再 `commitOnSuccess`
-   * 串接（见 L1-T04b driver），不得绕过 select 直 commit。
+   * `scores` 须含且仅含一个 `isBaseline===true` 基线分数 + ≥1 个候选分数，
+   * 且其中须存在 `c.candidateId === candidate.id` 的条目（身份绑定）。仅基线
+   * 无候选、缺失身份绑定条目均 → `RetainGateError`（fail-closed 不触盘）。
+   * 不再有「仅基线无候选不裁决」的向后兼容分支——消除 reward-hacking 绕过
+   * 向量（对照 L3 `assertFreshEvidence` 的机械 terminal-verdict 绑定）。
    */
   commitOnSuccess(
     candidate: VariantCandidate,
     scores: CandidateScore[],
     tau: number = DEFAULT_STRICT_TAU,
   ): void {
-    this.enforceGate(scores, tau);
+    this.enforceGate(candidate, scores, tau);
+    // safety 段内容完整性门（PRD §11.3 breaker clause）：写 active 前对
+    // candidate.content 跑 SignatureVerifier.verify（safety 段 sha vs L0
+    // SignatureManifest）。mutator 改写（非删除）safety 段弱化规则 → sha 失配
+    // → 抛 RetainGateError 不触盘（不写 active / staging / pinSha）。此门在
+    // strict-improvement 门之后、触盘之前——reward-hacking 改写 safety 的候选
+    // 即使指标过门也被拒。未接线 verifier（缺省）→ no-op（向后兼容）。
+    this.verifySafetySegment(COMPACTION_ACTIVE, candidate.content);
     const root = this.repo.getRoot();
     const activeAbs = join(root, COMPACTION_ACTIVE);
 

@@ -153,3 +153,78 @@ export type {
   CanaryObservations,
   ReleaseEvent,
 } from "./adapters/e2e-adapter.js";
+
+// ---------------------------------------------------------------------------
+// L3-T10: full-population reflective mutation + NSGA-II non-dominated sort
+// (GEPA 完整版升级, V1). Barrel additions only.
+// ---------------------------------------------------------------------------
+export {
+  FullPopulationBeamSearch,
+} from "./full-population-beam-search.js";
+export type {
+  ReflectivePort,
+  FullPopulationBeamSearchOptions,
+  FullPopulationContext,
+} from "./full-population-beam-search.js";
+
+export {
+  FullParetoSelector,
+} from "./full-pareto-selector.js";
+export type { NSGAFront, FullParetoSelector as FullParetoSelectorInterface } from "./full-pareto-selector.js";
+
+// ---------------------------------------------------------------------------
+// L3-T11: DSPy/MIPROv2 instruction×demo factorize + mini-batch Bayesian
+// surrogate (random-forest MVP) + train/val anti-overfit gate. Barrel
+// additions only.
+// ---------------------------------------------------------------------------
+export {
+  DspyMiproOptimizer,
+  NotImplementedError,
+} from "./optimizers/dspy-mipro.js";
+export type { DspyMiproOptimizerOptions } from "./optimizers/dspy-mipro.js";
+export {
+  BayesianSurrogate,
+  TrainValLeak,
+} from "./optimizers/bayesian-surrogate.js";
+export type {
+  BayesianSurrogateOptions,
+  SurrogateSample,
+  SurrogatePrediction,
+} from "./optimizers/bayesian-surrogate.js";
+export { factorizeInstructionDemo } from "./optimizers/instruction-demo-factorize.js";
+
+// ---------------------------------------------------------------------------
+// L3-T12: TextGrad per-variable 文本梯度适配 (reverse pass: failure →
+// per-variable text gradient → isolated per-variable rewrite). Defining
+// invariant vs L3-T03 reflective mutation: PER-VARIABLE ISOLATION (a
+// gradient on variable A must never change variable B). Prompt/skill
+// substrates only; weight channel → NotImplementedError (V2 placeholder).
+// Barrel additions only.
+// ---------------------------------------------------------------------------
+export { TextGradOptimizer } from "./optimizers/textgrad.js";
+export type {
+  TextGradVariable,
+  TextGrad,
+  TextLoss,
+  TextGradOptimizerOptions,
+  TextGradContext,
+} from "./optimizers/textgrad.js";
+export {
+  parseVariables,
+  assembleContent,
+  SEGMENT_SEPARATOR,
+} from "./optimizers/variable-parser.js";
+
+// ---------------------------------------------------------------------------
+// L3-T13: ADAS meta-agent + growing archive + Turing-complete DSL [V1].
+// AdasMetaSearchOptimizer: meta-agent reads growing archive (T06a keep-all)
+// → few-shot samples high-fitness + high-diversity → writes new skill code
+// (AgentDSL). Breaker clause (eval/exec/network) inherited from L2-T09b via
+// the shared dsl-validator walker. Barrel additions only.
+// ---------------------------------------------------------------------------
+export { AdasMetaSearchOptimizer } from "./optimizers/adas-meta-search.js";
+export type { AdasMetaSearchOptimizerOptions } from "./optimizers/adas-meta-search.js";
+export { AgentDSL } from "./optimizers/agent-dsl.js";
+export type { AST, ASTNode, AgentDSL as AgentDSLInterface } from "./optimizers/agent-dsl.js";
+export { validateBreakerFlags } from "./optimizers/dsl-validator.js";
+export type { DslValidationResult } from "./optimizers/dsl-validator.js";

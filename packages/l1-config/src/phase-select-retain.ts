@@ -39,6 +39,7 @@ import { join } from "node:path";
 import type { ConfigRepo } from "./repo-layout.js";
 import type { PhaseVariantCandidate } from "./phase-evolution-driver.js";
 import { rollbackStore } from "./canary-config-plane.js";
+import type { SignatureVerifier } from "./signature.js";
 
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
@@ -184,11 +185,18 @@ function phaseGate(tau: number, tauCache: number): MultiObjectiveGate<PhaseCandi
  * PhaseSelectRetain 构造 opts。
  *
  * `repo`：ConfigRepo（commit-on-success 写 active + staging + pinSha）。
+ * `verifier`：可选 safety 段签名校验器（L0 static-core SignatureManifest）——
+ * 接线后 `commitOnSuccess` 在写 active 前对 candidate.content 跑
+ * `SignatureVerifier.verify`（safety 段 sha vs manifest），失配即抛
+ * `PhaseRetainGateError` 不触盘（PRD §11.3 breaker clause）。缺省（未接线）
+ * 退化为纯 strict-improvement 门（向后兼容，与 `ConfigRepo.setSegmentVerifier(null)`
+ * no-op 语义一致）。
  * `select` 为纯函数无 IO，repo 可选（仅 select 调用时可不传）。ERRATA-w2plus
  * 风格：opts 结构化注入。
  */
 export interface PhaseSelectRetainOptions {
   readonly repo?: ConfigRepo;
+  readonly verifier?: SignatureVerifier;
 }
 
 const PHASE_STAGING_DIR = "staging";
@@ -202,9 +210,11 @@ const PHASE_STAGING_DIR = "staging";
  */
 export class PhaseSelectRetain {
   private readonly repo: ConfigRepo | undefined;
+  private readonly verifier: SignatureVerifier | null;
 
   constructor(opts: PhaseSelectRetainOptions) {
     this.repo = opts.repo;
+    this.verifier = opts.verifier ?? null;
   }
 
   /**
@@ -223,30 +233,79 @@ export class PhaseSelectRetain {
   }
 
   /**
-   * fail-closed 退化门裁决（commitOnSuccess 前置）。从 `scores` 抽取基线
-   * （`isBaseline===true`）与候选分数集，复用 `select` 的 phase 退化门
-   * （resolve + sweRebench 硬约束 + cache 软约束）：任一候选未过门 → 抛
-   * `PhaseRetainGateError`（不触盘）。仅基线无候选时不裁决（向后兼容）。
+   * fail-closed 退化门裁决（commitOnSuccess 前置）。强制身份绑定：被提交的
+   * `candidate` 必须在 `scores` 中有且仅有一条基线参照（`isBaseline===true`）
+   * + ≥1 条候选分数，且须存在 `c.candidateId === candidate.id` 的条目——门
+   * **仅对该条目**复用 `select` 的 phase 退化门（resolve + sweRebench 硬约束 +
+   * cache 软约束）裁决。缺失/退化 → 抛 `PhaseRetainGateError`（不触盘）。
+   *
+   * 此身份绑定消除两个 reward-hacking 向量（对照 L3
+   * `assertFreshEvidence` 的机械 terminal-verdict 绑定）：
+   * 1) 不再有「仅基线/无候选分数不裁决」的向后兼容分支。
+   * 2) 门裁决与被提交候选身份绑定——不能注入另一强候选分数蒙混。
    */
   private enforceGate(
+    candidate: PhaseVariantCandidate,
     scores: PhaseCandidateScore[],
     tau: number,
     tauCache: number,
   ): void {
-    const baseline = scores.find((s) => s.isBaseline);
-    if (!baseline) return; // 无基线参照 → 无法裁决退化
+    const baselines = scores.filter((s) => s.isBaseline);
+    if (baselines.length !== 1) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: scores must contain exactly one baseline (isBaseline===true); got ${baselines.length} ` +
+          `— fail-closed (no bypass via missing/extra baseline; PRD §6.8), no active/staging write`,
+      );
+    }
+    const baseline = baselines[0]!;
     const candidates = scores.filter((s) => !s.isBaseline);
-    if (candidates.length === 0) return;
-    const passing = this.select(candidates, baseline, tau, tauCache);
-    const passingIds = new Set(passing.map((p) => p.candidateId));
-    for (const c of candidates) {
-      if (!passingIds.has(c.candidateId)) {
-        throw new PhaseRetainGateError(
-          `commitOnSuccess rejected: phase candidate '${c.candidateId}' failed strict-improvement gate ` +
-            `(resolve/sweRebench 硬约束退化 ≥ τ=${tau} 或 cache 稳态发散 > τCache=${tauCache}; PRD §6.8) ` +
-            `— fail-closed, no active/staging write`,
-        );
-      }
+    if (candidates.length === 0) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: scores contain no candidate scores (baseline-only path forbidden) ` +
+          `— fail-closed; the committed candidate must carry its own held-out score (PRD §6.8), no active/staging write`,
+      );
+    }
+    // 身份绑定：被提交候选必须有对应的 held-out 分数条目
+    const own = candidates.find((c) => c.candidateId === candidate.id);
+    if (!own) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: no score bound to candidate '${candidate.id}' ` +
+          `(requires c.candidateId === candidate.id) — fail-closed (gate verdict must be bound to the ` +
+          `committed candidate identity; PRD §6.8), no active/staging write`,
+      );
+    }
+    // 单独对被提交候选裁决 phase 退化门
+    const passing = this.select([own], baseline, tau, tauCache);
+    if (!passing.some((p) => p.candidateId === candidate.id)) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: phase candidate '${candidate.id}' failed strict-improvement gate ` +
+          `(resolve/sweRebench 硬约束退化 ≥ τ=${tau} 或 cache 稳态发散 > τCache=${tauCache}; PRD §6.8) ` +
+          `— fail-closed, no active/staging write`,
+      );
+    }
+  }
+
+  /**
+   * safety 段内容完整性门（PRD §11.3 breaker clause）。
+   *
+   * 对 `activePath`（相对 repo root 的 posix 路径）的 `content` 跑
+   * `SignatureVerifier.verify`：safety 段 sha256 vs L0 SignatureManifest。
+   * - 未接线 verifier → no-op（向后兼容未接线场景）。
+   * - 该文件不在 manifest 清单（`hasEntry=false`）→ no-op（与
+   *   `ConfigRepo.verifySignatures` 一致，仅校验清单覆盖文件）。
+   * - sha 失配 / 段缺失 → 包装为 `PhaseRetainGateError`（不触盘）。
+   */
+  private verifySafetySegment(activePath: string, content: string): void {
+    if (!this.verifier) return;
+    if (!this.verifier.hasEntry(activePath)) return;
+    try {
+      this.verifier.verify(activePath, content);
+    } catch (err) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: safety segment content-integrity check failed for ${activePath} ` +
+          `(${err instanceof Error ? err.message : String(err)}; PRD §11.3 breaker clause: ` +
+          `delete OR weaken safety rule auto-reject) — fail-closed, no active/staging write`,
+      );
     }
   }
 
@@ -265,8 +324,11 @@ export class PhaseSelectRetain {
    * phase 退化门（resolve + sweRebench 硬约束退化 ≥ τ / cache 稳态发散 > τCache
    * → 抛 `PhaseRetainGateError`，不触盘）。门裁决**不再**交由调用方手动前置。
    *
-   * `scores` 须含一个 `isBaseline===true` 基线 + ≥0 个候选分数。仅基线无候选时
-   * 不裁决（向后兼容；生产 driver 须先 `select` 再 `commitOnSuccess` 串接）。
+   * `scores` 须含且仅含一个 `isBaseline===true` 基线 + ≥1 个候选分数，且其中
+   * 须存在 `c.candidateId === candidate.id` 的条目（身份绑定）。仅基线无候选、
+   * 缺失身份绑定条目均 → `PhaseRetainGateError`（fail-closed 不触盘）。不再有
+   * 「仅基线无候选不裁决」的向后兼容分支——消除 reward-hacking 绕过向量
+   * （对照 L3 `assertFreshEvidence` 的机械 terminal-verdict 绑定）。
    */
   commitOnSuccess(
     candidate: PhaseVariantCandidate,
@@ -277,9 +339,14 @@ export class PhaseSelectRetain {
     if (!this.repo) {
       throw new Error("PhaseSelectRetain.commitOnSuccess requires a ConfigRepo (repo unset)");
     }
-    this.enforceGate(scores, tau, tauCache);
+    this.enforceGate(candidate, scores, tau, tauCache);
     const root = this.repo.getRoot();
     const activeRel = `prompts/phase-${candidate.phase}.md`;
+    // safety 段内容完整性门（PRD §11.3 breaker clause）：写 active 前对
+    // candidate.content 跑 SignatureVerifier.verify（safety 段 sha vs L0
+    // SignatureManifest）。mutator 改写 safety 段弱化规则 → sha 失配 → 抛
+    // PhaseRetainGateError 不触盘。未接线 verifier（缺省）→ no-op（向后兼容）。
+    this.verifySafetySegment(activeRel, candidate.content);
     const activeAbs = join(root, activeRel);
 
     // 写 active 前存基线快照（供 CanaryConfigPlane.rollback 恢复）

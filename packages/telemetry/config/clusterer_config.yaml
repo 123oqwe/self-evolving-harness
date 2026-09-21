@@ -1,0 +1,15 @@
+# TL-T08: Clio 式失败聚类 v0 默认 scope 配置
+#
+# 项目 scope 不可覆写（防 prompt-injected 仓库改聚类参数喂脏 insight，PRD §11.2）。
+# 字段（与 ClustererConfig 接口一字不差，ERRATA-w2plus TL-12 裁决）：
+#   embedding_model  — embedding 模型标识（实际向量由 EmbeddingProvider 注入）
+#   k                — 聚类数；'auto' 表示自动选 k（silhouette 最大化）
+#   min_cluster_size — 小于此值的簇不视为正常簇，成员归入 outliers
+#   label_schema     — 失败模式标签集合（labelCluster 从中选标签）
+embedding_model: mock-embed-v1
+k: 2
+min_cluster_size: 2
+label_schema:
+  - tool_timeout
+  - schema_validation_failure
+  - outliers

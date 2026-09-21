@@ -19,3 +19,15 @@ export * from "./otel-emitter";
 export * from "./replay";
 // TL-T07: otel_capture_policy + PII redaction filter（PII>0 立即 reject 硬门）
 export * from "./capture-policy";
+// TL-T08: Clio 式失败聚类 v0（embedding + clusterer_config 产出失败簇）
+export * from "./clusterer-config";
+export * from "./clustering";
+// TL-T09: distillation 选择器（token 效率 + 成功率 + 多样性优先）
+export * from "./distill-selector";
+// TL-T10: trajectory replay + distillation flywheel（ATIF 格式 + eval dataset + LLM-judge score）
+export * from "./atif";
+export * from "./flywheel";
+// TL-T11: ExpeL insight 记忆条目（ADD/EDIT/UPVOTE/DOWNVOTE + quarantine + Ratchet C=50）
+export * from "./insight";
+// TL-T12: managed tracing backend（Langfuse/LangSmith OTLP + metadata 传播 + PII 出站硬门）
+export * from "./otlp-backend";

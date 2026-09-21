@@ -17,3 +17,15 @@ export * from "./canary-config-plane.js";
 export * from "./phase-evolution-driver.js";
 // L1-T05b: phase 进化 loop-b select + cache warm-up 软多目标 + canary 配置面。
 export * from "./phase-select-retain.js";
+// L1-T06: tool description/field-doc 基质 + selection-accuracy 信号采集。
+export * from "./tool-registry.js";
+// L1-T07: tool description 进化 loop（ExpeL+TextGrad，schema 形状锁；selection∧resolve 联合；贬抑语 flag）。
+export * from "./tool-evolution.js";
+// L1-T08: tool sub-set/defer config + 进化（defer 不隐藏安全关键工具）。
+export * from "./tool-subset-defer.js";
+// L1-T09: history-processors 链 config + 进化（cut 边界 static-core）。
+export * from "./history-processors.js";
+// L1-T10: per-tool maxLines/maxBytes + timeout 进化（下限锁；错误类禁 head；破坏性工具人审）。
+export * from "./tool-truncation-timeout.js";
+// L1-T11: CLAUDE.md/steering patch 基质（ExpeL insight；人审每 diff；decontaminated 验证）。
+export * from "./steering-patch.js";
