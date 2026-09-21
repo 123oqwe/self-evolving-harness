@@ -29,3 +29,9 @@ export {
   type RatchetRejectReason,
 } from "./ratchet/params.js";
 export { collectDrift, type DriftMetrics } from "./ratchet/contribution.js";
+// L2-T13: library drift 监控（barrel 只追加）。
+export {
+  monitor,
+  isHealthy,
+  type DriftReport,
+} from "./drift/monitor.js";
