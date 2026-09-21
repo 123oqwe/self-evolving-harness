@@ -38,10 +38,20 @@ export class ProfileRegistry {
 
   /**
    * 加载并校验一个 profile（sha256 + 自指 denyRead 注入），并注册为 current。
+   *
+   * 单调收紧守卫（fail-closed）：若已有 current profile，须 prev→next diff
+   * 经 assertMonotonicTighten（relaxed 非空即 throw）。防 load 路径静默接受
+   * 放宽/回退 profile 绕过「只允许单调收紧」不变量。持平（relaxed 为空）合法。
+   *
    * @throws sha256 不匹配（真实 pin 被篡改）时 throw
+   * @throws prev→next diff 含放宽项（relaxed 非空）时 throw
    */
   async load(version: string): Promise<SandboxProfile> {
     const p = loadProfile(this.profilesDir, version);
+    if (this.currentProfile !== undefined) {
+      const d = diffProfiles(this.currentProfile, p);
+      assertMonotonicTighten(d);
+    }
     this.currentProfile = p;
     return p;
   }

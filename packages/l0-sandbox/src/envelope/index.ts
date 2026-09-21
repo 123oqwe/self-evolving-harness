@@ -65,6 +65,7 @@ export interface EnvelopeRegistryOpts {
 export class EnvelopeRegistry {
   /** archive 容量上限（可选；用于运行时容量门，单测不依赖）。 */
   private readonly capacity: number | undefined;
+  private currentParams: EnvelopeParams | undefined;
 
   constructor(opts?: EnvelopeRegistryOpts) {
     this.capacity = opts?.capacity;
@@ -128,6 +129,32 @@ export class EnvelopeRegistry {
    */
   abcAudit(canaryResults: CanaryResult[]): AbcAuditResult {
     return abcAudit(canaryResults);
+  }
+
+  /**
+   * 提交 next 为 current（apply 路径）。
+   *
+   * 单调收紧守卫（fail-closed）：若已有 current params，须 prev→next diff
+   * 经 assertMonotonicStricter（acceptance↑ only / C↓ only）。防 apply 路径
+   * 静默接受放宽/回退包络参数绕过「只允许单调收紧」不变量。持平合法。
+   *
+   * @throws acceptance 放宽 / C 放大时 throw
+   */
+  commit(next: EnvelopeParams): EnvelopeParams {
+    if (this.currentParams !== undefined) {
+      const d = this.diff(this.currentParams, next);
+      assertMonotonicStricter(d);
+    }
+    this.currentParams = next;
+    return next;
+  }
+
+  /** 返回已注册 current params（须先 commit）。 */
+  current(): EnvelopeParams {
+    if (this.currentParams === undefined) {
+      throw new Error("no envelope params committed: call commit(next) first");
+    }
+    return this.currentParams;
   }
 }
 

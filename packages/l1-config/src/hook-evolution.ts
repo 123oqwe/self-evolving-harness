@@ -25,7 +25,11 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import type { HookRule, BreakerDiff } from "./hook-policy.js";
-import { HookPolicy } from "./hook-policy.js";
+import {
+  HookPolicy,
+  parseHookRulesYaml,
+  DENY_TO_ALLOW_FORBIDDEN,
+} from "./hook-policy.js";
 import type { LlmMutator, FailureTrajectory, SandboxExecutor } from "./evolution-driver.js";
 import type { TelemetrySink } from "./compaction-substrate.js";
 
@@ -104,16 +108,100 @@ export function extractBreakerDiffs(patch: string): BreakerDiff[] {
   return out;
 }
 
+/** 规则键：matcher + ifPredicate（小写归一），用于 baseline/patch 逐规则对齐。 */
+function ruleKey(matcher: string, ifPredicate?: string): string {
+  return `${matcher.toLowerCase()}\u0000${(ifPredicate ?? "").toLowerCase()}`;
+}
+
+/** matcher 是否属 breaker 拦截的 forbidden 工具类（bash/write/edit）。 */
+function isForbiddenTool(matcher: string): boolean {
+  return DENY_TO_ALLOW_FORBIDDEN.includes(
+    matcher.toLowerCase() as (typeof DENY_TO_ALLOW_FORBIDDEN)[number],
+  );
+}
+
+/** 判定决策迁移是否为 forbidden 工具的放宽方向（deny/ask → allow）。 */
+function isWidenToAllow(from: string, to: string): boolean {
+  return (
+    to.toLowerCase() === "allow" &&
+    (from.toLowerCase() === "deny" || from.toLowerCase() === "ask")
+  );
+}
+
 /**
- * breaker precheck：对 patch 抽取的所有决策迁移跑 `HookPolicy.assertBreaker`。
- * 任一迁移把 bash/write/edit 从 deny/ask 放宽到 allow → 返回 false（候选 reject）。
- * 全部通过（收紧方向或非 forbidden 工具）→ 返回 true。
+ * breaker precheck：对候选 patch 做 YAML 解析后与 baseline 逐规则 diff 判方向。
  *
- * 纯函数，便于复用与测试。
+ * 任何把 bash/write/edit 从 deny/ask 放宽到 allow 的候选 → 返回 false（reject，
+ * 不进候选集）。收紧方向（allow→deny/ask）放行。
+ *
+ * 主路径（mutator 整块 YAML 重写 hooks/policy.yaml，不含箭头迁移文本）：
+ *   - patch 解析为合法 `rules` 序列 → 逐规则 diff baseline（新增/删除/变更），
+ *     forbidden 工具 deny/ask→allow / 删除 deny-ask / 新增 allow 即 reject；
+ *   - 持平（relaxed 面 0）放行。
+ * 回退路径（patch 非合法 rules 序列，如箭头文本片段）：
+ *   - 正则嗅探箭头迁移；命中 forbidden 放宽 → reject；
+ *   - 正则无命中 → fail-closed reject（空不得默认放行，无法判定方向）。
  */
-export function hookBreakerPrecheck(patch: string): boolean {
+export function hookBreakerPrecheck(
+  patch: string,
+  baseline: readonly HookRule[] = [],
+): boolean {
   const policy = new HookPolicy();
-  for (const diff of extractBreakerDiffs(patch)) {
+
+  // 主路径：patch 为整块 YAML rules 序列。
+  let patchRules: HookRule[] | null = null;
+  try {
+    patchRules = parseHookRulesYaml(patch);
+  } catch {
+    patchRules = null;
+  }
+
+  if (patchRules !== null) {
+    const baselineByKey = new Map<string, HookRule>();
+    for (const r of baseline) {
+      baselineByKey.set(ruleKey(r.matcher, r.ifPredicate), r);
+    }
+    const patchByKey = new Map<string, HookRule>();
+    for (const r of patchRules) {
+      patchByKey.set(ruleKey(r.matcher, r.ifPredicate), r);
+    }
+
+    // 删除规则：baseline 有、patch 无。forbidden 工具 deny/ask 被删 = 放宽。
+    for (const [key, br] of baselineByKey) {
+      if (!patchByKey.has(key)) {
+        if (
+          isForbiddenTool(br.matcher) &&
+          (br.decision === "deny" || br.decision === "ask")
+        ) {
+          return false;
+        }
+      }
+    }
+    // 新增/变更规则。
+    for (const [, pr] of patchByKey) {
+      const br = baselineByKey.get(ruleKey(pr.matcher, pr.ifPredicate));
+      if (br === undefined) {
+        // 新增 forbidden allow 规则（先前无显式 allow）= 放宽。
+        if (isForbiddenTool(pr.matcher) && pr.decision === "allow") {
+          return false;
+        }
+      } else if (
+        isForbiddenTool(pr.matcher) &&
+        isWidenToAllow(br.decision, pr.decision)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // 回退路径：patch 非合法 rules 序列 → 正则嗅探箭头迁移文本。
+  const diffs = extractBreakerDiffs(patch);
+  if (diffs.length === 0) {
+    // 空不得默认放行：无法判定方向 → fail-closed reject。
+    return false;
+  }
+  for (const diff of diffs) {
     try {
       policy.assertBreaker(diff);
     } catch {
@@ -240,7 +328,7 @@ export class HookEvolutionDriver {
       }
 
       // breaker precheck：bash/write/edit 从 deny/ask 放宽到 allow → reject
-      if (!hookBreakerPrecheck(patch)) {
+      if (!hookBreakerPrecheck(patch, baseline)) {
         this.emit({
           event: "candidate_rejected_breaker",
           substrate: "hook-policy",

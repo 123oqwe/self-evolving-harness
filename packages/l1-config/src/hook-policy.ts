@@ -193,6 +193,25 @@ function parsePolicyYaml(content: string): {
   return (val as Record<string, unknown> | null) ?? {};
 }
 
+/**
+ * 解析 policy.yaml 文本为有序 `HookRule[]`（parsePolicyYaml + buildRule）。
+ *
+ * 供 hook-evolution breaker precheck 对候选 patch 做 YAML 解析后逐规则 diff
+ * 判方向（而非正则嗅探箭头文本）。
+ *
+ * @throws HookPolicyLoadError 缺失 `rules` 序列或任一规则校验失败时 throw
+ */
+export function parseHookRulesYaml(content: string): HookRule[] {
+  const parsed = parsePolicyYaml(content);
+  const rawRules = parsed.rules;
+  if (!Array.isArray(rawRules)) {
+    throw new HookPolicyLoadError(
+      "parseHookRulesYaml: missing 'rules' sequence",
+    );
+  }
+  return rawRules.map((r, idx) => buildRule(r, idx));
+}
+
 // ── HookRule 构建校验 ──────────────────────────────────────────────────────
 
 const DECISIONS = new Set(["allow", "deny", "ask"]);

@@ -59,6 +59,7 @@ export interface NetPolicyRegistryOpts {
  */
 export class NetPolicyRegistry {
   private readonly signoff: ChangeSignoff;
+  private currentPolicy: NetPolicy | undefined;
 
   constructor(opts: NetPolicyRegistryOpts) {
     const signoffOpts: ChangeSignoffOpts = {
@@ -103,5 +104,31 @@ export class NetPolicyRegistry {
     for (const cidr of diff.denyOutRelaxed) {
       this.signoff.assertSigned(next.signoffs, `remove ${cidr}`);
     }
+  }
+
+  /**
+   * 提交 next policy 为 current（apply 路径）。
+   *
+   * 单调收紧守卫（fail-closed）：若已有 current policy，须 prev→next diff
+   * 经 assertChangeAllowed（denyRead 单调收紧 / allow 放宽须可信签发）。
+   * 防 apply 路径静默接受放宽/回退 policy 绕过「只允许单调收紧」不变量。
+   *
+   * @throws denyRead 收缩 / allow 放宽无可信签发覆盖时 throw
+   */
+  commit(next: NetPolicy): NetPolicy {
+    if (this.currentPolicy !== undefined) {
+      const d = diffNetPolicy(this.currentPolicy, next);
+      this.assertChangeAllowed(d, next);
+    }
+    this.currentPolicy = next;
+    return next;
+  }
+
+  /** 返回已注册 current policy（须先 commit）。 */
+  current(): NetPolicy {
+    if (this.currentPolicy === undefined) {
+      throw new Error("no net policy committed: call commit(next) first");
+    }
+    return this.currentPolicy;
   }
 }
