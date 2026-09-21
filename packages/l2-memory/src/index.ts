@@ -35,3 +35,16 @@ export {
   isHealthy,
   type DriftReport,
 } from "./drift/monitor.js";
+// L2-T14: 写路径路由表 + 触发阈值（barrel 只追加）。
+export {
+  route,
+  shouldTriggerBackground,
+  runBackgroundJob,
+  hotPathWithFallback,
+  DEFAULT_ROUTE_TABLE,
+  DEFAULT_TRIGGER_THRESHOLD,
+  type WritePath,
+  type RouteTable,
+  type TriggerThreshold,
+  type TriggerState,
+} from "./router/write-router.js";
