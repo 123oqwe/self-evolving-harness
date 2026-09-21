@@ -41,3 +41,5 @@ export * from "./context-mode-router.js";
 export * from "./reducer-partition.js";
 // L1-T17: handoff description + input_type schema 进化（on_handoff/is_enabled static-core；鉴权字段人工 gate）。
 export * from "./handoff-schema.js";
+// L1-T18: steering policy + 措辞模板进化（checkpoint/REDIRECT/consume-once static-core；KILL/PAUSE 人工 gate）。
+export * from "./steering-policy.js";

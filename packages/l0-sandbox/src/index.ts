@@ -20,3 +20,4 @@ export * from "./worktree-policy/index.js";
 export * from "./credential-policy/index.js";
 export * from "./hands-replace/index.js";
 export * from "./envelope/index.js";
+export * from "./redteam/index.js";
