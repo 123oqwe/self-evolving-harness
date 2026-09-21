@@ -223,30 +223,55 @@ export class PhaseSelectRetain {
   }
 
   /**
-   * fail-closed 退化门裁决（commitOnSuccess 前置）。从 `scores` 抽取基线
-   * （`isBaseline===true`）与候选分数集，复用 `select` 的 phase 退化门
-   * （resolve + sweRebench 硬约束 + cache 软约束）：任一候选未过门 → 抛
-   * `PhaseRetainGateError`（不触盘）。仅基线无候选时不裁决（向后兼容）。
+   * fail-closed 退化门裁决（commitOnSuccess 前置）。强制身份绑定：被提交的
+   * `candidate` 必须在 `scores` 中有且仅有一条基线参照（`isBaseline===true`）
+   * + ≥1 条候选分数，且须存在 `c.candidateId === candidate.id` 的条目——门
+   * **仅对该条目**复用 `select` 的 phase 退化门（resolve + sweRebench 硬约束 +
+   * cache 软约束）裁决。缺失/退化 → 抛 `PhaseRetainGateError`（不触盘）。
+   *
+   * 此身份绑定消除两个 reward-hacking 向量（对照 L3
+   * `assertFreshEvidence` 的机械 terminal-verdict 绑定）：
+   * 1) 不再有「仅基线/无候选分数不裁决」的向后兼容分支。
+   * 2) 门裁决与被提交候选身份绑定——不能注入另一强候选分数蒙混。
    */
   private enforceGate(
+    candidate: PhaseVariantCandidate,
     scores: PhaseCandidateScore[],
     tau: number,
     tauCache: number,
   ): void {
-    const baseline = scores.find((s) => s.isBaseline);
-    if (!baseline) return; // 无基线参照 → 无法裁决退化
+    const baselines = scores.filter((s) => s.isBaseline);
+    if (baselines.length !== 1) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: scores must contain exactly one baseline (isBaseline===true); got ${baselines.length} ` +
+          `— fail-closed (no bypass via missing/extra baseline; PRD §6.8), no active/staging write`,
+      );
+    }
+    const baseline = baselines[0]!;
     const candidates = scores.filter((s) => !s.isBaseline);
-    if (candidates.length === 0) return;
-    const passing = this.select(candidates, baseline, tau, tauCache);
-    const passingIds = new Set(passing.map((p) => p.candidateId));
-    for (const c of candidates) {
-      if (!passingIds.has(c.candidateId)) {
-        throw new PhaseRetainGateError(
-          `commitOnSuccess rejected: phase candidate '${c.candidateId}' failed strict-improvement gate ` +
-            `(resolve/sweRebench 硬约束退化 ≥ τ=${tau} 或 cache 稳态发散 > τCache=${tauCache}; PRD §6.8) ` +
-            `— fail-closed, no active/staging write`,
-        );
-      }
+    if (candidates.length === 0) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: scores contain no candidate scores (baseline-only path forbidden) ` +
+          `— fail-closed; the committed candidate must carry its own held-out score (PRD §6.8), no active/staging write`,
+      );
+    }
+    // 身份绑定：被提交候选必须有对应的 held-out 分数条目
+    const own = candidates.find((c) => c.candidateId === candidate.id);
+    if (!own) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: no score bound to candidate '${candidate.id}' ` +
+          `(requires c.candidateId === candidate.id) — fail-closed (gate verdict must be bound to the ` +
+          `committed candidate identity; PRD §6.8), no active/staging write`,
+      );
+    }
+    // 单独对被提交候选裁决 phase 退化门
+    const passing = this.select([own], baseline, tau, tauCache);
+    if (!passing.some((p) => p.candidateId === candidate.id)) {
+      throw new PhaseRetainGateError(
+        `commitOnSuccess rejected: phase candidate '${candidate.id}' failed strict-improvement gate ` +
+          `(resolve/sweRebench 硬约束退化 ≥ τ=${tau} 或 cache 稳态发散 > τCache=${tauCache}; PRD §6.8) ` +
+          `— fail-closed, no active/staging write`,
+      );
     }
   }
 
@@ -265,8 +290,11 @@ export class PhaseSelectRetain {
    * phase 退化门（resolve + sweRebench 硬约束退化 ≥ τ / cache 稳态发散 > τCache
    * → 抛 `PhaseRetainGateError`，不触盘）。门裁决**不再**交由调用方手动前置。
    *
-   * `scores` 须含一个 `isBaseline===true` 基线 + ≥0 个候选分数。仅基线无候选时
-   * 不裁决（向后兼容；生产 driver 须先 `select` 再 `commitOnSuccess` 串接）。
+   * `scores` 须含且仅含一个 `isBaseline===true` 基线 + ≥1 个候选分数，且其中
+   * 须存在 `c.candidateId === candidate.id` 的条目（身份绑定）。仅基线无候选、
+   * 缺失身份绑定条目均 → `PhaseRetainGateError`（fail-closed 不触盘）。不再有
+   * 「仅基线无候选不裁决」的向后兼容分支——消除 reward-hacking 绕过向量
+   * （对照 L3 `assertFreshEvidence` 的机械 terminal-verdict 绑定）。
    */
   commitOnSuccess(
     candidate: PhaseVariantCandidate,
@@ -277,7 +305,7 @@ export class PhaseSelectRetain {
     if (!this.repo) {
       throw new Error("PhaseSelectRetain.commitOnSuccess requires a ConfigRepo (repo unset)");
     }
-    this.enforceGate(scores, tau, tauCache);
+    this.enforceGate(candidate, scores, tau, tauCache);
     const root = this.repo.getRoot();
     const activeRel = `prompts/phase-${candidate.phase}.md`;
     const activeAbs = join(root, activeRel);
