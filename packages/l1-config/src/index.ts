@@ -43,3 +43,5 @@ export * from "./reducer-partition.js";
 export * from "./handoff-schema.js";
 // L1-T18: steering policy + 措辞模板进化（checkpoint/REDIRECT/consume-once static-core；KILL/PAUSE 人工 gate）。
 export * from "./steering-policy.js";
+// L1-T19: failure recovery policy + 幂等 checklist 进化（super-step+node 幂等 static-core）。
+export * from "./failure-recovery.js";
