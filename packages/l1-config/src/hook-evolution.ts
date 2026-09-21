@@ -33,6 +33,21 @@ import {
 import type { LlmMutator, FailureTrajectory, SandboxExecutor } from "./evolution-driver.js";
 import type { TelemetrySink } from "./compaction-substrate.js";
 
+/** hookBreakerPrecheck 动态配置：运行时 forbidden 全集 + audit sink。 */
+export interface HookBreakerPrecheckOptions {
+  /**
+   * 额外 forbidden 工具集（小写归一），由 tool-registry `dangerous: true`
+   * 动态派生。与 `DENY_TO_ALLOW_FORBIDDEN` 种子取并集构成运行时 forbidden
+   * 全集，使新注册执行类工具自动进入 breaker 保护。
+   */
+  readonly extraForbiddenTools?: readonly string[];
+  /**
+   * 可选 audit sink：非 forbidden 工具 deny/ask→allow 放宽须落
+   * `breaker_nonforbidden_widen_audit` 事件（闭合静默放行面）。
+   */
+  readonly telemetry?: TelemetrySink;
+}
+
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
 /**
@@ -81,6 +96,13 @@ export interface HookEvolutionDriverOptions {
   readonly telemetry?: TelemetrySink;
   /** agent 运行时 session id（mutator 须 ≠ 此值，防 self-critic 饱和） */
   readonly agentSessionId?: string;
+  /**
+   * 额外 forbidden 工具集（小写归一），由 tool-registry `dangerous: true`
+   * 动态派生（`dangerousToolNames`）。经 hookBreakerPrecheck 进入 breaker
+   * 保护，使新注册执行类工具自动受 deny/ask→allow 拦截——闭合 forbidden
+   * 列表 frozen、新执行工具永不进入 breaker 保护的结构性静默放行面。
+   */
+  readonly extraForbiddenTools?: readonly string[];
 }
 
 // ── breaker precheck 纯函数 ─────────────────────────────────────────────────
@@ -119,6 +141,23 @@ function isForbiddenTool(matcher: string): boolean {
     matcher.toLowerCase() as (typeof DENY_TO_ALLOW_FORBIDDEN)[number],
   );
 }
+// 注：isForbiddenTool 保留为 baseline 种子判定；运行时动态判定用
+// isForbiddenToolDynamic（baseline ∪ extraForbidden）。两者分离避免 baseline
+// 语义漂移。
+
+/**
+ * matcher 是否属运行时 forbidden 全集（baseline 种子 ∪ extraForbidden）。
+ * 供 hookBreakerPrecheck 在动态注入 forbidden 集时判定。
+ */
+function isForbiddenToolDynamic(
+  matcher: string,
+  extra: ReadonlySet<string>,
+): boolean {
+  const t = matcher.toLowerCase();
+  return (
+    (DENY_TO_ALLOW_FORBIDDEN as readonly string[]).includes(t) || extra.has(t)
+  );
+}
 
 /** 判定决策迁移是否为 forbidden 工具的放宽方向（deny/ask → allow）。 */
 function isWidenToAllow(from: string, to: string): boolean {
@@ -131,8 +170,13 @@ function isWidenToAllow(from: string, to: string): boolean {
 /**
  * breaker precheck：对候选 patch 做 YAML 解析后与 baseline 逐规则 diff 判方向。
  *
- * 任何把 bash/write/edit 从 deny/ask 放宽到 allow 的候选 → 返回 false（reject，
- * 不进候选集）。收紧方向（allow→deny/ask）放行。
+ * 任何把 forbidden 工具（bash/write/edit ∪ `opts.extraForbiddenTools` 动态
+ * 派生）从 deny/ask 放宽到 allow 的候选 → 返回 false（reject，不进候选集）。
+ * 收紧方向（allow→deny/ask）放行。
+ *
+ * **非 forbidden 工具的 deny/ask→allow 放宽虽不硬拦**（breaker 仅硬拦
+ * forbidden），但 `opts.telemetry` 接线时须落 `breaker_nonforbidden_widen_audit`
+ * 事件——闭合 breaker 静默放行面。返回仍为 true（放行）。
  *
  * 主路径（mutator 整块 YAML 重写 hooks/policy.yaml，不含箭头迁移文本）：
  *   - patch 解析为合法 `rules` 序列 → 逐规则 diff baseline（新增/删除/变更），
@@ -145,8 +189,20 @@ function isWidenToAllow(from: string, to: string): boolean {
 export function hookBreakerPrecheck(
   patch: string,
   baseline: readonly HookRule[] = [],
+  opts: HookBreakerPrecheckOptions = {},
 ): boolean {
-  const policy = new HookPolicy();
+  const extra = new Set(
+    (opts.extraForbiddenTools ?? []).map((t) => t.toLowerCase()),
+  );
+  const telemetry = opts.telemetry;
+  const policyOpts: { extraForbiddenTools?: readonly string[]; telemetry?: TelemetrySink } = {};
+  if (opts.extraForbiddenTools !== undefined) {
+    policyOpts.extraForbiddenTools = opts.extraForbiddenTools;
+  }
+  if (telemetry !== undefined) {
+    policyOpts.telemetry = telemetry;
+  }
+  const policy = new HookPolicy(policyOpts);
 
   // 主路径：patch 为整块 YAML rules 序列。
   let patchRules: HookRule[] | null = null;
@@ -170,7 +226,7 @@ export function hookBreakerPrecheck(
     for (const [key, br] of baselineByKey) {
       if (!patchByKey.has(key)) {
         if (
-          isForbiddenTool(br.matcher) &&
+          isForbiddenToolDynamic(br.matcher, extra) &&
           (br.decision === "deny" || br.decision === "ask")
         ) {
           return false;
@@ -182,14 +238,41 @@ export function hookBreakerPrecheck(
       const br = baselineByKey.get(ruleKey(pr.matcher, pr.ifPredicate));
       if (br === undefined) {
         // 新增 forbidden allow 规则（先前无显式 allow）= 放宽。
-        if (isForbiddenTool(pr.matcher) && pr.decision === "allow") {
+        if (isForbiddenToolDynamic(pr.matcher, extra) && pr.decision === "allow") {
           return false;
         }
+        // 非 forbidden 工具新增 allow（或 deny/ask→allow 等价新增）：audit 但放行。
+        if (
+          !isForbiddenToolDynamic(pr.matcher, extra) &&
+          pr.decision === "allow"
+        ) {
+          telemetry?.write({
+            event: "breaker_nonforbidden_widen_audit",
+            tool: pr.matcher,
+            from: "<absent>",
+            to: "allow",
+            reason:
+              "non-forbidden tool new allow rule; breaker only hard-blocks forbidden tools (audit-only)",
+          });
+        }
       } else if (
-        isForbiddenTool(pr.matcher) &&
+        isForbiddenToolDynamic(pr.matcher, extra) &&
         isWidenToAllow(br.decision, pr.decision)
       ) {
         return false;
+      } else if (
+        !isForbiddenToolDynamic(pr.matcher, extra) &&
+        isWidenToAllow(br.decision, pr.decision)
+      ) {
+        // 非 forbidden 工具 deny/ask→allow 放宽：audit 但放行。
+        telemetry?.write({
+          event: "breaker_nonforbidden_widen_audit",
+          tool: pr.matcher,
+          from: br.decision,
+          to: pr.decision,
+          reason:
+            "non-forbidden tool widened deny/ask→allow; breaker only hard-blocks forbidden tools (audit-only)",
+        });
       }
     }
     return true;
@@ -249,6 +332,7 @@ export class HookEvolutionDriver {
   private readonly sandbox: SandboxExecutor;
   private readonly telemetry: TelemetrySink | null;
   private readonly agentSessionId: string | null;
+  private readonly extraForbiddenTools: readonly string[];
   private mutatorCounter = 0;
 
   constructor(opts: HookEvolutionDriverOptions) {
@@ -257,6 +341,7 @@ export class HookEvolutionDriver {
     this.sandbox = opts.sandbox;
     this.telemetry = opts.telemetry ?? null;
     this.agentSessionId = opts.agentSessionId ?? null;
+    this.extraForbiddenTools = opts.extraForbiddenTools ?? [];
   }
 
   /** 落一条遥测事件（telemetry 缺失时静默跳过）。 */
@@ -327,8 +412,18 @@ export class HookEvolutionDriver {
         return [];
       }
 
-      // breaker precheck：bash/write/edit 从 deny/ask 放宽到 allow → reject
-      if (!hookBreakerPrecheck(patch, baseline)) {
+      // breaker precheck：forbidden 工具（bash/write/edit ∪ 动态派生）从
+      // deny/ask 放宽到 allow → reject；非 forbidden 放宽 audit 但放行。
+      const precheckOpts: {
+        extraForbiddenTools?: readonly string[];
+        telemetry?: TelemetrySink;
+      } = {
+        extraForbiddenTools: this.extraForbiddenTools,
+      };
+      if (this.telemetry !== null) {
+        precheckOpts.telemetry = this.telemetry;
+      }
+      if (!hookBreakerPrecheck(patch, baseline, precheckOpts)) {
         this.emit({
           event: "candidate_rejected_breaker",
           substrate: "hook-policy",

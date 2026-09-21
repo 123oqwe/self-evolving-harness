@@ -17,7 +17,12 @@
 // 复用 vs 自研：
 // - L3-T04 strict-improvement 复用（adoption↑ ∧ falseReject↓ 硬门）。
 // - L1-T11 `HumanGate` 复用方向语义（人审门泛化）。
-// - 自研：进化 driver + KILL/PAUSE 人工门 + checkpoint/consume-once 不变量守卫。
+// - 自研：进化 driver + KILL/PAUSE 人工门 + checkpoint/consume-once 不变量守卫 +
+//   steering_policy.yaml commit 入口（同入口强制 KILL/PAUSE 人工 gate）。
+
+import { createHash } from "node:crypto";
+import { mkdirSync, writeFileSync, readdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
@@ -128,6 +133,32 @@ export function hasKillOrPause(rule: SteeringRule): boolean {
   return rule.allowed.some((c) => KILL_PAUSE.includes(c));
 }
 
+// ── 纯函数：steering_policy.yaml 序列化（极简，无外部依赖） ────────────────
+
+/**
+ * 把 SteeringRule[] 序列化为 `config/steering_policy.yaml` 文本。
+ *
+ * 形状（与 mid-run steering 加载器契约一致）：
+ *   rules:
+ *     - childType: <childType>
+ *       allowed:
+ *         - HINT
+ *         - REDIRECT
+ */
+export function serializeSteeringPolicyYaml(
+  rules: readonly SteeringRule[],
+): string {
+  const lines: string[] = ["rules:"];
+  for (const r of rules) {
+    lines.push(`  - childType: ${r.childType}`);
+    lines.push("    allowed:");
+    for (const cmd of r.allowed) {
+      lines.push(`      - ${cmd}`);
+    }
+  }
+  return lines.join("\n") + "\n";
+}
+
 // ── SteeringPolicy ─────────────────────────────────────────────────────────
 
 /**
@@ -138,9 +169,17 @@ export function hasKillOrPause(rule: SteeringRule): boolean {
  *   仅允许加非 KILL/PAUSE 权限（HINT/REDIRECT）；KILL/PAUSE 放宽须走
  *   `assertKillPauseHumanGated` 人签后单独注入。
  * - `assertKillPauseHumanGated`：KILL/PAUSE 放宽无签 → throw。
+ * - `commitSteeringPolicy`：`config/steering_policy.yaml` 的 commit 入口，
+ *   内部强制对每条含 KILL/PAUSE 的规则跑 `assertKillPauseHumanGated`（同入口
+ *   不可绕过，类比 SteeringPatch.commit 内部强制 assertHumanApproval）。
  * - `assertCheckpointOnly`：mid-stream 注入 → throw（只在 checkpoint 排空）。
  */
 export class SteeringPolicy {
+  private readonly repoRoot: string | undefined;
+
+  constructor(opts: { repoRoot?: string } = {}) {
+    this.repoRoot = opts.repoRoot;
+  }
   /**
    * 进化：从 baseline + 候选信号产 evolved rules + templates。
    *
@@ -201,6 +240,57 @@ export class SteeringPolicy {
   }
 
   /**
+   * commit `config/steering_policy.yaml`：同入口强制跑 `assertKillPauseHumanGated`。
+   *
+   * 对**每条**规则强制跑 `assertKillPauseHumanGated(rule, humanApproval)`——
+   * 含 KILL/PAUSE 的规则无人工签即 throw，调用方无法绕过（类比
+   * SteeringPatch.commit 内部强制 assertHumanApproval 的同入口不可绕过模式）。
+   * 通过后写 active `config/steering_policy.yaml` + staging 版本后缀
+   * （`staging/steering-policy.v{N}.yaml`），返回 `{ committedSha }` 供下游
+   * 回滚/可追溯锚点。
+   *
+   * 这闭合「门函数存在却未被任何生产路径调用」的不变量休眠态：commit 是
+   * steering_policy.yaml 落盘的唯一入口，KILL/PAUSE 人工 gate 在此强制接线。
+   *
+   * @throws repoRoot 未配置 → throw（commit 须有落盘根）
+   * @throws 任一含 KILL/PAUSE 规则无人工签 → throw `KillPauseUnsignedError`
+   */
+  commitSteeringPolicy(
+    rules: readonly SteeringRule[],
+    humanApproval: boolean,
+  ): { committedSha: string } {
+    if (this.repoRoot === undefined) {
+      throw new Error(
+        "SteeringPolicy.commitSteeringPolicy: no repoRoot configured (commit requires a writable repo root)",
+      );
+    }
+    // 同入口强制 KILL/PAUSE 人工 gate（不可绕过）。
+    for (const rule of rules) {
+      this.assertKillPauseHumanGated(rule, humanApproval);
+    }
+
+    const yaml = serializeSteeringPolicyYaml(rules);
+    const targetAbs = join(this.repoRoot, "config/steering_policy.yaml");
+    mkdirSync(dirname(targetAbs), { recursive: true });
+    writeFileSync(targetAbs, yaml, "utf8");
+
+    // staging 版本后缀（keep-all variant，回滚物理基础）。
+    const stagingDir = join(this.repoRoot, "staging");
+    mkdirSync(stagingDir, { recursive: true });
+    const next = nextSteeringVersion(stagingDir);
+    writeFileSync(
+      join(stagingDir, `steering-policy.v${next}.yaml`),
+      yaml,
+      "utf8",
+    );
+
+    const committedSha = createHash("sha256")
+      .update(yaml, "utf8")
+      .digest("hex");
+    return { committedSha };
+  }
+
+  /**
    * 守卫：steering 只在 checkpoint 排空时注入（流式确定性不变量）。
    *
    * `injectedMidStream === true`（mid-stream / mid-tool 注入）→ throw
@@ -227,4 +317,26 @@ export class SteeringPolicy {
       throw new RedirectAbortInvariantError();
     }
   }
+}
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * 计算 staging 目录下一个可用的 `steering-policy.v{N}.yaml` 版本号（1-based）。
+ * keep-all variant：不覆盖既有 staging 版本，供回滚物理基础。
+ */
+function nextSteeringVersion(stagingDir: string): number {
+  let max = 0;
+  try {
+    for (const f of readdirSync(stagingDir)) {
+      const m = /^steering-policy\.v(\d+)\.ya?ml$/.exec(f);
+      if (m && m[1] !== undefined) {
+        const n = Number(m[1]);
+        if (Number.isInteger(n) && n > max) max = n;
+      }
+    }
+  } catch {
+    // staging 目录不存在 → 从 v1 起。
+  }
+  return max + 1;
 }

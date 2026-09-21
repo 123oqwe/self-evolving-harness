@@ -140,9 +140,9 @@
 | L1-T02 | `tests/L1/T02-compaction-substrate.spec.ts` | `df87c4e1c9b60c07590411c6753801e2392732d53789f1abc6dd6d27fde29712` |
 | L1-T03 | `tests/L1/T03-signature-phase.spec.ts` | `013fa0bb818a1630dd0a4834cd0316078dc0a38b1eef5adcb1bb43d973ed0679` |
 | L1-T04a | `tests/L1/T04a-evolution-driver.spec.ts` | `74d947674a94d5035e338e7abdaa39b14d4ef974e99a59685f539b53b4b99431` |
-| L1-T04b | `tests/L1/T04b-select-retain.spec.ts` | `ca2c78033f570bbb7bcf016a846304a3be7bd80e40b75412186f85db586e6812` |
+| L1-T04b | `tests/L1/T04b-select-retain.spec.ts` | `ef204c4372772ce8f0c989ea9acd9edc5ef0450b487b06ff19e4538c2d2ac86b` |
 | L1-T05a | `tests/L1/T05a-phase-evolution-driver.spec.ts` | `60e375fce794f5c532a1759a5f2ccbd911048309c603fe3ad8a04ac1e586db70` |
-| L1-T05b | `tests/L1/T05b-phase-select-retain.spec.ts` | `5f1bc4873dd2f16584e43fc85787a3637150dc9eccd63164a1e50cb2f900da2f` |
+| L1-T05b | `tests/L1/T05b-phase-select-retain.spec.ts` | `34436d854aa93ced6985747bd991e53e96be2dac50188961ccbe484fc940db9f` |
 | L1-T06 | `tests/L1/T06-tool-registry.spec.ts` | `2a6fc97516800f3f895fd65f2aef1e0fa6ab39ccd5d5affb2acb2c1ee79e2a05` |
 | L1-T07 | `tests/L1/T07-tool-evolution.spec.ts` | `07f476e4c7c3837dcd75bdc31dada16e5b8599e63a9b3e41d3618ea76f3568d1` |
 | L1-T08 | `tests/L1/T08-tool-subset-defer.spec.ts` | `830b5601d7b9ea517460148e3a30a8569a1a452e9c297d28316a04bb2c06eb28` |

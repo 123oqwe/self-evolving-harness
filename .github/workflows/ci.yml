@@ -159,8 +159,40 @@ jobs:
 
   # ── L0S 沙箱测试: 非 root uid 执行 (ERRATA-w01 §L0S-R1 / CLN-T03) ──
   # Linux CI 以 root uid 运行时 bwrap mode-000 遮蔽失效 (root 绕过文件权限),
-  # 导致 L0S-T02 sandbox 隔离契约在 root 下不可信。本 job 以非 root uid 跑
-  # L0S 测试, 使 bwrap mode-000 遮蔽在非 root 下生效。
+  # 导致 L0S-T02 sandbox 隔离契约在 root 下不可信。本 job 显式创建非 root
+  # user 并以该 user 身份跑 L0S 测试, 使 bwrap mode-000 遮蔽在非 root 下生效。
   # 注: 原 ERRATA L0S-R1 缓解 (b) "bwrap 加 --cap-drop ALL" 已更正废除——
   # --cap-drop 是 Docker/podman 旗标, bwrap 无此选项 (cloud CI 实证)。权限
   # 约束由 bwrap 非特权 user namespace 本身完成。见 ERRATA-w01 更正记录。
+  # 注: 不依赖 GitHub runner 默认非 root user —— 显式 useradd + chown + su
+  # 使非 root 执行可被 CLN-T03 spec 锁定测试机械验证 (grep 证据), 且强化
+  # bwrap mode-000 遮蔽在非 root uid 下生效的契约。
+  l0s-nonroot:
+    name: L0S sandbox (non-root uid, bwrap mode-000)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v4.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v6.5.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install bubblewrap
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Relax AppArmor userns restriction (bwrap needs it on Ubuntu 24.04)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Build (all packages, strict)
+        run: pnpm -r run build
+      - name: Create non-root user + chown workspace + run L0S tests as that user
+        run: |
+          set -e
+          sudo useradd -m -s /bin/bash l0s-runner
+          sudo chown -R l0s-runner:l0s-runner "$GITHUB_WORKSPACE"
+          # 以非 root uid 跑 L0S 沙箱测试 (bwrap mode-000 遮蔽在非 root 下生效)
+          sudo -u l0s-runner -E bash -c '
+            set -e
+            pnpm vitest run tests/L0S/T02.sandbox-deny-egress.spec.ts tests/L0S/T02.sandbox-deny-ssh.spec.ts tests/L0S/T02.sandbox-platform-skip.spec.ts tests/L0S/T03.symlink-bypass-blocked.spec.ts tests/L0S/T03.worktree-write-scoped.spec.ts tests/L0S/T03.deny-read-ssh.spec.ts tests/L0S/T03.narrower-allow-reopens.spec.ts
+          '

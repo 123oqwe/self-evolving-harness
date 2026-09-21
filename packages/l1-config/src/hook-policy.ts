@@ -14,6 +14,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ConfigRepo } from "./repo-layout.js";
+// 复用 L1-T02 已定义的 TelemetrySink 结构接口（ERRATA-w2plus L1 裁决：
+// `TelemetrySink = { write(event): void }`）。用于非 forbidden 工具 deny→allow
+// 的 audit 事件落盘（breaker 静默放行面补全）。
+import type { TelemetrySink } from "./compaction-substrate.js";
 
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
@@ -34,9 +38,15 @@ export interface HookRule {
 /**
  * 禁止从 deny/ask 放宽到 allow 的工具类（小写规范化比较）。
  *
- * 复用 L0C-T10 `DangerousDiffKind.deny_to_allow` 语义：breaker 只拦放宽方向，
- * 收紧方向放行。字面量在此冻结（与 L0C-T10 BREAKER_CLAUSES 同源），运行时
- * 不可变。
+ * 这是 breaker 的 **不可变 baseline 种子**（bash/write/edit），与 L0C-T10
+ * `DangerousDiffKind.deny_to_allow` 语义同源。breaker 只拦放宽方向，收紧
+ * 方向放行。
+ *
+ * 运行时 forbidden 全集 = 本种子 ∪ 由 tool-registry `dangerous: true` 动态
+ * 派生的工具集（经 `HookPolicyOptions.extraForbiddenTools` 注入）。这样新
+ * 注册的执行类工具（registry 标 `dangerous`）自动进入 breaker 保护，无需
+ * 改 frozen 字面量——闭合「forbidden 列表 frozen、新执行工具永不进入
+ * breaker 保护」的结构性静默放行面。
  */
 export const DENY_TO_ALLOW_FORBIDDEN = ["bash", "write", "edit"] as const;
 
@@ -51,6 +61,20 @@ export interface BreakerDiff {
 export interface HookPolicyOptions {
   /** 默认 ConfigRepo（load 未显式传 repo 时回退）。 */
   readonly repo?: ConfigRepo;
+  /**
+   * 额外 forbidden 工具集（小写归一），通常由 `dangerousToolNames(toolDocs)`
+   * 从 tool-registry `dangerous: true` 动态派生。与 `DENY_TO_ALLOW_FORBIDDEN`
+   * 种子取并集构成运行时 forbidden 全集，使新注册执行类工具自动进入
+   * breaker 保护。
+   */
+  readonly extraForbiddenTools?: readonly string[];
+  /**
+   * 可选 telemetry sink：非 forbidden 工具的 deny/ask→allow 放宽虽不拦
+   * （breaker 仅硬拦 forbidden），但须落 `breaker_nonforbidden_widen_audit`
+   * 事件，闭合 breaker 静默放行面（与 L0C-T10 runtime breaker 的
+   * security_event 留痕同源）。
+   */
+  readonly telemetry?: TelemetrySink;
 }
 
 // ── 错误类型（message 未钉死，测试用宽松 regex；ERRATA L1-11） ────────────
@@ -281,9 +305,34 @@ export class HookPolicyLoadError extends Error {
  */
 export class HookPolicy {
   private readonly repo: ConfigRepo | undefined;
+  private readonly extraForbidden: ReadonlySet<string>;
+  private readonly telemetry: TelemetrySink | undefined;
 
   constructor(opts: HookPolicyOptions = {}) {
     this.repo = opts.repo;
+    this.extraForbidden = new Set(
+      (opts.extraForbiddenTools ?? []).map((t) => t.toLowerCase()),
+    );
+    this.telemetry = opts.telemetry;
+  }
+
+  /**
+   * 运行时 forbidden 全集（baseline 种子 ∪ 注入的 extraForbidden），小写归一。
+   * 供 assertBreaker / hookBreakerPrecheck 共用判定。
+   */
+  forbiddenTools(): readonly string[] {
+    const all = new Set<string>(DENY_TO_ALLOW_FORBIDDEN as readonly string[]);
+    for (const t of this.extraForbidden) all.add(t);
+    return [...all];
+  }
+
+  /** 工具名是否属运行时 forbidden 全集（小写归一比较）。 */
+  isForbidden(tool: string): boolean {
+    const t = tool.toLowerCase();
+    return (
+      (DENY_TO_ALLOW_FORBIDDEN as readonly string[]).includes(t) ||
+      this.extraForbidden.has(t)
+    );
   }
 
   /**
@@ -340,19 +389,36 @@ export class HookPolicy {
   }
 
   /**
-   * breaker clause：bash/write/edit 从 deny/ask 放宽到 allow → throw。
+   * breaker clause：forbidden 工具从 deny/ask 放宽到 allow → throw。
    *
-   * 收紧方向（allow→deny/ask、ask→deny）放行；非 forbidden 工具放行。
-   * 工具名比较大小写不敏感（与 DENY_TO_ALLOW_FORBIDDEN 小写归一）。
+   * 收紧方向（allow→deny/ask、ask→deny）放行。**非 forbidden 工具的
+   * deny/ask→allow 放宽虽不硬拦**（breaker 仅硬拦 forbidden 执行类工具），
+   * 但须落 `breaker_nonforbidden_widen_audit` 事件——闭合 breaker 静默放行面
+   * （与 L0C-T10 runtime breaker 的 security_event 留痕同源）。telemetry 未
+   * 接线时静默跳过（向后兼容）。
+   *
+   * 工具名比较大小写不敏感（与 forbidden 全集小写归一）。
    */
   assertBreaker(diff: BreakerDiff): void {
     const tool = String(diff.tool ?? "").toLowerCase();
     const from = String(diff.from ?? "").toLowerCase();
     const to = String(diff.to ?? "").toLowerCase();
-    const forbidden = DENY_TO_ALLOW_FORBIDDEN.includes(
-      tool as (typeof DENY_TO_ALLOW_FORBIDDEN)[number],
-    );
-    if (!forbidden) return;
+    const forbidden = this.isForbidden(tool);
+    if (!forbidden) {
+      // 非 forbidden 工具：deny/ask→allow 放宽不硬拦，但须落 audit 事件
+      // （闭合静默放行面）。非放宽方向（如 allow→deny 收紧）无需 audit。
+      if (to === "allow" && (from === "deny" || from === "ask")) {
+        this.telemetry?.write({
+          event: "breaker_nonforbidden_widen_audit",
+          tool: diff.tool,
+          from: diff.from,
+          to: diff.to,
+          reason:
+            "non-forbidden tool widened deny/ask→allow; breaker only hard-blocks forbidden tools (audit-only)",
+        });
+      }
+      return;
+    }
     if (to !== "allow") return; // 只拦放宽到 allow
     if (from === "deny" || from === "ask") {
       throw new BreakerDenyToAllowError({ tool: diff.tool, from: diff.from, to: diff.to });
