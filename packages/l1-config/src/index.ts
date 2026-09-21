@@ -37,3 +37,5 @@ export * from "./hitl-policy.js";
 export * from "./delegation-substrate.js";
 // L1-T15: context mode 路由 + summarized handoff 模板进化（fork/fresh 不变量 static-core）。
 export * from "./context-mode-router.js";
+// L1-T16: reducer 表 + partition 策略进化（barrier await+tool_use_id static-core；custom_lua 沙箱；partition 不重叠）。
+export * from "./reducer-partition.js";
