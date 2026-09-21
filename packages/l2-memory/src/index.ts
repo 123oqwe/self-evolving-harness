@@ -19,3 +19,5 @@ export * from "./shared/embedding.js";
 export * from "./working/block-store.js";
 export * from "./skill-evo/description-evo.js";
 export * from "./skill-evo/body-evo.js";
+export * from "./curator/lifecycle.js";
+export * from "./curator/never-delete.js";

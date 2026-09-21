@@ -214,3 +214,17 @@ export {
   assembleContent,
   SEGMENT_SEPARATOR,
 } from "./optimizers/variable-parser.js";
+
+// ---------------------------------------------------------------------------
+// L3-T13: ADAS meta-agent + growing archive + Turing-complete DSL [V1].
+// AdasMetaSearchOptimizer: meta-agent reads growing archive (T06a keep-all)
+// → few-shot samples high-fitness + high-diversity → writes new skill code
+// (AgentDSL). Breaker clause (eval/exec/network) inherited from L2-T09b via
+// the shared dsl-validator walker. Barrel additions only.
+// ---------------------------------------------------------------------------
+export { AdasMetaSearchOptimizer } from "./optimizers/adas-meta-search.js";
+export type { AdasMetaSearchOptimizerOptions } from "./optimizers/adas-meta-search.js";
+export { AgentDSL } from "./optimizers/agent-dsl.js";
+export type { AST, ASTNode, AgentDSL as AgentDSLInterface } from "./optimizers/agent-dsl.js";
+export { validateBreakerFlags } from "./optimizers/dsl-validator.js";
+export type { DslValidationResult } from "./optimizers/dsl-validator.js";

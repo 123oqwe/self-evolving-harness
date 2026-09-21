@@ -183,8 +183,12 @@ export function shouldRetire(
  *
  * @param id  笔记 id。
  * @param ctx memory 上下文（取 baseDir）。
+ *
+ * 注：本函数不对外 barrel 导出（never-auto-delete 退役的 canonical 入口
+ * 是 curator/never-delete.ts 的 `retire`，T03b 的 active-store 维护与
+ * auto-memory archive 落盘由本内部函数承担，供 evictOnOverflow 复用）。
  */
-export function retire(id: string, ctx: MemCtx): void {
+function retire(id: string, ctx: MemCtx): void {
   const baseDir = ctx.baseDir ?? process.cwd();
   const archiveDir = join(baseDir, "archive/auto-memory");
   mkdirSync(archiveDir, { recursive: true });
