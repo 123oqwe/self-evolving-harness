@@ -1,0 +1,15 @@
+# L1-T20 · debate config active 基质（config/debate_config.yaml）
+# 辩论参数：max_rounds、sparse N-neighbors、AAD/CI。
+# 辩论须 sparse N-neighbors（防 groupthink）= static-core。
+# martingale（NeurIPS 2025）：辩论 belief trajectory 是 martingale，
+# 增 max_rounds 常无增益 → 不盲目增轮数（problem drift）。
+# token 成本：辩论 ~15x，须纳入多目标。
+
+max_rounds: 3
+topology: sparse
+n_neighbors: 2            # sparse N-neighbors（static-core，防回声室）
+independence: strict      # solver 独立先解（vote 守卫复用）
+aad: true                 # average audibility distance
+ci:
+  acceptance_low: 0.5     # acceptance 置信区间下限
+  token_cost_high: 15000  # 辩论 ~15x baseline 1000

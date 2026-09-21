@@ -1,0 +1,45 @@
+# L1-T20 · aggregation router active 基线（config/aggregation_router.yaml）
+# 多 agent 投票/辩论/共识协议路由表。进化的对象 = 本文件。
+# 投票须独立先解 / 辩论 sparse N-neighbors = static-core（防 groupthink）。
+# martingale 消融（NeurIPS 2025）：多数投票单独占大部分增益 → 推理类倾向 vote。
+
+reasoning:
+  protocol: vote
+  agent_count: 5
+  max_rounds: 1
+  topology: full
+math:
+  protocol: vote
+  agent_count: 5
+  max_rounds: 1
+  topology: full
+logic:
+  protocol: vote
+  agent_count: 3
+  max_rounds: 1
+  topology: full
+knowledge:
+  protocol: consensus
+  agent_count: 3
+  max_rounds: 1
+  topology: sparse
+qa:
+  protocol: consensus
+  agent_count: 3
+  max_rounds: 1
+  topology: sparse
+dialectic:
+  protocol: debate
+  agent_count: 4
+  max_rounds: 3
+  topology: sparse
+adversarial:
+  protocol: debate
+  agent_count: 4
+  max_rounds: 3
+  topology: sparse
+default:
+  protocol: vote
+  agent_count: 3
+  max_rounds: 1
+  topology: full

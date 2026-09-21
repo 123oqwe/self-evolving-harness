@@ -45,3 +45,5 @@ export * from "./handoff-schema.js";
 export * from "./steering-policy.js";
 // L1-T19: failure recovery policy + 幂等 checklist 进化（super-step+node 幂等 static-core）。
 export * from "./failure-recovery.js";
+// L1-T20: 多 agent aggregation router + debate config（martingale 消融；token 多目标；投票独立先解）。
+export * from "./aggregation-router.js";
