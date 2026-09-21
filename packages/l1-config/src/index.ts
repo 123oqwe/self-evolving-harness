@@ -35,3 +35,5 @@ export * from "./hook-policy.js";
 export * from "./hitl-policy.js";
 // L1-T14: delegation spec/effort-scaling 基质 + 进化（必填字段名 static-core；变异器独立 session）。
 export * from "./delegation-substrate.js";
+// L1-T15: context mode 路由 + summarized handoff 模板进化（fork/fresh 不变量 static-core）。
+export * from "./context-mode-router.js";
