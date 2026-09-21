@@ -22,3 +22,10 @@ export * from "./skill-evo/body-evo.js";
 export * from "./curator/lifecycle.js";
 export * from "./curator/never-delete.js";
 export * from "./commit/commit-gate.js";
+// L2-T12: Ratchet 三参数 + drift 指标采集（barrel 只追加；RatchetParams 类型
+// 复用 auto-memory/memory-bank.ts 已有导出，本处仅追加 ratchet 具名导出）。
+export {
+  validateParams,
+  type RatchetRejectReason,
+} from "./ratchet/params.js";
+export { collectDrift, type DriftMetrics } from "./ratchet/contribution.js";
