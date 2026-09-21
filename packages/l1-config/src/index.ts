@@ -17,3 +17,7 @@ export * from "./canary-config-plane.js";
 export * from "./phase-evolution-driver.js";
 // L1-T05b: phase 进化 loop-b select + cache warm-up 软多目标 + canary 配置面。
 export * from "./phase-select-retain.js";
+// L1-T06: tool description/field-doc 基质 + selection-accuracy 信号采集。
+export * from "./tool-registry.js";
+// L1-T06: tool description/field-doc 基质 + selection-accuracy 信号采集。
+export * from "./tool-registry.js";

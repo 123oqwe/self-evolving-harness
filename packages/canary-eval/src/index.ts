@@ -154,3 +154,15 @@ export type { RevertExecOptions, RevertExecResult } from "./revert.js";
 export { assertFreshEvidence, AbortSelectError } from "./fresh-evidence-gate.js";
 
 export type { FreshEvidence } from "./fresh-evidence-gate.js";
+
+// CE-T11 落地：canary 扩容至统计可信量级（为硬 ≥5pp 门准备；≥90% 覆盖）。
+// ERRATA-w2plus CE-23：ExpandedCanary 加可选 needsMoreTasks?；canDetect5pp=false →
+//   needsMoreTasks=true。canDetect5pp power analysis（α=0.05, power=0.8 反推 n）由
+//   src/power-analysis.ts 实现；阈值= 30 base+5 new 判 underpowered、30 base+100 new
+//   判 powered（相对断言）。
+export { expandCanary } from "./canary/expand.js";
+
+export type { ExpandedCanary } from "./canary/expand.js";
+
+// CE-T11 REFACTOR：McNemar power 分析抽 src/power-analysis.ts。
+export { requiredNFor5pp, canDetect5ppPower } from "./power-analysis.js";

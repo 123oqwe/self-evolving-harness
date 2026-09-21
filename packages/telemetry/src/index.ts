@@ -19,3 +19,6 @@ export * from "./otel-emitter";
 export * from "./replay";
 // TL-T07: otel_capture_policy + PII redaction filter（PII>0 立即 reject 硬门）
 export * from "./capture-policy";
+// TL-T08: Clio 式失败聚类 v0（embedding + clusterer_config 产出失败簇）
+export * from "./clusterer-config";
+export * from "./clustering";

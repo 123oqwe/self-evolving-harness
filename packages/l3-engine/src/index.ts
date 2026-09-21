@@ -153,3 +153,21 @@ export type {
   CanaryObservations,
   ReleaseEvent,
 } from "./adapters/e2e-adapter.js";
+
+// ---------------------------------------------------------------------------
+// L3-T10: full-population reflective mutation + NSGA-II non-dominated sort
+// (GEPA 完整版升级, V1). Barrel additions only.
+// ---------------------------------------------------------------------------
+export {
+  FullPopulationBeamSearch,
+} from "./full-population-beam-search.js";
+export type {
+  ReflectivePort,
+  FullPopulationBeamSearchOptions,
+  FullPopulationContext,
+} from "./full-population-beam-search.js";
+
+export {
+  FullParetoSelector,
+} from "./full-pareto-selector.js";
+export type { NSGAFront, FullParetoSelector as FullParetoSelectorInterface } from "./full-pareto-selector.js";
