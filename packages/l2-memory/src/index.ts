@@ -16,3 +16,4 @@ export * from "./semantic/fact-store.js";
 export * from "./a-mem/note-store.js";
 export * from "./a-mem/link-judge.js";
 export * from "./shared/embedding.js";
+export * from "./working/block-store.js";
