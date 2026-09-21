@@ -11,3 +11,4 @@ export * from "./auto-memory/memory-bank.js";
 export * from "./expel/cluster-feed.js";
 export * from "./expel/evidence-guard.js";
 export * from "./expel/insight-store.js";
+export * from "./episodic/trajectory-store.js";
