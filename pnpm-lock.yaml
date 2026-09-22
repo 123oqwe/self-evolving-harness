@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:adapters
       '@harness/canary-eval':
         specifier: workspace:*
         version: link:packages/canary-eval
@@ -35,6 +38,19 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)
+
+  adapters:
+    dependencies:
+      '@harness/l0-core':
+        specifier: workspace:*
+        version: link:../packages/l0-core
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../packages/l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
 
   packages/canary-eval:
     dependencies:
