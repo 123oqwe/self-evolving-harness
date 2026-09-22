@@ -6,9 +6,10 @@
 # (L0C-T01 REFACTOR step) so subsequent tasks can append branches here
 # without touching the verify.sh entrypoint.
 #
-# Coverage scope (WBS Appendix A.4): ALL 120 task IDs — 117 main-plan
+# Coverage scope (WBS Appendix A.4): ALL 134 task IDs — 117 main-plan
 # (L0C/L0S/CE/L3/L1/L2/TL/XM, MVP+V1+V2) + 3 CLN cleanup tasks
-# (§3.9, ERRATA-w01 悬空项转正). Implemented branches run their real
+# (§3.9, ERRATA-w01 悬空项转正) + 14 前序补充 + 11 ADAPT wave tasks
+# (§3.11, adapt/TASKS.md). Implemented branches run their real
 # verify routine; NOT-yet-implemented branches map to their canonical
 # `pnpm vitest run <test-path>` Form A command. Those run RED by design
 # (the locked spec either does not exist yet or its module is unimplemented)
@@ -531,6 +532,86 @@ dispatch_task() {
       ;;
     CLN-ALL)
       for t in CLN-T01 CLN-T02 CLN-T03; do
+        dispatch_task "$t" || { echo "FAIL $t"; return 1; }; done
+      return 0
+      ;;
+
+    # ── ADAPT (11) — Harness 适配层 + 真实进化接线 + 运维安全 (§3.11) ─
+    ADP-T01)
+      # Form A: the locked reference-adapter spec must pass (HarnessPort 7
+      # methods covered by the 7-package ReferenceAdapter). RED until
+      # @harness/adapters lands.
+      pnpm vitest run tests/adapt/reference-adapter.spec.ts || return 1
+      return 0
+      ;;
+    ADP-T02)
+      # Form A: the locked pi-adapter spec (fake-pi binary, no vi.mock of
+      # built-ins) + the skipIf pi-smoke spec. RED until PiAdapter lands.
+      pnpm vitest run tests/adapt/T02-pi-adapter.spec.ts || return 1
+      pnpm vitest run tests/adapt/T02-pi-smoke.spec.ts || return 1
+      return 0
+      ;;
+    ADP-T03)
+      # Form A: the locked claude-code-adapter spec (CLAUDE.md/SKILL.md
+      # substrate + ~/.claude/projects JSONL trajectory + exam-lock hook).
+      pnpm vitest run tests/adapt/T03-claude-code-adapter.spec.ts || return 1
+      return 0
+      ;;
+    ADP-T04)
+      # Report task (README + adapter matrix + quick-start). Form B = bash
+      # grep of README key sections/elements; lands with the task. Dispatching
+      # to the spec itself would recurse, so the Form B grep is the verify
+      # entrypoint (see scripts/verify.sh ADP-T04 block). Placeholder exit 0
+      # here mirrors the L0C-T01 scaffold-placeholder convention.
+      return 0
+      ;;
+    REAL-T01)
+      # Form A: the locked RealLLMPort spec (spawn pi -p --model, stdin pipe,
+      # retry on non-zero exit, SIGTERM on timeout, ANSI strip, ENOENT). RED
+      # until packages/l3-engine/src/llm/pi-headless-port.ts exports RealLLMPort.
+      pnpm vitest run tests/L3/real-llm.spec.ts || return 1
+      return 0
+      ;;
+    REAL-T02)
+      # Report+code task (first real evolution loop). Form B = bash grep of
+      # reports/evolution-run-001.md elements + >=3 canary refs. Placeholder
+      # exit 0 here; Form B grep lands with the task.
+      return 0
+      ;;
+    REAL-T03)
+      # Report+code task (hetero-model fresh judge). Form B = bash grep of
+      # reports/fresh-judge-hetero-001.md elements. Placeholder exit 0 here.
+      return 0
+      ;;
+    OPS-T01)
+      # Config task (.github/workflows/evolution.yml dual-mode + runbook).
+      # Form B = node -e YAML syntax + key-job checks + runbook grep.
+      # Placeholder exit 0 here; Form B lands with the task.
+      return 0
+      ;;
+    OPS-T02)
+      # Form A: the locked metrics spec (scripts/metrics.mjs parses reports/
+      # -> metrics.json + metrics-trend.md). RED until scripts/metrics.mjs lands.
+      pnpm vitest run tests/ops/metrics.spec.ts || return 1
+      return 0
+      ;;
+    OPS-T03)
+      # Form A: the locked flaky-locator spec (run-suite-5x.mjs --diff offline
+      # pass/fail matrix + flake identification). RED until run-suite-5x.mjs
+      # lands; ci.yml tolerance 5->2 lands with the task.
+      pnpm vitest run tests/adapt/OPS-T03-flaky-locator.spec.ts || return 1
+      return 0
+      ;;
+    SEC-T01)
+      # Form A: the locked eperm cross-check spec (crossCheckEperm +
+      # filterForgedEperm + assertFreshEvidence wiring). RED until
+      # packages/canary-eval/src/eperm-cross-check.ts exports the functions.
+      pnpm vitest run tests/CE/SEC-T01-eperm-cross-check.spec.ts || return 1
+      return 0
+      ;;
+    ADAPT-ALL)
+      for t in ADP-T01 ADP-T02 ADP-T03 ADP-T04 REAL-T01 REAL-T02 REAL-T03 \
+               OPS-T01 OPS-T02 OPS-T03 SEC-T01; do
         dispatch_task "$t" || { echo "FAIL $t"; return 1; }; done
       return 0
       ;;
