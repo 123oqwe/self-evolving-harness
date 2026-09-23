@@ -7,7 +7,7 @@
 //   4. 超时 kill + throw PiHeadlessTimeout（不重试）
 //   5. stdout 含 ANSI 转义 → strip 为纯文本
 //   6. piBin 不存在（ENOENT）→ throw PiHeadlessError（exitCode=null）不重试
-//   7. skipIf(!hasPi): 真实 pi -p 往返返回含 "PONG"
+//   7. skipIf(!canSpawnPi): 真实 pi -p 往返返回含 "PONG"
 //
 // 测试策略（与 ADP-T02 同源裁决，见 TEST-LOCK.md §2.5 ADP-T02 重锁注记）：
 //   vitest 的 vi.mock / vi.doMock / vi.spyOn 对 `node:child_process` 内建模块均
@@ -24,6 +24,7 @@
 // 门控：检测 pi CLI 可用性。CI 无 pi 时 smoke 自动跳过不红；fake pi 测试为主体。
 
 import { describe, it, expect } from "vitest";
+import { canSpawnPi } from "../adapt/pi-probe";
 import {
   RealLLMPort,
   PiHeadlessError,
@@ -328,7 +329,7 @@ describe("REAL-T01 · RealLLMPort (real fake-pi binary)", () => {
 // ---------------------------------------------------------------------------
 
 describe("REAL-T01 · real pi -p smoke", () => {
-  it.skipIf(!hasPi)(
+  it.skipIf(!canSpawnPi)(
     "real pi -p roundtrip returns PONG",
     async () => {
       const port = new RealLLMPort({

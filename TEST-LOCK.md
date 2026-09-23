@@ -260,9 +260,9 @@
 | ADP-T01 | `tests/adapt/fixtures/helpers.ts` | `0b8e8ec3f61547712f37a1f3d66fb18d3c6b7c2ec3337809971b210d3fbfd9d9` |
 | ADP-T01 | `tests/adapt/reference-adapter.spec.ts` | `4b085128e68756b265665b09367da380812c2fe3a14c8b69521c7d8b9557b95e` |
 | ADP-T02 | `tests/adapt/T02-pi-adapter.spec.ts` | `3153aa6b853d385a1f184a96f0295184170a6188668dbba5a8f3944fac71f2ee` |
-| ADP-T02 | `tests/adapt/T02-pi-smoke.spec.ts` | `da19166505ead811ec86949fde9ff912a843f89fb8c451a730de9b3d12c3011d` |
+| ADP-T02 | `tests/adapt/T02-pi-smoke.spec.ts` | `51ff6a26f5ca235688a5a800a7f791bd8f2870703b45db9fe374e5338b1bc9a1` |
 | ADP-T03 | `tests/adapt/T03-claude-code-adapter.spec.ts` | `e8199f0da5427e02ed642199b30224c007778094db8e353c741f97b9539d816c` |
-| REAL-T01 | `tests/L3/real-llm.spec.ts` | `fb17df2712bcd1a907fcede119a2433fe8e5c00587270950cb7c9ab3c9dd8d66` |
+| REAL-T01 | `tests/L3/real-llm.spec.ts` | `5fc4b12218157b67ba726bf17ece80f05aee67418cc06757be0a64ecb92c7916` |
 | SEC-T01 | `tests/CE/SEC-T01-eperm-cross-check.spec.ts` | `b737eba818da91ee2f47695286d2e572994025154e40e8dfa7a64bbebfed6fa0` |
 | OPS-T02 | `tests/ops/metrics.spec.ts` | `608bdb56214318b4e8c8563c0ce73364d7b39a89c949bcbf47fe9914fe141ae1` |
 | OPS-T03 | `tests/adapt/OPS-T03-flaky-locator.spec.ts` | `632d747ee014a4f849a47127b5c48491166ce70c38874451a7a3085f715b9bcd` |

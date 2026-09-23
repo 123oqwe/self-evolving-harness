@@ -1,7 +1,7 @@
 // ADP-T02: pi 适配器真实 pi -p 往返 smoke（skipIf 无 pi 环境）
 //
 // 覆盖 spec（execution/adapt/TASKS.md §ADP-T02 smoke）：
-//   - it.skipIf(!hasPi): 真实 pi -p 往返返回非空字符串
+//   - it.skipIf(!canSpawnPi): 真实 pi -p 往返返回非空字符串
 //
 // 门控：检测 pi CLI 是否可用（command -v pi）。CI 无 pi 时自动跳过不红；
 // 本地有 pi 时真跑。mock 子进程测试为主体（见 T02-pi-adapter.spec.ts）。
@@ -11,13 +11,14 @@
 // 有 pi 环境真跑往返。
 //
 import { describe, it, expect } from "vitest";
+import { canSpawnPi } from "./pi-probe";
 import { PiHeadlessLLM } from "@harness/adapters";
 import { hasPiCli } from "./fixtures/helpers";
 
 const hasPi = hasPiCli();
 
 describe("ADP-T02 · real pi -p smoke", () => {
-  it.skipIf(!hasPi)(
+  it.skipIf(!canSpawnPi)(
     "real pi -p roundtrip returns non-empty",
     async () => {
       const llm = new PiHeadlessLLM({
