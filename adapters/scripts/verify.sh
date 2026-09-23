@@ -47,8 +47,37 @@ case "$TASK" in
     grep -q "stdin" "$HEADLESS" || { echo "FAIL: prompt 未经 stdin 传入"; exit 1; }
     echo "ADP-T02 verify: ok (PiAdapter implements HarnessPort + PiHeadlessLLM 超时/重试)"
     ;;
+  ADP-T03)
+    CC_ADAPTER="adapters/src/claude-code/claude-code-adapter.ts"
+    EXAM_LOCK="adapters/src/claude-code/exam-lock.ts"
+    TRAJ="adapters/src/claude-code/trajectory.ts"
+    [ -f "$CC_ADAPTER" ] || { echo "FAIL: $CC_ADAPTER 不存在"; exit 1; }
+    [ -f "$EXAM_LOCK" ] || { echo "FAIL: $EXAM_LOCK 不存在"; exit 1; }
+    [ -f "$TRAJ" ] || { echo "FAIL: $TRAJ 不存在"; exit 1; }
+    # ClaudeCodeAdapter implements HarnessPort 全方法 + llmPort 字段
+    for member in readSubstrate writeSubstrate readTrajectories deploy rollback llmPort; do
+      grep -q "$member" "$CC_ADAPTER" || { echo "FAIL: $member 未在 ClaudeCodeAdapter 中实现"; exit 1; }
+    done
+    # 复用铁律：从 @harness/l3-engine 导入 Trajectory/LLMPort；复用 HarnessPort/SubstrateHandle
+    grep -q 'from "../port.js"' "$CC_ADAPTER" || { echo "FAIL: 未复用 ADP-T01 port.js"; exit 1; }
+    grep -q "Trajectory" "$CC_ADAPTER" || { echo "FAIL: 未复用 L3 Trajectory"; exit 1; }
+    grep -q "LLMPort" "$CC_ADAPTER" || { echo "FAIL: 未复用 L3 LLMPort"; exit 1; }
+    grep -q "bumpVersion" "$CC_ADAPTER" || { echo "FAIL: 未复用 L3-T08 bumpVersion"; exit 1; }
+    # LLM 透传（不在 adapter 里 spawn claude）
+    grep -q "透传" "$CC_ADAPTER" || grep -q "passthrough" "$CC_ADAPTER" || { echo "FAIL: LLM 未透传"; exit 1; }
+    # exam-lock：isExamLockedPath + buildExamLockHook + Write/Edit/Bash 三类工具
+    grep -q "isExamLockedPath" "$EXAM_LOCK" || { echo "FAIL: isExamLockedPath 缺失"; exit 1; }
+    grep -q "buildExamLockHook" "$EXAM_LOCK" || { echo "FAIL: buildExamLockHook 缺失"; exit 1; }
+    grep -q "Write" "$EXAM_LOCK" || { echo "FAIL: Write 工具未覆盖"; exit 1; }
+    grep -q "Edit" "$EXAM_LOCK" || { echo "FAIL: Edit 工具未覆盖"; exit 1; }
+    grep -q "Bash" "$EXAM_LOCK" || { echo "FAIL: Bash 工具未覆盖"; exit 1; }
+    grep -q "PreToolUse" "$EXAM_LOCK" || { echo "FAIL: PreToolUse event 缺失"; exit 1; }
+    # JSONL→Trajectory 映射器纯函数
+    grep -q "mapClaudeEventToTrajectory" "$TRAJ" || { echo "FAIL: mapClaudeEventToTrajectory 缺失"; exit 1; }
+    echo "ADP-T03 verify: ok (ClaudeCodeAdapter implements HarnessPort + exam-lock 命中 tests/)"
+    ;;
   *)
-    echo "usage: $0 ADP-T01|ADP-T02"
+    echo "usage: $0 ADP-T01|ADP-T02|ADP-T03"
     exit 1
     ;;
 esac
