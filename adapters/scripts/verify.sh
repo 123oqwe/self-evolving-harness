@@ -76,8 +76,21 @@ case "$TASK" in
     grep -q "mapClaudeEventToTrajectory" "$TRAJ" || { echo "FAIL: mapClaudeEventToTrajectory 缺失"; exit 1; }
     echo "ADP-T03 verify: ok (ClaudeCodeAdapter implements HarnessPort + exam-lock 命中 tests/)"
     ;;
+  ADP-T04)
+    # Report task (README + adapter matrix + quick-start + security model).
+    # Form B = bash grep of README key sections/elements.
+    README="README.md"
+    [ -f "$README" ] || { echo "FAIL: $README 不存在"; exit 1; }
+    grep -q "自进化" "$README"                                    || { echo "FAIL: 一句话定位缺失"; exit 1; }
+    grep -qE "L0|L1|L2|L3|adapters" "$README"                     || { echo "FAIL: 架构图缺失"; exit 1; }
+    grep -qE "适配器矩阵|adapter matrix|适配矩阵" "$README"        || { echo "FAIL: 矩阵章节缺失"; exit 1; }
+    grep -qE "pi|Claude Code|OpenHands|通用" "$README"            || { echo "FAIL: 矩阵列缺失"; exit 1; }
+    grep -qE "5 分钟|快速上手|quick start" "$README"             || { echo "FAIL: 快速上手缺失"; exit 1; }
+    grep -qE "static-core|出题权|strict-improvement|canary" "$README" || { echo "FAIL: 安全模型缺失"; exit 1; }
+    echo "ADP-T04 verify: ok (README 一句话/架构图/矩阵/快速上手/安全模型齐)"
+    ;;
   *)
-    echo "usage: $0 ADP-T01|ADP-T02|ADP-T03"
+    echo "usage: $0 ADP-T01|ADP-T02|ADP-T03|ADP-T04"
     exit 1
     ;;
 esac

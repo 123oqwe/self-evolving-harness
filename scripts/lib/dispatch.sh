@@ -586,7 +586,23 @@ dispatch_task() {
     OPS-T01)
       # Config task (.github/workflows/evolution.yml dual-mode + runbook).
       # Form B = node -e YAML syntax + key-job checks + runbook grep.
-      # Placeholder exit 0 here; Form B lands with the task.
+      local wf=".github/workflows/evolution.yml"
+      local rb="docs/runbooks/evolution-real.md"
+      [ -f "$wf" ] || { echo "FAIL OPS-T01: missing $wf" >&2; return 1; }
+      [ -f "$rb" ] || { echo "FAIL OPS-T01: missing $rb" >&2; return 1; }
+      node -e "const y=require('fs').readFileSync('$wf','utf8'); \
+        if(!y.includes('workflow_dispatch'))throw 1; \
+        if(!y.includes('schedule'))throw 1; \
+        if(!y.includes('pnpm vitest'))throw 1; \
+        if(!y.includes('test-lock'))throw 1; \
+        if(!y.includes('upload-artifact'))throw 1; \
+        console.log('evolution.yml ok')" \
+        || { echo "FAIL OPS-T01: evolution.yml key-job checks" >&2; return 1; }
+      grep -q "secret\|API_KEY" "$rb" \
+        || { echo "FAIL OPS-T01: runbook missing secret/API_KEY" >&2; return 1; }
+      grep -q "回滚\|rollback" "$rb" \
+        || { echo "FAIL OPS-T01: runbook missing rollback" >&2; return 1; }
+      echo "OPS-T01 OK (Form B)"
       return 0
       ;;
     OPS-T02)
