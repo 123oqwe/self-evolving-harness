@@ -216,6 +216,14 @@ gate 接受候选 `r-0`（无退化：Δ=0），但 **lift=0**——未检测到
 **未伪造成功**：本报告如实记录 lift=0，部署仅为演练 deploy/rollback 机制，不声称进化成功。
 建议 V1 引入 compaction-specific canary（如 recall 信号回归测试）以提供真实区分力。
 
+## metrics (machine-parseable, OPS-T02 字段约定)
+
+decision: accept
+lift: 0.0000
+retained: 1
+rejected: 2
+tokens: 4340
+
 ---
 
 ## 附录：复用组件清单（复用铁律 §0.2）

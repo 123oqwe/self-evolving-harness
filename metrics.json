@@ -1,0 +1,19 @@
+{
+  "runs": [
+    {
+      "report": "evolution-run-001.md",
+      "lift": 0,
+      "retained": 1,
+      "rejected": 2,
+      "tokensUsed": 4340,
+      "decision": "accept"
+    }
+  ],
+  "summary": {
+    "totalRuns": 1,
+    "totalLift": 0,
+    "totalRetained": 1,
+    "totalRejected": 2,
+    "avgTokensPerRun": 4340
+  }
+}

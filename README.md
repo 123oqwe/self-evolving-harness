@@ -149,8 +149,10 @@ node scripts/run-evolution-001.mjs     # 须本地有 pi 环境
 cat reports/evolution-run-001.md
 ```
 
-> 说明：聚合 metrics 的 `scripts/metrics.mjs`（OPS-T02）尚未落地，`TEST-LOCK.md`
-> 明确记为 RED。待其落地后再补「聚合 metrics」步骤——在此之前不在此处写假命令。
+> 说明：聚合 metrics 的 `scripts/metrics.mjs`（OPS-T02）已落地——跑完进化循环后
+> 执行 `node scripts/metrics.mjs --reports reports/ --out metrics.json` 即可聚合
+> `reports/evolution-run-*.md` 的 lift/retained/rejected/tokens/decision，产出
+> `metrics.json` + `reports/metrics-trend.md`（CI 上传 `metrics.json` artifact）。
 
 > 验收命令：`bash adapters/scripts/verify.sh ADP-T01 ADP-T02 ADP-T03` 逐适配器断言
 > `HarnessPort` 全方法 + 复用铁律齐；`bash adapters/scripts/verify.sh ADP-T04` 校验本

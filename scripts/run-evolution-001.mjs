@@ -429,6 +429,14 @@ async function main() {
     push("- reject 步: mutate");
     push("- 依据: LLM 输出非合法 JSON 数组（ReflectiveMutator 抛 MalformedMutation）");
     push("- lift: N/A（无候选评分）");
+    push("");
+    push("## metrics (machine-parseable, OPS-T02 字段约定)");
+    push("");
+    push("decision: reject");
+    push("lift: n/a (reject)");
+    push("retained: 0");
+    push("rejected: 0");
+    push(`tokens: ${baselineScore.fitness.token ?? 0}`);
   } else {
     let accepted = null;
     for (const c of candidates) {
@@ -532,11 +540,36 @@ async function main() {
       push("");
       push("**未伪造成功**：本报告如实记录 lift=0，部署仅为演练 deploy/rollback 机制，不声称进化成功。");
       push("建议 V1 引入 compaction-specific canary（如 recall 信号回归测试）以提供真实区分力。");
+      push("");
+      push("## metrics (machine-parseable, OPS-T02 字段约定)");
+      push("");
+      push("decision: accept");
+      push(`lift: ${deltaRR.toFixed(4)}`);
+      push("retained: 1");
+      push(`rejected: ${candidates.length - 1}`);
+      {
+        let totalTokens = baselineScore.fitness.token ?? 0;
+        for (const c of candidates) totalTokens += c.fitness.token ?? 0;
+        if (verifyResult) totalTokens += verifyResult.fitness.token ?? 0;
+        push(`tokens: ${totalTokens}`);
+      }
     } else {
       push("**decision: REJECT_ALL**");
       push("");
       push("所有候选在 select 步被拒（assertFreshEvidence 失败或 strict-improvement gate 拒绝）。");
       push("未伪造任何 lift。每候选 reject 理由见 §5。");
+      push("");
+      push("## metrics (machine-parseable, OPS-T02 字段约定)");
+      push("");
+      push("decision: reject");
+      push("lift: n/a (reject)");
+      push("retained: 0");
+      push(`rejected: ${candidates.length}`);
+      {
+        let totalTokens = baselineScore.fitness.token ?? 0;
+        for (const c of candidates) totalTokens += c.fitness.token ?? 0;
+        push(`tokens: ${totalTokens}`);
+      }
     }
   }
 
