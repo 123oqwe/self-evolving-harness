@@ -6,10 +6,12 @@
 # (L0C-T01 REFACTOR step) so subsequent tasks can append branches here
 # without touching the verify.sh entrypoint.
 #
-# Coverage scope (WBS Appendix A.4): ALL 134 task IDs — 117 main-plan
+# Coverage scope (WBS Appendix A.4): ALL 146 task IDs — 117 main-plan
 # (L0C/L0S/CE/L3/L1/L2/TL/XM, MVP+V1+V2) + 3 CLN cleanup tasks
 # (§3.9, ERRATA-w01 悬空项转正) + 14 前序补充 + 11 ADAPT wave tasks
-# (§3.11, adapt/TASKS.md). Implemented branches run their real
+# (§3.11, adapt/TASKS.md) + 12 PLUGIN wave tasks (§3.12,
+# plugin/TASKS.md — PLG-T01..T12, per PLG-REG-1 reconciliation).
+# Implemented branches run their real
 # verify routine; NOT-yet-implemented branches map to their canonical
 # `pnpm vitest run <test-path>` Form A command. Those run RED by design
 # (the locked spec either does not exist yet or its module is unimplemented)
@@ -632,67 +634,90 @@ dispatch_task() {
       return 0
       ;;
 
-    # ── PLUGIN (10) — 插件系统 (§3.12) ──
+    # ── PLUGIN (12) — 全主流 harness 薄插件包 + 统一 CLI + 分发 (§3.12) ──
     PLG-T01)
-      # Form A: the locked manifest spec (PluginManifest typebox shape +
-      # static-core write throw + unsigned/reject). RED until
-      # packages/plugins/src/manifest.ts exports PluginManifest.
-      pnpm vitest run tests/plugin/T01-manifest.spec.ts || return 1
+      # Form A: the locked evolve-core spec (FakeHarnessPort-driven full
+      # cycle — retain mutant + PROMOTE / degrade no-commit no-release /
+      # canary regression AUTO_REVERT + rollback / offline skips
+      # readTrajectories / InsufficientCanaryError <3 / error propagation)
+      # plus the zero-host-deps gate (evolve-core dependencies must be
+      # exactly @harness/adapters + @harness/l3-engine + @harness/canary-eval).
+      pnpm vitest run tests/plugin/T01-evolve-core.spec.ts || return 1
+      node -e "const p=require('./packages/evolve-core/package.json'); const d={...p.dependencies}; ['@harness/adapters','@harness/l3-engine','@harness/canary-eval'].forEach(k=>delete d[k]); if(Object.keys(d).length) process.exit(1)" || return 1
       return 0
       ;;
     PLG-T02)
-      # Form A: the locked loader spec (discover/load/verify-sign/register +
-      # id-collision reject). RED until packages/plugins/src/loader.ts lands.
-      pnpm vitest run tests/plugin/T02-loader.spec.ts || return 1
+      # Form A: the locked codex-adapter spec (repoRoot AGENTS.md substrate,
+      # rollout envelope JSONL trajectories from sessions/ +
+      # archived_sessions/, malformed-line tolerance, no-error-signal skip,
+      # deploy restart hint) + env-probe-gated real smoke round-trip
+      # (skipIf no codex home, exit 0).
+      pnpm vitest run tests/plugin/T02-codex-adapter.spec.ts || return 1
+      pnpm vitest run tests/plugin/T02-codex-smoke.spec.ts || return 1   # 无 codex 环境下 skip，exit 0
       return 0
       ;;
     PLG-T03)
-      # Form A: the locked capability-sandbox spec (capability-based dispatch
-      # + CPU/wall/fd/memory budget kill). Reuses L0S Sandbox.
-      pnpm vitest run tests/plugin/T03-sandbox.spec.ts || return 1
+      # Form A: the locked opencode-adapter spec (.opencode/ substrate;
+      # storage/session/{info,message,part} three-layer JSON reassembly;
+      # orphan-info / malformed-JSON tolerance; deploy restart hint —
+      # opencode has no hot reload).
+      pnpm vitest run tests/plugin/T03-opencode-adapter.spec.ts || return 1
       return 0
       ;;
     PLG-T04)
-      # Form A: the locked tool-injection spec (namespace isolation
-      # `plugin-id.tool-name` + typebox schema re-validation).
-      pnpm vitest run tests/plugin/T04-tool-injection.spec.ts || return 1
+      # Form A: the locked hermes-adapter spec (skills SKILL.md substrate
+      # with YAML frontmatter; read-only state.db SQLite trajectories, []
+      # on missing/corrupt; buildCronJobSpec; semi-hot-reload deploy hint).
+      pnpm vitest run tests/plugin/T04-hermes-adapter.spec.ts || return 1
       return 0
       ;;
     PLG-T05)
-      # Form A: the locked resource/prompt spec (MCP resource/prompt providers
-      # + prompt-injection-lint reject). RED until providers land.
-      pnpm vitest run tests/plugin/T05-resource-prompt.spec.ts || return 1
+      # Form A: the locked openclaw-adapter spec (workspace skills +
+      # AGENTS/SOUL/MEMORY.md substrate; per-agent sqlite + archived JSONL
+      # dual-source trajectory merge; hybrid-reload deploy hint).
+      pnpm vitest run tests/plugin/T05-openclaw-adapter.spec.ts || return 1
       return 0
       ;;
     PLG-T06)
-      # Form A: the locked lifecycle spec (install/activate/deactivate/
-      # uninstall idempotent + rollback + hook-crash isolation).
-      pnpm vitest run tests/plugin/T06-lifecycle.spec.ts || return 1
+      # Form A: the locked cursor-adapter spec (.cursor/rules/*.mdc
+      # substrate with frontmatter; readTrajectories always [] — offline
+      # mode, Cursor has no file-level trajectory export; buildOfflineConfig
+      # offline:true; auto-discovery deploy hint, no restart needed).
+      pnpm vitest run tests/plugin/T06-cursor-adapter.spec.ts || return 1
       return 0
       ;;
     PLG-T07)
-      # Form A: the locked versioning spec (semver validate + manifest
-      # migration steps + old-version rollback).
-      pnpm vitest run tests/plugin/T07-versioning.spec.ts || return 1
+      # Form A: the locked generic-adapter spec (YAML declarative config:
+      # pathMap substrate mapping + jsonl/json/sqlite/none format dispatch +
+      # diagnosisFields OR-match; InvalidGenericConfigError; verified:false
+      # example configs still construct an adapter).
+      pnpm vitest run tests/plugin/T07-generic-adapter.spec.ts || return 1
       return 0
       ;;
     PLG-T08)
-      # Form A: the locked catalog spec (local+remote manifest index +
-      # signature chain + offline read-only fallback). RED until catalog lands.
-      pnpm vitest run tests/plugin/T08-catalog.spec.ts || return 1
+      # Form A: the locked CLI spec (evolve init/run/status; registry scans
+      # packages/evolve-*; UnsupportedHarnessError; evolve-state.json
+      # write/read). Method-existence / CLI smoke is expressed via vitest
+      # only — Node has no TS loader (plugin/TASKS.md §0.5).
+      pnpm vitest run tests/plugin/T08-cli.spec.ts || return 1
       return 0
       ;;
     PLG-T09)
-      # Integration-loop task (load->validate->activate->inject->canary
-      # verify). Form B = bash grep of reports/plugin-e2e-001.md elements +
-      # >=1 canary ref + verifier green. Placeholder exit 0 here; Form B grep
-      # lands with the task.
+      # Form A + real gates: dist spec (publishable package.json fields +
+      # skill-bundle frontmatter) + dry-run publish for all evolve-* packages
+      # + skill-bundle build. All three are runnable .mjs entry points.
+      pnpm vitest run tests/plugin/T09-dist.spec.ts || return 1
+      node packages/evolve-dist/scripts/publish.mjs --dry-run || return 1
+      node packages/evolve-dist/scripts/build-skill-bundles.mjs || return 1
       return 0
       ;;
     PLG-T10)
-      # Acceptance task (Gate report + static-core 0-touch + sandbox 0-escape
-      # + injection 0-escape + rollback drill). Form B = bash grep of
-      # reports/plugin-wave-acceptance.md elements. Placeholder exit 0 here.
+      # Form A + grep gates: docs structure spec (9-row matrix, per-row
+      # install commands, verified:false markers, ADP-T02/T03 references) +
+      # shell checks (install-command count >= 7; verified:false marker).
+      pnpm vitest run tests/plugin/T10-docs.spec.ts || return 1
+      grep -c "evolve init --harness" docs/adapters.md || return 1   # >= 7（含各家）
+      grep -q "verified:false" docs/adapters.md || return 1          # GrokBuild 占位标注
       return 0
       ;;
     PLG-T11)
