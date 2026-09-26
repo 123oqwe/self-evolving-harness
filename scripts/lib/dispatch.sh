@@ -632,6 +632,76 @@ dispatch_task() {
       return 0
       ;;
 
+    # ── PLUGIN (10) — 插件系统 (§3.12) ──
+    PLG-T01)
+      # Form A: the locked manifest spec (PluginManifest typebox shape +
+      # static-core write throw + unsigned/reject). RED until
+      # packages/plugins/src/manifest.ts exports PluginManifest.
+      pnpm vitest run tests/plugin/T01-manifest.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T02)
+      # Form A: the locked loader spec (discover/load/verify-sign/register +
+      # id-collision reject). RED until packages/plugins/src/loader.ts lands.
+      pnpm vitest run tests/plugin/T02-loader.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T03)
+      # Form A: the locked capability-sandbox spec (capability-based dispatch
+      # + CPU/wall/fd/memory budget kill). Reuses L0S Sandbox.
+      pnpm vitest run tests/plugin/T03-sandbox.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T04)
+      # Form A: the locked tool-injection spec (namespace isolation
+      # `plugin-id.tool-name` + typebox schema re-validation).
+      pnpm vitest run tests/plugin/T04-tool-injection.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T05)
+      # Form A: the locked resource/prompt spec (MCP resource/prompt providers
+      # + prompt-injection-lint reject). RED until providers land.
+      pnpm vitest run tests/plugin/T05-resource-prompt.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T06)
+      # Form A: the locked lifecycle spec (install/activate/deactivate/
+      # uninstall idempotent + rollback + hook-crash isolation).
+      pnpm vitest run tests/plugin/T06-lifecycle.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T07)
+      # Form A: the locked versioning spec (semver validate + manifest
+      # migration steps + old-version rollback).
+      pnpm vitest run tests/plugin/T07-versioning.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T08)
+      # Form A: the locked catalog spec (local+remote manifest index +
+      # signature chain + offline read-only fallback). RED until catalog lands.
+      pnpm vitest run tests/plugin/T08-catalog.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T09)
+      # Integration-loop task (load->validate->activate->inject->canary
+      # verify). Form B = bash grep of reports/plugin-e2e-001.md elements +
+      # >=1 canary ref + verifier green. Placeholder exit 0 here; Form B grep
+      # lands with the task.
+      return 0
+      ;;
+    PLG-T10)
+      # Acceptance task (Gate report + static-core 0-touch + sandbox 0-escape
+      # + injection 0-escape + rollback drill). Form B = bash grep of
+      # reports/plugin-wave-acceptance.md elements. Placeholder exit 0 here.
+      return 0
+      ;;
+    PLUGIN-ALL)
+      for t in PLG-T01 PLG-T02 PLG-T03 PLG-T04 PLG-T05 PLG-T06 PLG-T07 \
+               PLG-T08 PLG-T09 PLG-T10; do
+        dispatch_task "$t" || { echo "FAIL $t"; return 1; }; done
+      return 0
+      ;;
+
     *)
       echo "verify.sh: unknown TASK-ID '${task_id}'" >&2
       return 1
