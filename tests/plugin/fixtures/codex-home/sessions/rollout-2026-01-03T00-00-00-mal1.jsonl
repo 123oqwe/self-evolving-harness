@@ -1,0 +1,3 @@
+{"type":"agent","thread_id":"mal1","content":{"is_error":true,"error":"bad run"}}
+{NOT VALID JSON
+{"type":"agent","thread_id":"mal1","content":{"is_error":true,"error":"second error"}}

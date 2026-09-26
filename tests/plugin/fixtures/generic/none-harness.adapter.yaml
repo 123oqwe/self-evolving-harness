@@ -1,0 +1,16 @@
+harnessId: none-harness
+verified: true
+substrate:
+  idPrefix: "none-harness/"
+  diskRoot: "."
+  repoRoot: "."
+  pathMap:
+    AGENTS.md: AGENTS.md
+trajectory:
+  format: none
+  path: ""
+  diagnosisFields: []
+deploy:
+  restartHint: "[none-harness] restart"
+llm:
+  passThrough: true

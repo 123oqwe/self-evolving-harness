@@ -1,0 +1,15 @@
+harnessId: bad-fmt
+verified: true
+substrate:
+  idPrefix: "x/"
+  diskRoot: "."
+  repoRoot: "."
+  pathMap: {}
+trajectory:
+  format: xml
+  path: "./events"
+  diagnosisFields: ["error"]
+deploy:
+  restartHint: "x"
+llm:
+  passThrough: true

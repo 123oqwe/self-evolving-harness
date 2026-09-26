@@ -1,0 +1,17 @@
+harnessId: json-harness
+verified: true
+substrate:
+  idPrefix: "json-harness/"
+  diskRoot: "."
+  repoRoot: "."
+  pathMap:
+    AGENTS.md: AGENTS.md
+trajectory:
+  format: json
+  path: "./sessions.json"
+  diagnosisFields:
+    - error
+deploy:
+  restartHint: "[json-harness] restart"
+llm:
+  passThrough: true

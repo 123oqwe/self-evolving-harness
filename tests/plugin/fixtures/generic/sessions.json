@@ -1,0 +1,4 @@
+[
+  { "id": "j-fail-1", "error": "Error: json harness failure" },
+  { "id": "j-ok-1", "text": "ok" }
+]

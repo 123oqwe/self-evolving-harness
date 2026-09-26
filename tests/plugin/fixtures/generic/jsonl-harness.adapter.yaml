@@ -1,0 +1,19 @@
+harnessId: jsonl-harness
+verified: true
+substrate:
+  idPrefix: "jsonl-harness/"
+  diskRoot: "."
+  repoRoot: "."
+  pathMap:
+    AGENTS.md: AGENTS.md
+trajectory:
+  format: jsonl
+  path: "./events"
+  glob: "rollout-*.jsonl"
+  diagnosisFields:
+    - is_error
+    - error
+deploy:
+  restartHint: "[jsonl-harness] restart to load new substrate"
+llm:
+  passThrough: true
