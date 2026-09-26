@@ -695,9 +695,29 @@ dispatch_task() {
       # reports/plugin-wave-acceptance.md elements. Placeholder exit 0 here.
       return 0
       ;;
+    PLG-T11)
+      # Form A: the evolve-dsh adapter spec (dsh-plugin npm package form;
+      # substrate = AGENTS.md + ~/.dsh/profiles/<n>/cordis.patch.yml overlay
+      # as opaque text; trajectory = event-sourced JSONL under ~/.dsh with
+      # extractDiagnosis-first parsing, TL-T01-compatible fallback). Real
+      # smoke round-trip is env-probe gated (command -v dsh, skip exit 0).
+      pnpm vitest run tests/plugin/T11-dsh-adapter.spec.ts || return 1
+      pnpm vitest run tests/plugin/T11-dsh-smoke.spec.ts || return 1
+      return 0
+      ;;
+    PLG-T12)
+      # Form A: the evolve-grok adapter spec (grok plugin dir package
+      # .grok/plugins/evolve/ + thin delegation to ClaudeCodeAdapter for the
+      # Claude-Code-compatible substrate + hooks.json PreToolUse exam-lock;
+      # trajectory offline fallback until the grok session-log path is
+      # verified against xai-org/grok-build docs — same policy as Cursor).
+      pnpm vitest run tests/plugin/T12-grok-adapter.spec.ts || return 1
+      pnpm vitest run tests/plugin/T12-grok-claude-compat.spec.ts || return 1
+      return 0
+      ;;
     PLUGIN-ALL)
       for t in PLG-T01 PLG-T02 PLG-T03 PLG-T04 PLG-T05 PLG-T06 PLG-T07 \
-               PLG-T08 PLG-T09 PLG-T10; do
+               PLG-T08 PLG-T09 PLG-T10 PLG-T11 PLG-T12; do
         dispatch_task "$t" || { echo "FAIL $t"; return 1; }; done
       return 0
       ;;
