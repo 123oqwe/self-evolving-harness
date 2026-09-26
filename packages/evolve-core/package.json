@@ -1,23 +1,17 @@
 {
-  "name": "@harness/adapters",
+  "name": "@harness/evolve-core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "exports": {
-    ".": {
-      "import": "./src/index.ts",
-      "require": "./src/errors.cjs",
-      "default": "./src/index.ts"
-    }
-  },
   "scripts": {
     "build": "tsc --noEmit"
   },
   "dependencies": {
-    "@harness/l0-core": "workspace:*",
-    "@harness/l3-engine": "workspace:*"
+    "@harness/adapters": "workspace:*",
+    "@harness/l3-engine": "workspace:*",
+    "@harness/canary-eval": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0"

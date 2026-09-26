@@ -43,7 +43,7 @@
 
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
-| L0C-T01 | `tests/L0C/T01-scaffold.spec.ts` | `139000a5bdb39088dfafa85ada67f6626a5959d303f32dcf1f9e76b3a43963a1` |
+| L0C-T01 | `tests/L0C/T01-scaffold.spec.ts` | `eb308cf2fcac3e12afd75f982a13111a8656b4c25d19e658b1796e56f08fc3b4` |
 | L0C-T02 | `tests/L0C/T02-turn.spec.ts` | `f025a591e617f0f1ebd9b8a0648a93560c0309d786583c545d4193dc7b53dddd` |
 | L0C-T03 | `tests/L0C/T03-stop.spec.ts` | `95eece03e222360b92b52ba82c5e785275a6bd07b111357039b4783d80440897` |
 | L0C-T04 | `tests/L0C/T04-retry-overflow.spec.ts` | `7cd6524fc4ced7302dce9b5dd5dc783b662e58a31cd178ab58f0d0e9f99ab3c3` |

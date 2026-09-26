@@ -14,6 +14,9 @@ importers:
       '@harness/canary-eval':
         specifier: workspace:*
         version: link:packages/canary-eval
+      '@harness/evolve-core':
+        specifier: workspace:*
+        version: link:packages/evolve-core
       '@harness/l0-core':
         specifier: workspace:*
         version: link:packages/l0-core
@@ -57,6 +60,22 @@ importers:
       '@harness/l0-sandbox':
         specifier: workspace:*
         version: link:../l0-sandbox
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-core:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/canary-eval':
+        specifier: workspace:*
+        version: link:../canary-eval
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
     devDependencies:
       '@types/node':
         specifier: ^22.10.0

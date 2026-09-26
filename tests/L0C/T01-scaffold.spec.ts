@@ -71,19 +71,33 @@ describe("L0C-T01", () => {
   // ── RED 节指定测试名（必须出现）──────────────────────────────────────────
 
   it("monorepo has 7 packages", () => {
-    // RED: `fs.readdirSync('packages')` 含 7 个目录
+    // 核心 7 包齐备性断言（子集）。
+    //
+    // appeal 修订（test-author 通道，见 TEST-LOCK §1.2）：原断言 `packages/`
+    // 下恰 7 目录，但 plugin 波（spec §0.3）钉死 `packages/evolve-*/` 扩展包
+    // 布局——evolve-core/codex/.../grok 等扩展包合法同居 `packages/`。故核心
+    // 7 包改为子集断言（齐备即过），同时显式允许 `evolve-*` 扩展包存在；
+    // 任何非核心 7 包且非 evolve-* 的目录仍判红（防蒙混）。
     const packagesDir = join(REPO_ROOT, "packages");
     expect(existsSync(packagesDir)).toBe(true);
 
     const entries = readdirSync(packagesDir, { withFileTypes: true });
     const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name).sort();
+    const seven = SEVEN_PACKAGES as readonly string[];
 
-    // 数量
-    expect(dirs).toHaveLength(7);
-    // 名字完全一致（场景 4：比对 WBS §2 七包名）
-    expect(dirs).toEqual([...SEVEN_PACKAGES].sort());
+    // 核心 7 包齐备（子集：七包必须全在）
+    for (const name of SEVEN_PACKAGES) {
+      expect(dirs, `core package ${name} must be present`).toContain(name);
+    }
+    // 除核心 7 包外，只允许 evolve-* 扩展包（spec §0.3）；其余目录判红。
+    for (const d of dirs) {
+      expect(
+        seven.includes(d) || d.startsWith("evolve-"),
+        `unexpected package dir ${d}: must be one of core-7 or evolve-*`,
+      ).toBe(true);
+    }
 
-    // 每个目录是合法包（含 package.json + scope 名）
+    // 每个核心目录是合法包（含 package.json + scope 名）
     for (const name of SEVEN_PACKAGES) {
       const pjPath = join(packagesDir, name, "package.json");
       expect(existsSync(pjPath), `${pjPath} should exist`).toBe(true);
@@ -205,11 +219,25 @@ describe("L0C-T01", () => {
   // ── G/W/T 场景 4：目录树比对 WBS §2 七包名完全一致 ─────────────────────────
 
   it("directory tree matches WBS §2 seven package names exactly", () => {
-    // 场景 4 独立断言：除 packages/ 下七目录外无多余/缺失包目录
+    // 场景 4 独立断言（appeal 修订，见上同名用例注释）：核心 7 包齐备
+    // （子集）+ 仅允许 evolve-* 扩展包同居；无其余多余/缺失包目录。
     const dirs = readdirSync(join(REPO_ROOT, "packages"), { withFileTypes: true })
       .filter((e) => e.isDirectory())
       .map((e) => e.name);
-    expect(new Set(dirs)).toEqual(new Set<string>([...SEVEN_PACKAGES]));
+    const dirSet = new Set(dirs);
+    const seven = SEVEN_PACKAGES as readonly string[];
+
+    // 核心 7 包齐备
+    for (const name of SEVEN_PACKAGES) {
+      expect(dirSet.has(name), `core package ${name} must be present`).toBe(true);
+    }
+    // 除核心 7 包外只允许 evolve-* 扩展包（spec §0.3）
+    for (const d of dirs) {
+      expect(
+        seven.includes(d) || d.startsWith("evolve-"),
+        `unexpected package dir ${d}: must be one of core-7 or evolve-*`,
+      ).toBe(true);
+    }
 
     // 同时断言七 scope 在 workspace 内可解析（@harness/<name> 包名存在）
     const rootPj = readJson(join(REPO_ROOT, "package.json")) as { name?: string };
