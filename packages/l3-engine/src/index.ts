@@ -258,3 +258,16 @@ export type {
   WeightChannelGateResult,
   WeightChannelGateOptions,
 } from "./weight-channel-gate.js";
+
+// ---------------------------------------------------------------------------
+// REAL-T01: RealLLMPort (pi headless) — 真实 LLM 调用 via `pi -p` 子进程.
+// 实现 §L3-T03 的 `LLMPort`，供真实进化循环（REAL-T02/T03）与 ADP-T02
+// PiHeadlessLLM 复用（adapters→l3-engine 单向依赖，不反向）。Barrel additions only.
+// ---------------------------------------------------------------------------
+export {
+  RealLLMPort,
+  PiHeadlessError,
+  PiHeadlessTimeout,
+  stripAnsi,
+} from "./llm/pi-headless-port.js";
+export type { RealLLMPortOptions } from "./llm/pi-headless-port.js";

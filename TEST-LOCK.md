@@ -245,7 +245,29 @@
 | CLN-T02 | `tests/cleanup/T02-mutation-gate.spec.ts` | `76367339fd5161f431b1581c675caf84095d420962780464e6f4b4d044b07220` |
 | CLN-T03 | `tests/cleanup/T03-linux-ci-nonroot.spec.ts` | `9ed5b197ef5c617ffd97328bc7325b33ce00fb3c9d8f376d7eca47d17d72f8c5` |
 
-### 2.11 锁定合计
+### 2.11 — adapt 模块 spec（`tests/adapt/` + 跨目录，9 文件）
+
+> Wave 3 adapt 模块（HarnessPort 适配器契约 + 真实进化接线 + 运维安全）出题。
+> 由隔离 test-author 仅依 spec（`execution/adapt/TASKS.md`）预生成并锁定。
+> RED 态：`@harness/adapters` 包未实现 / `RealLLMPort` 未导出 / `crossCheckEperm`·`filterForgedEperm` 未导出 / `scripts/metrics.mjs`·`scripts/run-suite-5x.mjs` 未落地 → import 失败 = 合法 RED（19 测试全失败，0 通过）。
+> ADP-T02/REAL-T01 真实 pi 往返 smoke 用 `it.skipIf(!hasPi)` 环境门控（检测 `command -v pi`）；mock 子进程测试为主体。
+>
+> **ADP-T02 hash 重锁（testlock:verify 裁决）**：spec §ADP-T02 RED 原写 `vi.mock('node:child_process')`，但 vitest 对内建模块 mock 不生效（`Cannot redefine property: spawn`，built-in 不经 vitest loader，mock factory 永不装配）。test-author 改用**真实 fake pi 二进制**（`fixtures/helpers.ts` 的 `makeFakePiBin`：带 shebang 的 temp `.mjs`，由 `PiHeadlessLLM` 真实 execve spawn，记录 argv/spawn 计数/SIGTERM marker）覆盖同一批行为（spawn argv 断言、非零 exit 重试计数、超时 kill）。此改动比 mock 更真实地覆盖子进程语义，断言更强（`spawnCount().toBe(3)`/`.toBe(1)`、`toBeInstanceOf(PiHeadlessError/PiHeadlessTimeout)`、SIGTERM marker 验证），无 `.skip/.todo` 蒙混。`tests/adapt/fixtures/helpers.ts` + `tests/adapt/T02-pi-adapter.spec.ts` 两文件同步重锁 sha256。
+> 报告类任务（ADP-T04/REAL-T02/REAL-T03/OPS-T01）不出单测，验收走 Form B（bash grep 要素）；OPS-T03 主体为 report + 配置类，但其 `scripts/run-suite-5x.mjs` flake diff 逻辑有可测部分，出 fixture 驱动单测（`--diff` 离线模式钉 pass/fail 矩阵 + flake 识别）。
+
+| 任务 | 测试文件 | sha256 |
+| --- | --- | --- |
+| ADP-T01 | `tests/adapt/fixtures/helpers.ts` | `0b8e8ec3f61547712f37a1f3d66fb18d3c6b7c2ec3337809971b210d3fbfd9d9` |
+| ADP-T01 | `tests/adapt/reference-adapter.spec.ts` | `4b085128e68756b265665b09367da380812c2fe3a14c8b69521c7d8b9557b95e` |
+| ADP-T02 | `tests/adapt/T02-pi-adapter.spec.ts` | `3153aa6b853d385a1f184a96f0295184170a6188668dbba5a8f3944fac71f2ee` |
+| ADP-T02 | `tests/adapt/T02-pi-smoke.spec.ts` | `51ff6a26f5ca235688a5a800a7f791bd8f2870703b45db9fe374e5338b1bc9a1` |
+| ADP-T03 | `tests/adapt/T03-claude-code-adapter.spec.ts` | `e8199f0da5427e02ed642199b30224c007778094db8e353c741f97b9539d816c` |
+| REAL-T01 | `tests/L3/real-llm.spec.ts` | `5fc4b12218157b67ba726bf17ece80f05aee67418cc06757be0a64ecb92c7916` |
+| SEC-T01 | `tests/CE/SEC-T01-eperm-cross-check.spec.ts` | `b737eba818da91ee2f47695286d2e572994025154e40e8dfa7a64bbebfed6fa0` |
+| OPS-T02 | `tests/ops/metrics.spec.ts` | `608bdb56214318b4e8c8563c0ce73364d7b39a89c949bcbf47fe9914fe141ae1` |
+| OPS-T03 | `tests/adapt/OPS-T03-flaky-locator.spec.ts` | `632d747ee014a4f849a47127b5c48491166ce70c38874451a7a3085f715b9bcd` |
+
+### 2.12 锁定合计
 
 | 波次 | 模块 | 文件数 | 测试数 |
 | --- | --- | --- | --- |
@@ -259,9 +281,12 @@
 | Wave 2 | XM | 1 | 0（parse error：import 目标未落地） |
 | Wave 1 | gates | 1 | 3 |
 | Wave 2 | CLN | 3 | —（CLN RED 形态，helper/bwrap 未落地） |
-| **合计** | | **156** | **795+** |
+| Wave 3 | adapt | 9 | 55 |
+| **合计** | | **165** | **850+** |
 
 > RED 门基线（`pnpm vitest run`，详见 `TEST-BASELINE.md`）：已实现 18 任务（L0C T01–T08/T10/T11 + L0S T01/T02/T03/T06 + TL T01/T02/T05/T06）+ G1 smoke 全绿；Wave 2 未实现模块测试全 RED（`Cannot find module @harness/*` / `X is not a function`）。终审实测：276 passed / 519 failed / 795 total，1 文件级 parse error（`tests/XM/T01-e2e-evolution-loop.spec.ts`：`Failed to load url ../../scripts/xm/g5-report.ts`）。
+>
+> Wave 3 adapt 模块 RED 门：`tests/adapt/`（8 spec + 1 fixture）+ `tests/L3/real-llm.spec.ts` + `tests/CE/SEC-T01-eperm-cross-check.spec.ts` + `tests/ops/metrics.spec.ts` 共 9 文件 / 55 测试用例，全 RED（19 collected-failed + 4 adapt 文件 import-errored；`@harness/adapters` 包未实现 / `RealLLMPort`·`crossCheckEperm`·`filterForgedEperm` 未导出 / `scripts/metrics.mjs`·`scripts/run-suite-5x.mjs` 未落地）。ADP-T02/REAL-T01 真实 pi 往返 smoke 用 `it.skipIf(!hasPi)` 门控（CI 无 pi 自动跳过不红）。
 
 ## 3. 复现命令
 

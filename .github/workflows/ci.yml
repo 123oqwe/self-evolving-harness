@@ -137,9 +137,10 @@ jobs:
           BASELINE=$(cat GREENS.baseline 2>/dev/null || echo 0)
           ACTUAL=${{ steps.suite.outputs.greens }}
           echo "baseline=$BASELINE actual=$ACTUAL"
-          # 容差 5: 单测抖动容忍, 批量回归(>5)才挡; 单点回归由 sentinel 门盯防
-          if [ "$ACTUAL" -lt $((BASELINE - 5)) ]; then
-            echo "::error::Regression! greens $ACTUAL < baseline-5 ($((BASELINE - 5))) — 批量变红, 回归"
+          # 容差 2: OPS-T03 收紧 (原 5)。唯一已知 flake (L0C-T01 pnpm -r build,
+          # 资源竞争型, 锁定测试, 须走申诉通道) 仅 ±1 green, 容差 2 足以吸收且仍挡 ≥2 批量回归。
+          if [ "$ACTUAL" -lt $((BASELINE - 2)) ]; then
+            echo "::error::Regression! greens $ACTUAL < baseline-2 ($((BASELINE - 2))) — 批量变红, 回归"
             grep -E "^\s*×|FAIL " suite.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done
             exit 1
           fi

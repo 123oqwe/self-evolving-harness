@@ -10,6 +10,7 @@
     "build": "pnpm -r run --if-present build"
   },
   "devDependencies": {
+    "@harness/adapters": "workspace:*",
     "@harness/canary-eval": "workspace:*",
     "@harness/l0-core": "workspace:*",
     "@harness/l0-sandbox": "workspace:*",

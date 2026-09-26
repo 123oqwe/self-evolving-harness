@@ -155,6 +155,14 @@ export { assertFreshEvidence, AbortSelectError } from "./fresh-evidence-gate.js"
 
 export type { FreshEvidence } from "./fresh-evidence-gate.js";
 
+// SEC-T01 落地：L0S-R2 epermHits×exitCode 强制交叉验证 — 伪造面证据丢弃。
+// ERRATA-w01 §L0S-R2 裁决：用户可控 stderr 伪造 'Operation not permitted' 行仍可进
+// epermHits（证据非证明，固有 surfacing 语义）——CE 消费 epermHits 时须交叉验证 exitCode。
+// filterForgedEperm 已在 fresh-evidence-gate.ts 的 assertFreshEvidence 入口接线（单一职责）。
+export { crossCheckEperm, filterForgedEperm } from "./eperm-cross-check.js";
+
+export type { EpermCrossCheckResult } from "./eperm-cross-check.js";
+
 // CE-T11 落地：canary 扩容至统计可信量级（为硬 ≥5pp 门准备；≥90% 覆盖）。
 // ERRATA-w2plus CE-23：ExpandedCanary 加可选 needsMoreTasks?；canDetect5pp=false →
 //   needsMoreTasks=true。canDetect5pp power analysis（α=0.05, power=0.8 反推 n）由

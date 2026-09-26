@@ -19,6 +19,7 @@
 //   使 FAIL 裁决 fail-closed reject，阻断裸 Fitness 即 select 的伪造信号晋升路径。
 
 import type { VerifierRun } from "./verifier.js";
+import { filterForgedEperm } from "./eperm-cross-check.js";
 
 /**
  * select 前的 fresh-evidence 终审门输入。
@@ -65,8 +66,20 @@ export class AbortSelectError extends Error {
  * 放行（不 throw）当且仅当上述四条全满足。
  */
 export function assertFreshEvidence(e: FreshEvidence): void {
+  // SEC-T01 (L0S-R2 落实)：入口先调 filterForgedEperm 丢弃伪造面证据再判定。
+  // 单一职责接线点——别在多处重复过滤。伪造面 = exitCode=0 但 epermHits 非空
+  // （stderr 可伪造 EPERM 行，exitCode 不可；两者须自洽）。
+  const { kept: verifications, warnings } = filterForgedEperm(
+    Array.isArray(e.verifications) ? e.verifications : [],
+  );
+  // 告警不阻断判定，仅记录到 stderr 侧信道（console.warn）便于审计。
+  for (const w of warnings) {
+    // eslint-disable-next-line no-console
+    console.warn(w);
+  }
+
   // 边界：verifications 为空集 → 无机械证据 → abort。
-  if (!Array.isArray(e.verifications) || e.verifications.length === 0) {
+  if (verifications.length === 0) {
     throw new AbortSelectError(
       `fresh-evidence gate: variant "${e.variantSha}" has no verifications ` +
         `(verifications.length=0); select aborted — exit-code evidence required`,
@@ -84,7 +97,7 @@ export function assertFreshEvidence(e: FreshEvidence): void {
   // 错误路径：某条 verification 缺 exitCode（prose "应该过了"）→ abort。
   // VerifierRun.exitCode 类型上为 number，但运行时可能被调用方以 `as unknown` 注入
   // 缺失值（CE-T07 测试 prose 路径），故用 typeof 防御。
-  for (const v of e.verifications) {
+  for (const v of verifications) {
     if (
       v === null ||
       typeof v !== "object" ||
@@ -104,7 +117,7 @@ export function assertFreshEvidence(e: FreshEvidence): void {
   // 生产 wiring 下 Fitness（telemetry→gen_ai_evaluation.pass）与 VerifierRun.exitCode（机械 canary）
   // 是两条独立通道；本交叉校验阻断「LLM judge pass=true 但机械 canary FAIL」的 prompt-injection
   // 伪造信号 fail-open 路径。
-  for (const v of e.verifications) {
+  for (const v of verifications) {
     if ((v as { exitCode: number }).exitCode !== 0) {
       throw new AbortSelectError(
         `fresh-evidence gate: variant "${e.variantSha}" has a failing verification ` +
