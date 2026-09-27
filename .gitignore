@@ -6,3 +6,5 @@ coverage/
 .vitest-cache/
 .pi/
 .harness/evolve-state.json
+.corepack-home/
+.npm-cache/

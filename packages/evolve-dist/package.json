@@ -1,0 +1,17 @@
+{
+  "name": "@harness/evolve-dist",
+  "version": "0.1.0",
+  "description": "Distribution orchestration for @harness/evolve-* packages: npm publish validation (dry-run) + agentskills.io skill bundles (ClaudeCode/Hermes).",
+  "type": "module",
+  "exports": {
+    ".": "./scripts/publish.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "scripts",
+    "skill-bundles",
+    "README.md"
+  ]
+}
