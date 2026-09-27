@@ -89,10 +89,17 @@ function resolvePnpmShim() {
 }
 
 function runPnpm(args) {
+  // 沙箱/受限环境下 ~/.npm 不可写——主调用即用仓库本地缓存，避免 EPERM 主败后回退不触发。
+  const localEnv = {
+    ...process.env,
+    COREPACK_HOME: join(REPO, ".corepack-home"),
+    npm_config_cache: join(REPO, ".npm-cache"),
+  };
   let result = spawnSync("pnpm", args, {
     cwd: REPO,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    env: localEnv,
   });
   if (result.error || !corepackHomeUsable()) {
     // 回退：node 直接执行 corepack pnpm shim + 仓库本地 corepack 缓存。
