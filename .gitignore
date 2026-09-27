@@ -5,3 +5,4 @@ dist/
 coverage/
 .vitest-cache/
 .pi/
+.harness/evolve-state.json

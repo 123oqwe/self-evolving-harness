@@ -14,6 +14,9 @@ importers:
       '@harness/canary-eval':
         specifier: workspace:*
         version: link:packages/canary-eval
+      '@harness/evolve-cli':
+        specifier: workspace:*
+        version: link:packages/evolve-cli
       '@harness/evolve-codex':
         specifier: workspace:*
         version: link:packages/evolve-codex
@@ -84,6 +87,40 @@ importers:
       '@harness/l0-sandbox':
         specifier: workspace:*
         version: link:../l0-sandbox
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-cli:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/evolve-codex':
+        specifier: workspace:*
+        version: link:../evolve-codex
+      '@harness/evolve-core':
+        specifier: workspace:*
+        version: link:../evolve-core
+      '@harness/evolve-cursor':
+        specifier: workspace:*
+        version: link:../evolve-cursor
+      '@harness/evolve-generic':
+        specifier: workspace:*
+        version: link:../evolve-generic
+      '@harness/evolve-hermes':
+        specifier: workspace:*
+        version: link:../evolve-hermes
+      '@harness/evolve-openclaw':
+        specifier: workspace:*
+        version: link:../evolve-openclaw
+      '@harness/evolve-opencode':
+        specifier: workspace:*
+        version: link:../evolve-opencode
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
     devDependencies:
       '@types/node':
         specifier: ^22.10.0

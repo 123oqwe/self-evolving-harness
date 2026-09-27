@@ -1,0 +1,28 @@
+{
+  "name": "@harness/evolve-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "evolve": "./src/bin.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@harness/adapters": "workspace:*",
+    "@harness/l3-engine": "workspace:*",
+    "@harness/evolve-core": "workspace:*",
+    "@harness/evolve-codex": "workspace:*",
+    "@harness/evolve-opencode": "workspace:*",
+    "@harness/evolve-hermes": "workspace:*",
+    "@harness/evolve-openclaw": "workspace:*",
+    "@harness/evolve-cursor": "workspace:*",
+    "@harness/evolve-generic": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0"
+  }
+}

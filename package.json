@@ -15,6 +15,7 @@
     "@harness/evolve-codex": "workspace:*",
     "@harness/evolve-core": "workspace:*",
     "@harness/evolve-cursor": "workspace:*",
+    "@harness/evolve-cli": "workspace:*",
     "@harness/evolve-dsh": "workspace:*",
     "@harness/evolve-generic": "workspace:*",
     "@harness/evolve-grok": "workspace:*",
