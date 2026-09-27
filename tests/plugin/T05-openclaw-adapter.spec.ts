@@ -9,6 +9,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
+import { cpSync, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { FakeLLM, tempRepoFactory } from "./helpers.js";
 import { contentSha } from "@harness/adapters";
 import {
@@ -20,6 +22,17 @@ import type { OpenClawAdapterOptions } from "@harness/evolve-openclaw";
 const FIXTURES = join(process.cwd(), "tests", "plugin", "fixtures");
 const WORKSPACE_DIR = join(FIXTURES, "openclaw-workspace");
 const STATE_DIR = join(FIXTURES, "openclaw-agent");
+
+// OpenClawAdapter.deploy/rollback 镜像 PLG-T04 syncToHermesHome：把 repoRoot active
+// 内容同步回 workspaceDir（spec §PLG-T05 行为规范：deploy 后同步 workspaceDir/skills/）。
+// 测试把共享提交 fixture `openclaw-workspace` 当作 workspaceDir 注入 → 真实 sync 会
+// 在测试运行中改写该 fixture，而 readSubstrate 用例断言 fixture 原始内容（frontmatter
+// `openclaw evolve skill`，污染不耐受）。模块加载时快照整个 workspace fixture，afterEach
+// 恢复 → 测试隔离 + fixture 与 git HEAD 一致（无残留改动）。
+const WORKSPACE_SNAPSHOT = mkdtempSync(join(tmpdir(), "oc-ws-snap-"));
+if (existsSync(WORKSPACE_DIR)) {
+  cpSync(WORKSPACE_DIR, join(WORKSPACE_SNAPSHOT, "ws"), { recursive: true });
+}
 // jsonl-only fixture：有 sessions/*.jsonl 但无 agent/openclaw-agent.sqlite（验证 sqlite 缺失时回退 jsonl）。
 const STATE_DIR_JSONL_ONLY = join(FIXTURES, "openclaw-agent-jsonl-only");
 const AGENT_ID = "oc-agent-1";
@@ -43,7 +56,14 @@ describe("PLG-T05 OpenClawAdapter", () => {
     repo.writeFile("skills/evolve/SKILL.md", "# baseline\n");
     repo.commit("baseline");
   });
-  afterEach(() => repo.destroy());
+  afterEach(() => {
+    repo.destroy();
+    // 恢复 workspaceDir fixture（deploy/rollback 的真实 sync 不残留污染）。
+    if (existsSync(WORKSPACE_DIR)) {
+      rmSync(WORKSPACE_DIR, { recursive: true, force: true });
+      cpSync(join(WORKSPACE_SNAPSHOT, "ws"), WORKSPACE_DIR, { recursive: true });
+    }
+  });
 
   it("readSubstrate reads workspace skills SKILL.md", async () => {
     const a = newAdapter(repo.root);

@@ -14,9 +14,33 @@ importers:
       '@harness/canary-eval':
         specifier: workspace:*
         version: link:packages/canary-eval
+      '@harness/evolve-codex':
+        specifier: workspace:*
+        version: link:packages/evolve-codex
       '@harness/evolve-core':
         specifier: workspace:*
         version: link:packages/evolve-core
+      '@harness/evolve-cursor':
+        specifier: workspace:*
+        version: link:packages/evolve-cursor
+      '@harness/evolve-dsh':
+        specifier: workspace:*
+        version: link:packages/evolve-dsh
+      '@harness/evolve-generic':
+        specifier: workspace:*
+        version: link:packages/evolve-generic
+      '@harness/evolve-grok':
+        specifier: workspace:*
+        version: link:packages/evolve-grok
+      '@harness/evolve-hermes':
+        specifier: workspace:*
+        version: link:packages/evolve-hermes
+      '@harness/evolve-openclaw':
+        specifier: workspace:*
+        version: link:packages/evolve-openclaw
+      '@harness/evolve-opencode':
+        specifier: workspace:*
+        version: link:packages/evolve-opencode
       '@harness/l0-core':
         specifier: workspace:*
         version: link:packages/l0-core
@@ -65,6 +89,19 @@ importers:
         specifier: ^22.10.0
         version: 22.20.1
 
+  packages/evolve-codex:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
   packages/evolve-core:
     dependencies:
       '@harness/adapters':
@@ -73,6 +110,106 @@ importers:
       '@harness/canary-eval':
         specifier: workspace:*
         version: link:../canary-eval
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-cursor:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/evolve-core':
+        specifier: workspace:*
+        version: link:../evolve-core
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-dsh:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-generic:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/evolve-core':
+        specifier: workspace:*
+        version: link:../evolve-core
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-grok:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-hermes:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-openclaw:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/l3-engine':
+        specifier: workspace:*
+        version: link:../l3-engine
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+
+  packages/evolve-opencode:
+    dependencies:
+      '@harness/adapters':
+        specifier: workspace:*
+        version: link:../../adapters
+      '@harness/evolve-core':
+        specifier: workspace:*
+        version: link:../evolve-core
       '@harness/l3-engine':
         specifier: workspace:*
         version: link:../l3-engine

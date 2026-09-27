@@ -7,6 +7,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
+import { cpSync, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { FakeLLM, tempRepoFactory } from "./helpers.js";
 import { contentSha } from "@harness/adapters";
 import {
@@ -18,6 +20,16 @@ import type { HermesAdapterOptions, CronTriggerOptions } from "@harness/evolve-h
 
 const FIXTURES = join(process.cwd(), "tests", "plugin", "fixtures");
 const HERMES_HOME = join(FIXTURES, "hermes-home");
+
+// HermesAdapter.deploy/rollback 把 repoRoot active 内容同步回 hermesHome/skills/
+// （spec §PLG-T04 行为规范：deploy 后同步 hermesHome + mtime 半热加载）。测试把共享
+// 提交 fixture `hermes-home` 当作 hermesHome 注入 → 真实 sync 会在测试运行中改写该
+// fixture。虽 hermes 断言对污染耐受（仍绿），但 fixture 残留改动违反"测试后无残留"。
+// 模块加载时快照整个 hermes-home fixture，afterEach 恢复 → 测试隔离 + fixture 干净。
+const HERMES_HOME_SNAPSHOT = mkdtempSync(join(tmpdir(), "hermes-home-snap-"));
+if (existsSync(HERMES_HOME)) {
+  cpSync(HERMES_HOME, join(HERMES_HOME_SNAPSHOT, "home"), { recursive: true });
+}
 
 function newAdapter(repoRoot: string, hermesHome = HERMES_HOME): HermesAdapter {
   const opts: HermesAdapterOptions = {
@@ -36,7 +48,14 @@ describe("PLG-T04 HermesAdapter", () => {
     repo.writeFile("skills/evolve/SKILL.md", "---\nname: evolve\n---\n# baseline\n");
     repo.commit("baseline");
   });
-  afterEach(() => repo.destroy());
+  afterEach(() => {
+    repo.destroy();
+    // 恢复 hermesHome fixture（deploy/rollback 的真实 sync 不残留污染）。
+    if (existsSync(HERMES_HOME)) {
+      rmSync(HERMES_HOME, { recursive: true, force: true });
+      cpSync(join(HERMES_HOME_SNAPSHOT, "home"), HERMES_HOME, { recursive: true });
+    }
+  });
 
   it("readSubstrate reads hermesHome skills SKILL.md with frontmatter", async () => {
     const a = newAdapter(repo.root);

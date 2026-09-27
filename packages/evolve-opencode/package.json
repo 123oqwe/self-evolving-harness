@@ -1,0 +1,19 @@
+{
+  "name": "@harness/evolve-opencode",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@harness/adapters": "workspace:*",
+    "@harness/l3-engine": "workspace:*",
+    "@harness/evolve-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0"
+  }
+}

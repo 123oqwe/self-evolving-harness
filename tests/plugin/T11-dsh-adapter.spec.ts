@@ -53,7 +53,7 @@ describe("PLG-T11 DshAdapter", () => {
   it("readSubstrate reads profile cordis.patch.yml as opaque text", async () => {
     const a = newAdapter(repo.root);
     const sub = await a.readSubstrate("dsh/profiles/default/cordis.patch.yml");
-    expect(sub.content).toContain("cordis");
+    expect(sub.content).toContain("Cordis");
     expect(sub.content).toContain("evolve");
   });
 

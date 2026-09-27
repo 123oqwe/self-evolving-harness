@@ -283,14 +283,14 @@
 | PLG-T02 | `tests/plugin/T02-codex-adapter.spec.ts` | `716036e32172d9890f4a2e4cec4069df51c97bac287c8f83f9b5a0f0cb0a2551` |
 | PLG-T02 | `tests/plugin/T02-codex-smoke.spec.ts` | `d6a7b63ec68e60b511c2a03379c0f792a00c91d58833eb6936173f494e690948` |
 | PLG-T03 | `tests/plugin/T03-opencode-adapter.spec.ts` | `05f27cc5b0083a102b1af31f25ada423977130e62f1521fe1e32773b3c553555` |
-| PLG-T04 | `tests/plugin/T04-hermes-adapter.spec.ts` | `cee49c28f9302526728d7668571ce36588deb6c239d9c21124cd02b6bf2ae753` |
-| PLG-T05 | `tests/plugin/T05-openclaw-adapter.spec.ts` | `4c928dde44c8d92cfc4a578f31b24dc91c8b72a91914366ab6ec833ed46cb6c3` |
+| PLG-T04 | `tests/plugin/T04-hermes-adapter.spec.ts` | `abae112271fe4c35fef8ecd1f1b2947fafeb04dbf7fe0829f2a5c6d72fe649dc` |
+| PLG-T05 | `tests/plugin/T05-openclaw-adapter.spec.ts` | `209940ab73af01b0d2f8a9e8736844c1a97e885cc46352c491eea8a686fd7dca` |
 | PLG-T06 | `tests/plugin/T06-cursor-adapter.spec.ts` | `5cccef11a2cac2ff74a9ce7d88d667f7d1dcbcb52d81704d81261f90262a8fc0` |
 | PLG-T07 | `tests/plugin/T07-generic-adapter.spec.ts` | `44b02bc5359bd6c8af1d027744d1918f1475dc3fabdc8b2701b609d8de9a23ee` |
 | PLG-T08 | `tests/plugin/T08-cli.spec.ts` | `1854a997fec8aef76be8f2e77d1e2385a326aa11c6fdb3bff36cfdee29e5e8cf` |
 | PLG-T09 | `tests/plugin/T09-dist.spec.ts` | `ffa57fddc44d10fd11f3d4991d12fe80505022d65adf46bcf52d39b100603ec0` |
 | PLG-T10 | `tests/plugin/T10-docs.spec.ts` | `96137b021c411941d15beb09b1889dac7c44d1a6b88ffe585e4d4f4c441bcd1c` |
-| PLG-T11 | `tests/plugin/T11-dsh-adapter.spec.ts` | `bcb5a2863c8fce18f8eebdee4524e9c2f86736657f2acb3abb80a5470be4c195` |
+| PLG-T11 | `tests/plugin/T11-dsh-adapter.spec.ts` | `bad446bfbd79da365ace8837bd21764945fef6981bf6389a455c966c7269a862` |
 | PLG-T11 | `tests/plugin/T11-dsh-smoke.spec.ts` | `c6be2204d184d0967f2ef581b7bd3e858da6ee89700083422a84aaecb0c27fd8` |
 | PLG-T12 | `tests/plugin/T12-grok-adapter.spec.ts` | `0552b83af7ec6586bd61e76f540b0e541b0e8b2aee836b227ea26ccfc5872639` |
 | PLG-T12 | `tests/plugin/T12-grok-claude-compat.spec.ts` | `4bd1816dba7d91ea3f2b62af5495d6d57d3ee628dff008eb56df2f88ecdbc925` |
