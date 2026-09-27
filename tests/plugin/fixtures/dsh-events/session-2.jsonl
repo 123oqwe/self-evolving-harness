@@ -1,0 +1,2 @@
+{"type":"session","timestamp":"2026-01-01T00:00:00Z","session_id":"dsh-fail-2","payload":{"title":"failed run 2"}}
+{"type":"message","timestamp":"2026-01-01T00:00:01Z","session_id":"dsh-fail-2","payload":{"role":"assistant","is_error":true,"content":"Error: tool failed"}}

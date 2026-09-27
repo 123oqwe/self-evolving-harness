@@ -1,0 +1,4 @@
+# dsh Cordis profile patch (opaque text substrate — not parsed)
+plugins:
+  evolve:
+    enabled: true

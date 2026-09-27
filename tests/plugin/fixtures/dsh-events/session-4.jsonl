@@ -1,0 +1,3 @@
+{"type":"error","sessionId":"dsh-mal-1","payload":{"error":"first"}}
+{BROKEN
+{"type":"error","sessionId":"dsh-mal-1","payload":{"failed":true,"error":"second"}}

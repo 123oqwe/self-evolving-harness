@@ -11,6 +11,7 @@ import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join, basename, extname } from "node:path";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 
 import type {
   SubstrateKind,
@@ -63,38 +64,31 @@ export interface HarnessPort {
 }
 
 // ---------------------------------------------------------------------------
-// 错误类型
+// 错误类型（运行时定义于 errors.cjs，经 native require 取同一实例）
 // ---------------------------------------------------------------------------
+//
+// 三个错误类在 `./errors.cjs`（native CJS）中定义。port.ts 经
+// `createRequire(import.meta.url)("./errors.cjs")` 取运行时实例，而非 ESM
+// `import` —— 这样 vite-node/vitest 环境中两条消费路径共享 native
+// `Module._cache[.../adapters/src/errors.cjs]` 同一条目，`instanceof` 跨
+// require/import 成立：
+//   (1) FakeHarnessPort（tests/plugin/helpers.ts）`require("@harness/adapters")`
+//       → package.json exports.require → ./src/errors.cjs → native require；
+//   (2) 测试/适配器 `import { SubstrateNotFoundError } from "@harness/adapters"`
+//       → Vite 加载 index.ts → port.ts → 本处 createRequire("./errors.cjs")
+//       → native require（与 (1) 同一缓存条目）。
+// TS 类型由 `./errors.d.ts` 经 `typeof import("./errors")` 提供，保留
+// `readonly id`/`readonly stagingSha`/`readonly path` 字段与 new/instanceof 语义。
+
+const __nativeRequire = createRequire(import.meta.url);
+const __errors = __nativeRequire("./errors.cjs") as typeof import("./errors");
 
 /** readSubstrate 对不存在 id → throw。 */
-export class SubstrateNotFoundError extends Error {
-  readonly id: string;
-  constructor(id: string) {
-    super(`substrate not found: ${id}`);
-    this.name = "SubstrateNotFoundError";
-    this.id = id;
-  }
-}
-
+export const SubstrateNotFoundError = __errors.SubstrateNotFoundError;
 /** deploy 对未知 stagingSha → throw。 */
-export class UnknownStagingError extends Error {
-  readonly stagingSha: string;
-  constructor(stagingSha: string) {
-    super(`unknown staging sha: ${stagingSha}`);
-    this.name = "UnknownStagingError";
-    this.stagingSha = stagingSha;
-  }
-}
-
+export const UnknownStagingError = __errors.UnknownStagingError;
 /** writeSubstrate 对 static-core 路径 → throw（对齐 L3-T01 breaker）。 */
-export class StaticCoreWriteForbiddenError extends Error {
-  readonly path: string;
-  constructor(path: string) {
-    super(`write forbidden: path is static-core (L3-T01 breaker): ${path}`);
-    this.name = "StaticCoreWriteForbiddenError";
-    this.path = path;
-  }
-}
+export const StaticCoreWriteForbiddenError = __errors.StaticCoreWriteForbiddenError;
 
 // ---------------------------------------------------------------------------
 // 纯函数 helper（T02/T03 复用）

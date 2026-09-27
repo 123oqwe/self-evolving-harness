@@ -1,0 +1,5 @@
+{
+  "PreToolUse": [
+    { "matcher": "Write|Edit|Bash", "command": "sh -c 'if echo \"$TOOL_INPUT\" | grep -q \"tests/.*\\.spec\\.ts\"; then echo \"exam-lock: test files are locked\" >&2; exit 2; fi'" }
+  ]
+}

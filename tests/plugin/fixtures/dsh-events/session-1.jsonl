@@ -1,0 +1,3 @@
+{"type":"session","timestamp":"2026-01-01T00:00:00Z","sessionId":"dsh-fail-1","payload":{"title":"failed run"}}
+{"type":"message","timestamp":"2026-01-01T00:00:01Z","sessionId":"dsh-fail-1","payload":{"role":"user","text":"run evolve"}}
+{"type":"error","timestamp":"2026-01-01T00:00:02Z","sessionId":"dsh-fail-1","payload":{"error":"Error: dsh mutation rejected"}}

@@ -1,0 +1,2 @@
+{"sessionId":"oc-jsonl-only-1","role":"assistant","is_error":true,"error":"Error: jsonl-only fallback failure"}
+{"sessionId":"oc-jsonl-only-ok","role":"assistant","text":"ok"}

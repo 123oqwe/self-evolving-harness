@@ -1,0 +1,19 @@
+harnessId: sqlite-harness
+verified: true
+substrate:
+  idPrefix: "sqlite-harness/"
+  diskRoot: "."
+  repoRoot: "."
+  pathMap:
+    AGENTS.md: AGENTS.md
+trajectory:
+  format: sqlite
+  path: "./sqlite-harness.db"
+  table: sessions
+  sessionField: id
+  diagnosisFields:
+    - error_msg
+deploy:
+  restartHint: "[sqlite-harness] restart"
+llm:
+  passThrough: true

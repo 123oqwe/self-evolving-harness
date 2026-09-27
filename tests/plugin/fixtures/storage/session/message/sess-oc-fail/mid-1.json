@@ -1,0 +1,6 @@
+{
+  "id": "mid-1",
+  "sessionID": "sess-oc-fail",
+  "role": "assistant",
+  "parts": ["pid-1"]
+}

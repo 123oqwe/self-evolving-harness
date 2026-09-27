@@ -43,7 +43,7 @@
 
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
-| L0C-T01 | `tests/L0C/T01-scaffold.spec.ts` | `139000a5bdb39088dfafa85ada67f6626a5959d303f32dcf1f9e76b3a43963a1` |
+| L0C-T01 | `tests/L0C/T01-scaffold.spec.ts` | `eb308cf2fcac3e12afd75f982a13111a8656b4c25d19e658b1796e56f08fc3b4` |
 | L0C-T02 | `tests/L0C/T02-turn.spec.ts` | `f025a591e617f0f1ebd9b8a0648a93560c0309d786583c545d4193dc7b53dddd` |
 | L0C-T03 | `tests/L0C/T03-stop.spec.ts` | `95eece03e222360b92b52ba82c5e785275a6bd07b111357039b4783d80440897` |
 | L0C-T04 | `tests/L0C/T04-retry-overflow.spec.ts` | `7cd6524fc4ced7302dce9b5dd5dc783b662e58a31cd178ab58f0d0e9f99ab3c3` |
@@ -267,7 +267,41 @@
 | OPS-T02 | `tests/ops/metrics.spec.ts` | `608bdb56214318b4e8c8563c0ce73364d7b39a89c949bcbf47fe9914fe141ae1` |
 | OPS-T03 | `tests/adapt/OPS-T03-flaky-locator.spec.ts` | `632d747ee014a4f849a47127b5c48491166ce70c38874451a7a3085f715b9bcd` |
 
-### 2.12 锁定合计
+### 2.12 — plugin 模块 spec（`tests/plugin/` + fixtures，16 文件）
+
+> Wave 4 plugin 模块（evolve-core + 5 家原生插件包 + 通用适配器 + 统一 CLI + 分发 + 文档 + dsh/grok）出题。
+> 由隔离 test-author 仅依 spec（`execution/plugin/TASKS.md`）预生成并锁定。
+> RED 态：全部 `@harness/evolve-*` 包（evolve-core/codex/opencode/hermes/openclaw/cursor/generic/cli/dist/grok）未实现 → import 失败 = 合法 RED（13 文件 collected-failed / import-errored）；PLG-T09（dist）与 PLG-T10（docs）无包 import，走 bash 存在性/内容要素断言（scripts/docs 未落地 → 断言红）。
+> mock 为主体：各 harness 轨迹/基质用 fixture（codex rollout JSONL / opencode 三层 storage JSON / hermes+openclaw SQLite / cursor mdc / generic 4 格式 yaml / dsh 事件 JSONL / grok 插件目录），真实往返 smoke（T02-codex-smoke / T11-dsh-smoke）用环境探针门控（`command -v codex`/`command -v dsh` + `existsSync(~/.codex|~/.dsh)`）；RED 态包未实现 → smoke 经 import 失败为合法 RED，GREEN 后 skipIf 生效（CI 无环境 skip，exit 0 不红）。
+> SQLite fixture（`fixtures/state.db`/`fixtures/openclaw-agent/agents/<id>/agent/openclaw-agent.sqlite`/`fixtures/generic/sqlite-harness.db`）用 `node:sqlite` 预生成提交（sessions/messages/transcript 表，部分 session 含 error 信号），插件只读打开。
+> 歧义（如实记录，见下方 ambiguities）：(1) PLG-T01 `EvolveConfig` 的 canary 退化 observations 注入通道 spec 未声明（auto-revert 测试假设 `canaryObservations` 字段）；(2) PLG-T08 `runRun` 接受 FakePluginFactory 注入的测试入口 spec 未声明（假设 `runRunWithFactory` hook）；(3) PLG-T05 `stateDir` 语义（sqlite 与 archived jsonl 的相对路径根）spec 给的是 `~/.openclaw` 而 fixture 把两者同置于 `fixtures/openclaw-agent/` 下，实现须按 stateDir 拼接 `agents/<agentId>/{agent,sessions}/`。
+
+| 任务 | 测试文件 | sha256 |
+| --- | --- | --- |
+| PLG-T01 | `tests/plugin/helpers.ts` | `2b160bd5e9fef4e23724723c9727c9ea74dc3670ed31a465b4d004cfd7c5729d` |
+| PLG-T01 | `tests/plugin/T01-evolve-core.spec.ts` | `2b1af89c2d2c79716ef32de2c1cb4df92b74e8bd89fbab664054c161f84773a9` |
+| PLG-T02 | `tests/plugin/T02-codex-adapter.spec.ts` | `716036e32172d9890f4a2e4cec4069df51c97bac287c8f83f9b5a0f0cb0a2551` |
+| PLG-T02 | `tests/plugin/T02-codex-smoke.spec.ts` | `d6a7b63ec68e60b511c2a03379c0f792a00c91d58833eb6936173f494e690948` |
+| PLG-T03 | `tests/plugin/T03-opencode-adapter.spec.ts` | `05f27cc5b0083a102b1af31f25ada423977130e62f1521fe1e32773b3c553555` |
+| PLG-T04 | `tests/plugin/T04-hermes-adapter.spec.ts` | `abae112271fe4c35fef8ecd1f1b2947fafeb04dbf7fe0829f2a5c6d72fe649dc` |
+| PLG-T05 | `tests/plugin/T05-openclaw-adapter.spec.ts` | `209940ab73af01b0d2f8a9e8736844c1a97e885cc46352c491eea8a686fd7dca` |
+| PLG-T06 | `tests/plugin/T06-cursor-adapter.spec.ts` | `5cccef11a2cac2ff74a9ce7d88d667f7d1dcbcb52d81704d81261f90262a8fc0` |
+| PLG-T07 | `tests/plugin/T07-generic-adapter.spec.ts` | `44b02bc5359bd6c8af1d027744d1918f1475dc3fabdc8b2701b609d8de9a23ee` |
+| PLG-T08 | `tests/plugin/T08-cli.spec.ts` | `1854a997fec8aef76be8f2e77d1e2385a326aa11c6fdb3bff36cfdee29e5e8cf` |
+| PLG-T09 | `tests/plugin/T09-dist.spec.ts` | `ffa57fddc44d10fd11f3d4991d12fe80505022d65adf46bcf52d39b100603ec0` |
+| PLG-T10 | `tests/plugin/T10-docs.spec.ts` | `96137b021c411941d15beb09b1889dac7c44d1a6b88ffe585e4d4f4c441bcd1c` |
+| PLG-T11 | `tests/plugin/T11-dsh-adapter.spec.ts` | `bad446bfbd79da365ace8837bd21764945fef6981bf6389a455c966c7269a862` |
+| PLG-T11 | `tests/plugin/T11-dsh-smoke.spec.ts` | `c6be2204d184d0967f2ef581b7bd3e858da6ee89700083422a84aaecb0c27fd8` |
+| PLG-T12 | `tests/plugin/T12-grok-adapter.spec.ts` | `0552b83af7ec6586bd61e76f540b0e541b0e8b2aee836b227ea26ccfc5872639` |
+| PLG-T12 | `tests/plugin/T12-grok-claude-compat.spec.ts` | `4bd1816dba7d91ea3f2b62af5495d6d57d3ee628dff008eb56df2f88ecdbc925` |
+
+> **PLG testlock:verify 裁决（三尺子审查）**：test-author 隔离审查 `tests/plugin/` 全文件对照 `execution/plugin/TASKS.md`，发现并直修 3 处问题（均同步重锁 sha256）：
+> (1) **import 路径不一致** — `tests/plugin/helpers.ts` 原从 `@harness/adapters` 导入 `bumpVersion`，但 `bumpVersion` 由 `@harness/l3-engine` 导出（`adapters` 仅 `import` 未 re-export，ESM 命名导入会在 GREEN 态抛 `does not provide an export named 'bumpVersion'`，断 FakeHarnessPort.deploy 全闭环）。改拆分 import：`{ contentSha, inferKind }` 留 `@harness/adapters`、`bumpVersion` 移 `@harness/l3-engine`。已用独立 load-check 用例实证（FakeHarnessPort.deploy 真调 bumpVersion 绿）。
+> (2) **契约不一致** — `tests/plugin/T12-grok-claude-compat.spec.ts` 构造 `ClaudeCodeAdapter({ repoRoot, llm })`，但 `@harness/adapters` 的 `ClaudeCodeAdapterOptions` 要求 `claudeHome`（必填）+ `llmPort`（键名，非 `llm`）。TS strict 下即编译失败。改为 `{ repoRoot, claudeHome, llmPort }`，实证裸相对路径基质 id（`CLAUDE.md`/`AGENTS.md`/`.claude/rules/x.md`）往返读成功。
+> (3) **空壳可蒙混** — `tests/plugin/T05-openclaw-adapter.spec.ts` 的 `readTrajectories reads jsonl-only when sqlite missing` 原指向不存在的 `no-openclaw-state` 目录、仅断 `Array.isArray(trajs)`，`return []` 空壳实现即可骗过。新增真 fixture `fixtures/openclaw-agent-jsonl-only/agents/oc-agent-1/sessions/sess-jsonl-only-1.jsonl`（有 jsonl 无 `agent/openclaw-agent.sqlite`），改为断言 `oc-jsonl-only-1` 入结果、`failed===true`、`diagnosis` 非空、无 error 信号的 `oc-jsonl-only-ok` 不入结果——空壳无法蒙混。
+> 其余审查项达标：① 每任务 GWT 覆盖（T01–T12 各 §RED 节 GWT 用例齐，含错误路径 SubstrateNotFoundError/canary<3/InvalidHooksError/InvalidGenericConfigError）；② 抽样走逻辑（T06 Cursor `readTrajectories==[]` 为 spec 铁律非空壳、T05/T11 容错多 error 字段名 + 按行容错不让空壳骗过）；③ fixture 形状与 spec 调研一致（codex rollout envelope `thread_id`/`content.is_error`、opencode 三层 info/message/part pretty-printed、hermes+openclaw SQLite sessions/messages/transcript + error 信号、cursor mdc frontmatter、generic 4 格式 yaml、dsh append-only 事件流 `sessionId`/`session_id` 多字段、grok 插件目录 skills/hooks.json/.mcp.json）；④ 探针门控正确（T02-smoke `describe.skipIf(!hasCodex)` / T11-smoke `describe.skipIf(!hasDsh)`，`which()` 用 `command -v; echo $?` 解析 0/1，失败即 skip，CI 无环境 exit 0 不红）；⑤ import 路径与 spec 声明一致（全部 `@harness/evolve-*` 包名 + `@harness/adapters`/`@harness/l3-engine` 契约源对齐，仅上述 3 处偏差已直修）。
+
+### 2.13 锁定合计
 
 | 波次 | 模块 | 文件数 | 测试数 |
 | --- | --- | --- | --- |
@@ -282,11 +316,14 @@
 | Wave 1 | gates | 1 | 3 |
 | Wave 2 | CLN | 3 | —（CLN RED 形态，helper/bwrap 未落地） |
 | Wave 3 | adapt | 9 | 55 |
-| **合计** | | **165** | **850+** |
+| Wave 4 | plugin | 16 | 135 |
+| **合计** | | **181** | **985+** |
 
 > RED 门基线（`pnpm vitest run`，详见 `TEST-BASELINE.md`）：已实现 18 任务（L0C T01–T08/T10/T11 + L0S T01/T02/T03/T06 + TL T01/T02/T05/T06）+ G1 smoke 全绿；Wave 2 未实现模块测试全 RED（`Cannot find module @harness/*` / `X is not a function`）。终审实测：276 passed / 519 failed / 795 total，1 文件级 parse error（`tests/XM/T01-e2e-evolution-loop.spec.ts`：`Failed to load url ../../scripts/xm/g5-report.ts`）。
 >
 > Wave 3 adapt 模块 RED 门：`tests/adapt/`（8 spec + 1 fixture）+ `tests/L3/real-llm.spec.ts` + `tests/CE/SEC-T01-eperm-cross-check.spec.ts` + `tests/ops/metrics.spec.ts` 共 9 文件 / 55 测试用例，全 RED（19 collected-failed + 4 adapt 文件 import-errored；`@harness/adapters` 包未实现 / `RealLLMPort`·`crossCheckEperm`·`filterForgedEperm` 未导出 / `scripts/metrics.mjs`·`scripts/run-suite-5x.mjs` 未落地）。ADP-T02/REAL-T01 真实 pi 往返 smoke 用 `it.skipIf(!hasPi)` 门控（CI 无 pi 自动跳过不红）。
+>
+> Wave 4 plugin 模块 RED 门：`tests/plugin/`（15 spec + 1 helper）共 16 文件 / 135 测试用例，全 RED（`@harness/evolve-*` 全部 9 包未实现 → 13 文件 import-errored / collected-failed；PLG-T09 dist + PLG-T10 docs 走 bash 存在性/内容要素断言红：`packages/evolve-dist/scripts/*` 与 `docs/adapters.md` 未落地）。实测：`pnpm vitest run tests/plugin/` → 15 test files failed / 11 tests failed（其余文件 collect-failed 不计入 tests 计数）。T02-codex-smoke / T11-dsh-smoke 用 `describe.skipIf(!hasCodex|!hasDsh)` 门控；RED 态包未实现 → 经 import 失败为合法 RED，GREEN 后 skipIf 生效（无环境 skip，exit 0 不红）。fixture 含 3 个 `node:sqlite` 预生成二进制 `.db`（hermes state.db / openclaw-agent.sqlite / generic sqlite-harness.db，只读打开）。
 
 ## 3. 复现命令
 

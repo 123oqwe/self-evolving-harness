@@ -1,0 +1,8 @@
+{
+  "id": "sess-oc-fail",
+  "title": "failed evolve",
+  "directory": "/repo",
+  "parentID": null,
+  "tokens": { "input": 100, "output": 50 },
+  "time": { "created": 1700000000, "completed": 1700000100 }
+}

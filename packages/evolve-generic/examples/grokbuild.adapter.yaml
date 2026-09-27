@@ -1,0 +1,23 @@
+# verified:false — Phase1 调研未覆盖，纯路径映射兜底，接入前须人工核实
+# PLG-T07 示例1：GrokBuild（未核实）。
+# 声明式假设：基质=AGENTS.md，轨迹=rollout JSONL，诊断字段 is_error/error。
+# 任何字段名/路径均为占位，不代表 GrokBuild 真实机制。
+harnessId: grokbuild
+verified: false
+substrate:
+  idPrefix: "grokbuild/"
+  diskRoot: "."
+  repoRoot: "."
+  pathMap:
+    AGENTS.md: AGENTS.md
+trajectory:
+  format: jsonl
+  path: "./events"
+  glob: "rollout-*.jsonl"
+  diagnosisFields:
+    - is_error
+    - error
+deploy:
+  restartHint: "[grokbuild] restart to load new AGENTS.md"
+llm:
+  passThrough: true

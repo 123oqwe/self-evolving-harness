@@ -1,0 +1,8 @@
+---
+description: Self-evolving harness evolution rules
+alwaysApply: false
+globs: "**/*.ts"
+---
+# Evolve rules
+
+Always run canary verify before claiming improvement.

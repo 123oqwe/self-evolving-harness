@@ -1,0 +1,23 @@
+# verified:false — Phase1 调研未覆盖，纯路径映射兜底，接入前须人工核实
+# PLG-T07 示例2：dsh（未核实）。
+# 声明式假设：基质=AGENTS.md，轨迹=sqlite state.db sessions 表，诊断字段 error_msg。
+# 任何字段名/路径均为占位，不代表 dsh 真实机制。
+harnessId: dsh
+verified: false
+substrate:
+  idPrefix: "dsh/"
+  diskRoot: "."
+  repoRoot: "."
+  pathMap:
+    AGENTS.md: AGENTS.md
+trajectory:
+  format: sqlite
+  path: "./state.db"
+  table: sessions
+  sessionField: id
+  diagnosisFields:
+    - error_msg
+deploy:
+  restartHint: "[dsh] restart to load new AGENTS.md"
+llm:
+  passThrough: true
