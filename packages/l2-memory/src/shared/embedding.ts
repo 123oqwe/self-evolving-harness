@@ -112,3 +112,31 @@ export function topK<T>(
   scored.sort((a, b) => b.sim - a.sim);
   return scored.slice(0, Math.max(0, k));
 }
+
+// ---------------------------------------------------------------------------
+// EmbeddingPort（ISS-20：真实 embedding 模型的注入点）
+// ---------------------------------------------------------------------------
+
+/**
+ * 可注入的 embedding 端口。ISS-20 裁定：8 维 mock 仅作确定性占位，
+ * A-Mem 近邻检索与链接判断在生产环境需要真实语义模型，通过本端口注入，
+ * 替换默认 mock（不改 static-core 也不改调用方代码）。
+ */
+export interface EmbeddingPort {
+  /** 返回文本的 embedding 向量（长度须等于 dim）。 */
+  embed(text: string): Promise<number[]>;
+  /** 向量维度。 */
+  readonly dim: number;
+  /** true = 本端口是确定性 mock（无真实语义），生产模式应拒绝或告警。 */
+  readonly isMock: boolean;
+}
+
+/** 确定性 mock 端口的别名（ISS-20：原名 embed，语义改名 hashEmbedding）。 */
+export const hashEmbedding = embed;
+
+/** 默认 mock 端口（isMock=true）。生产模式检测到 isMock=true 时应拒绝启动。 */
+export const mockEmbeddingPort: EmbeddingPort = {
+  embed: async (text: string): Promise<number[]> => hashEmbedding(text),
+  dim: EMBED_DIM,
+  isMock: true,
+};

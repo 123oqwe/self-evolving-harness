@@ -14,8 +14,6 @@
 // → import 失败 = 合法 RED。
 //
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   crossCheckEperm,
   filterForgedEperm,
@@ -28,6 +26,7 @@ function mkRun(opts: {
   taskId?: string;
   exitCode: number;
   epermHits?: string[];
+  sandboxBypassed?: boolean;
 }): VerifierRun {
   return {
     taskId: opts.taskId ?? "CE-TASK-0001",
@@ -38,6 +37,7 @@ function mkRun(opts: {
     runId: `run-${Math.random().toString(36).slice(2, 8)}`,
     contiguousRun: true,
     epermHits: opts.epermHits,
+    sandboxBypassed: opts.sandboxBypassed,
   };
 }
 
@@ -126,15 +126,20 @@ describe("SEC-T01 · assertFreshEvidence 接线", () => {
     expect(() => assertFreshEvidence(evidence)).toThrow(AbortSelectError);
   });
 
-  it("filterForgedEperm is wired into assertFreshEvidence entry (single responsibility)", () => {
-    // Given SEC-T01 落地后，assertFreshEvidence 入口须先调 filterForgedEperm
-    // 过滤伪造面证据再判定。RED 态：fresh-evidence-gate.ts 未接线 filterForgedEperm
-    // → grep 源码不含 filterForgedEperm → 本断言失败（合法 RED）。
-    // 实现后：源码含 filterForgedEperm 调用，断言通过。
-    const src = readFileSync(
-      join(__dirname, "..", "..", "packages", "canary-eval", "src", "fresh-evidence-gate.ts"),
-      "utf8",
-    );
-    expect(src).toContain("filterForgedEperm");
+  it("forged-suspect when sandboxBypassed=true with epermHits (ISS-11: bypassed sandbox evidence untrustworthy)", () => {
+    const r = crossCheckEperm({
+      exitCode: 1,
+      epermHits: ["fake Operation not permitted"],
+      sandboxBypassed: true,
+    });
+    expect(r.verdict).toBe("forged-suspect");
+    expect(r.dropped).toBe(true);
+    expect(r.reason).toContain("sandboxBypassed");
+  });
+
+  it("sandboxBypassed=true but no epermHits → consistent (nothing to drop)", () => {
+    const r = crossCheckEperm({ exitCode: 1, epermHits: [], sandboxBypassed: true });
+    expect(r.verdict).toBe("consistent");
+    expect(r.dropped).toBe(false);
   });
 });
