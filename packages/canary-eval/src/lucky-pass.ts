@@ -18,7 +18,7 @@
 // exit code 裁决（L0 仍是 ground truth）。
 
 import type { Trajectory } from "./canary/types.js";
-import type { Trajectory as L3Trajectory } from "@harness/l3-engine";
+import type { Trajectory as L3Trajectory } from "@harness/contracts";
 import {
   detectRetryLoops,
   detectRegressionLoops,

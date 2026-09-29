@@ -28,7 +28,7 @@ import type { Sandbox, VerifyResult, SecurityEvent } from "../sandbox.js";
 import { STATIC_CORE_PATHS } from "../sandbox.js";
 
 // CE-T02 VerifierRun = 机械 exit-code 裁决契约（CE-T07 fresh-evidence 门消费）。
-import type { VerifierRun } from "@harness/canary-eval";
+import type { VerifierRun } from "@harness/contracts";
 
 // CE-T06 canary 发布 + 回滚本体（借助，非自研）。
 import { canaryRelease, revertExec } from "@harness/canary-eval";

@@ -58,7 +58,7 @@ import {
   assertFreshEvidence,
   AbortSelectError,
 } from "@harness/canary-eval";
-import type { VerifierRun } from "@harness/canary-eval";
+import type { VerifierRun } from "@harness/contracts";
 
 // ---------------------------------------------------------------------------
 // EvolveSkillAdapter — closed loop assembling real T02–T08 components
