@@ -191,7 +191,7 @@
 | L3-T01 | `tests/L3/T01-router.spec.ts` | `b7be4de4eaad87905a4ad38f90f1d1edc6d839439525a20ee42ff31b58c31ace` |
 | L3-T02 | `tests/L3/T02-beam-search.spec.ts` | `7e7c0152273a32871e29b7356c32b738b2db04603318b3fb036c789ebb4b0be3` |
 | L3-T03 | `tests/L3/T03-reflective-mutation.spec.ts` | `93a7b318eaa126158c37619418f1fc2b50a043de5ee849094818e97a2c222f11` |
-| L3-T04 | `tests/L3/T04-strict-improvement.spec.ts` | `60cfa0a32117d7ca91ac1bc75e00663c2e25ef2b9f5e3d51252375e6e4fb70ac` |
+| L3-T04 | `tests/L3/T04-strict-improvement.spec.ts` | `b7f5eef8366531c29392fe16b28f2680d078927dbbd42a6bfd7042534fb48b7c` |
 | L3-T05 | `tests/L3/T05-pareto-selector.spec.ts` | `b0a5a7930414237087ac5e0d50562749d05d873dd7fb8076244f4be0ef90664e` |
 | L3-T06a | `tests/L3/T06a-tree-archive.spec.ts` | `9438f4614900c61bc019dd8ab437f1435fc25c15600d81ced784c3b0bdd18626` |
 | L3-T06b | `tests/L3/T06b-island-mapelites.spec.ts` | `fe03553c87a2a778da26744a935d779551ec145dfa892e8f12cc7f8237f51f8b` |
