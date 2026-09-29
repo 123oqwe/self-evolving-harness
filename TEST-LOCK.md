@@ -33,7 +33,7 @@
 ### 1.3 锁定范围（全量预锁定；废止 per-wave JIT 出题）
 
 - **政策**：主计划全部 120 任务（117 + 3 CLN，见 `execution/README.md` §领取协议 + `execution/09-EXECUTION-GRAPH.md` §2.3）的锁定测试由隔离 `test-author` 从 spec **一次性预生成并锁定**。**废止原 per-wave just-in-time 出题政策**（先例见 `09-EXECUTION-GRAPH.md` §2.3 + `ERRATA-w01.md` 本轮记录）：预锁定使 implementer 领单时 spec/测试/锁三方已一致。
-- **本表锁定范围**：`tests/` 下已落地的全部 153 个 `.spec.ts` 文件（Wave 0 L0C + Wave 1 L0S/TL + Wave 2 L1/L2/L3/CE/XM/gates），逐文件 sha256 见 §2.1–§2.9。
+- **本表锁定范围**：`tests/` 下已落地的全部 179 个 `.spec.ts` 文件（含 PLUGIN 波次 tests/plugin 与 adapt/gates），逐文件 sha256 见 §2.1–§2.9。
 - **例外（无锁定测试文件）**：3 个可行性 spike（`CE-T00a/b/c`，`[MVP-spike]`）只产 spike 报告 `research/spikes/CE-T00*.md`，不产 `.spec.ts`，不计入本表；`CLN-T01` 为 schema 迁移（额外补 `tests/cleanup/T01-typebox-migration.spec.ts` 锁定 spec + 沿用 L0C-T03/T06 锁定 spec 验收）；CLN 清理 spec（`tests/cleanup/T01|T02|T03`）已由 test-author 落地并锁定见 §2.10。
 - **新增锁定**：后续新落地的测试文件由 test-author 追加到本表 §2 对应小节，并落 `test-lock:` commit；申诉裁决同步记入 `ERRATA-w<NN>.md`。
 
