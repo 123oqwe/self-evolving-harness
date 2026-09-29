@@ -219,7 +219,7 @@ adapters/                # @harness/adapters：HarnessPort 契约 + pi/Claude Co
 ├── src/port.ts          # ADP-T01：HarnessPort 契约 + ReferenceAdapter
 ├── src/pi/              # ADP-T02：pi 适配器
 └── src/claude-code/     # ADP-T03：Claude Code 适配器 + exam-lock
-scripts/                 # 编排脚本（run-evolution-001.mjs / verify.sh ...；metrics.mjs 待 OPS-T02 落地）
+scripts/                 # 编排脚本（run-evolution-001.mjs / verify.sh / metrics.mjs ...）
 tests/                   # 锁定测试（TEST-LOCK sha256 gate）
 reports/                 # 进化循环报告（evolution-run-*.md / metrics-trend.md）
 .github/workflows/       # CI + evolution.yml（审计模式默认，真实模式 runbook）

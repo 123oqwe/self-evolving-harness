@@ -23,6 +23,7 @@ describe("L3-T04", () => {
     const candidate = makeFitness({ resolve_rate: 0.55, token: 100, cache_hit: 0.5 });
     const v = gate.decide(baseline, candidate);
     expect(v.accept).toBe(true);
+    expect(v.reason).toBe("improved");
     expect(v.regressions).toEqual([]);
   });
 
@@ -89,17 +90,63 @@ describe("L3-T04", () => {
     expect(regressed.regressions).toContain("cache_hit");
   });
 
-  it("τ=0.02, regression 0.01 < τ → accept (threshold boundary)", () => {
+  it("τ=0.02, regression 0.01 < τ but no dim improves → reject (no-improvement, ISS-01)", () => {
     const gate = new StrictImprovementGate({
       tau: { resolve_rate: 0.02, token: 0.02, cache_hit: 0.02 },
     });
     const baseline = makeFitness({ resolve_rate: 0.5, token: 100, cache_hit: 0.5 });
-    // resolve_rate down 0.01 < 0.02 → within tolerance → accept
+    // resolve_rate down 0.01 < 0.02 → within tolerance, 无退化; 但也无任何一维改进 →
+    // 严格模式 reject, reason=no-improvement (旧语义此处 accept)。
     const v = gate.decide(
       baseline,
       makeFitness({ resolve_rate: 0.49, token: 100, cache_hit: 0.5 }),
     );
+    expect(v.accept).toBe(false);
+    expect(v.reason).toBe("no-improvement");
+    expect(v.regressions).toEqual([]);
+  });
+
+  it("one dim improves + another dim regresses within τ → accept (τ tolerance preserved)", () => {
+    const gate = new StrictImprovementGate({
+      tau: { resolve_rate: 0.02, token: 0.02, cache_hit: 0.02 },
+    });
+    const baseline = makeFitness({ resolve_rate: 0.5, token: 100, cache_hit: 0.5 });
+    // resolve_rate +0.05 改进; cache_hit -0.01 在 τ=0.02 容差内 → accept
+    const v = gate.decide(
+      baseline,
+      makeFitness({ resolve_rate: 0.55, token: 100, cache_hit: 0.49 }),
+    );
     expect(v.accept).toBe(true);
+    expect(v.reason).toBe("improved");
+    expect(v.regressions).toEqual([]);
+  });
+
+  it("Δ all 0 → reject (no-improvement) in strict mode", () => {
+    const gate = new StrictImprovementGate({
+      tau: { resolve_rate: 0, token: 0, cache_hit: 0 },
+    });
+    const baseline = makeFitness({ resolve_rate: 0.5, token: 100, cache_hit: 0.5 });
+    const v = gate.decide(
+      baseline,
+      makeFitness({ resolve_rate: 0.5, token: 100, cache_hit: 0.5 }),
+    );
+    expect(v.accept).toBe(false);
+    expect(v.reason).toBe("no-improvement");
+  });
+
+  it("non-inferiority mode: Δ all 0 → accept (explicit opt-in to old semantics)", () => {
+    const gate = new StrictImprovementGate({
+      tau: { resolve_rate: 0, token: 0, cache_hit: 0 },
+      mode: "non-inferiority",
+    });
+    const baseline = makeFitness({ resolve_rate: 0.5, token: 100, cache_hit: 0.5 });
+    const v = gate.decide(
+      baseline,
+      makeFitness({ resolve_rate: 0.5, token: 100, cache_hit: 0.5 }),
+    );
+    expect(v.accept).toBe(true);
+    expect(v.reason).toBe("no-improvement");
+    expect(v.mode).toBe("non-inferiority");
   });
 
   it("τ unspecified for a dim → default τ=0 (boundary: missing config)", () => {

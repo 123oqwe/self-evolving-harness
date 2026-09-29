@@ -38,12 +38,21 @@ export interface Decision {
   accept: boolean;
   regressions: (keyof Fitness)[];
   deltas: Partial<Record<keyof Fitness, number>>;
+  /** "strict"(默认)=无退化且至少一维改进; "non-inferiority"=仅无退化(旧语义, 须显式声明)。 */
+  mode: "strict" | "non-inferiority";
+  reason: "improved" | "regression" | "no-improvement";
 }
 
 export class StrictImprovementGate {
   private readonly tau: Record<ComparedDim, number>;
+  private readonly minImprovement: Record<ComparedDim, number>;
+  private readonly mode: "strict" | "non-inferiority";
 
-  constructor(opts: { tau: Partial<Record<keyof Fitness, number>> }) {
+  constructor(opts: {
+    tau: Partial<Record<keyof Fitness, number>>;
+    minImprovement?: Partial<Record<keyof Fitness, number>>;
+    mode?: "strict" | "non-inferiority";
+  }) {
     // Explicit per-dim construction makes the "τ unspecified → default 0"
     // contract structural instead of relying on spread fallback.
     this.tau = {
@@ -51,6 +60,13 @@ export class StrictImprovementGate {
       token: opts.tau.token ?? 0,
       cache_hit: opts.tau.cache_hit ?? 0,
     };
+    this.minImprovement = {
+      resolve_rate: opts.minImprovement?.resolve_rate ?? 0,
+      token: opts.minImprovement?.token ?? 0,
+      cache_hit: opts.minImprovement?.cache_hit ?? 0,
+    };
+    // ISS-01: 默认 strict —— 杜绝「不退化即放行」导致的 Δ=0 原地进化。
+    this.mode = opts.mode ?? "strict";
   }
 
   decide(baseline: Fitness, candidate: Fitness): Decision {
@@ -70,6 +86,7 @@ export class StrictImprovementGate {
 
     const regressions: (keyof Fitness)[] = [];
     const deltas: Partial<Record<keyof Fitness, number>> = {};
+    const improvedDims: ComparedDim[] = [];
 
     for (const dim of COMPARED_DIMS) {
       const b = baseline[dim] as number;
@@ -89,12 +106,34 @@ export class StrictImprovementGate {
       if (improvement < -this.tau[dim]) {
         regressions.push(dim);
       }
+      // ISS-01: 严格模式要求至少一维按方向改进 > minImprovement。
+      if (improvement > this.minImprovement[dim]) {
+        improvedDims.push(dim);
+      }
     }
 
+    const noRegression = regressions.length === 0;
+    const hasImprovement = improvedDims.length > 0;
+
+    let accept: boolean;
+    if (this.mode === "non-inferiority") {
+      accept = noRegression;
+    } else {
+      accept = noRegression && hasImprovement;
+    }
+
+    const reason: Decision["reason"] = !noRegression
+      ? "regression"
+      : hasImprovement
+        ? "improved"
+        : "no-improvement";
+
     return {
-      accept: regressions.length === 0,
+      accept,
       regressions,
       deltas,
+      mode: this.mode,
+      reason,
     };
   }
 }

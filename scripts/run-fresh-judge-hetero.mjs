@@ -21,6 +21,8 @@
 import { register } from "node:module";
 import { pathToFileURL } from "node:url";
 import { writeFileSync, mkdirSync } from "node:fs";
+// ISS-12: 报告输出层统一脱敏（repo 根 → <repo>，HOME → ~）。
+import { redactPaths } from "./lib/redact-paths.mjs";
 
 // ── TS 源码直跑 shim（与 run-evolution-001.mjs 同构）─────────────────────────
 register(pathToFileURL("./scripts/lib/ts-resolve.mjs").href, import.meta.url);
@@ -362,7 +364,7 @@ async function main() {
   sections.push(`- swap 调用次数: ${judgeCallLog.length}（小规模，2-4 次判定）`);
   sections.push("");
 
-  const report = sections.join("\n");
+  const report = redactPaths(sections.join("\n"));
   mkdirSync("reports", { recursive: true });
   writeFileSync("reports/fresh-judge-hetero-001.md", report, "utf8");
   // 任务头要求 reports/judge-run-001.md：同内容副本（指向同一对比）。

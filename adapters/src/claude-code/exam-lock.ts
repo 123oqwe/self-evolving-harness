@@ -4,12 +4,19 @@
 // 复用铁律（§0.2）：TEST-LOCK §1 出题权分离规则——`isExamLockedPath` 命中
 // `tests/**/*.spec.ts` 对齐 TEST-LOCK 锁定范围（与 L0C-T11 static-core 互补：
 // static-core 守源码，exam-lock 守考卷）。无新依赖，手写 glob 匹配。
+//
+// ISS-09: 旧实现输出声明式 schema（matcher.decision/pathPattern），在真实
+// Claude Code 中不存在。现改为真实 schema：matcher 字符串 + hooks:[{type:
+// "command", command: node <abs>/exam-lock-hook.mjs}]，由 hook 脚本读 stdin
+// 后返回 permissionDecision。
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 /** 考卷锁定 hook 规则：matcher 命中 `tests/` 下任意深度 `.spec.ts` → decision 'deny'。 */
 export interface ExamLockRule {
   readonly event: "PreToolUse";
   readonly matcher: {
-    readonly tool: "Write" | "Edit" | "Bash";
+    readonly tool: "Write" | "Edit" | "MultiEdit" | "NotebookEdit" | "Bash";
     readonly pathPattern: string;
   };
   readonly decision: "deny";
@@ -47,13 +54,19 @@ export function isExamLockedPath(path: string): boolean {
 }
 
 /**
- * 构造默认 ExamLockRule 集合（覆盖 Write/Edit/Bash 三类工具）。
+ * 构造默认 ExamLockRule 集合（覆盖全部写文件工具 + Bash）。
  *
  * Bash 工具须覆盖 `sed -i`/`printf >` 等通过 shell 改测试文件的路径；
  * matcher 的 pathPattern 命中 `tests/` 下任意深度 `.spec.ts`。
  */
 export function defaultExamLockRules(): ExamLockRule[] {
-  const tools: Array<"Write" | "Edit" | "Bash"> = ["Write", "Edit", "Bash"];
+  const tools: Array<ExamLockRule["matcher"]["tool"]> = [
+    "Write",
+    "Edit",
+    "MultiEdit",
+    "NotebookEdit",
+    "Bash",
+  ];
   return tools.map((tool) => ({
     event: "PreToolUse",
     matcher: { tool, pathPattern: EXAM_LOCK_PATH_PATTERN },
@@ -63,21 +76,27 @@ export function defaultExamLockRules(): ExamLockRule[] {
 }
 
 /**
- * 输出 `.claude/hooks` 配置 JSON（PreToolUse deny 规则集）。
+ * 输出真实 Claude Code PreToolUse hook 配置（ISS-09 修正）。
  *
- * 形状：`{ hooks: { PreToolUse: [ { matcher, decision, reason }, ... ] } }`，
- * 合法 JSON，可被 Claude Code hooks loader 直接消费。规则集由调用方传入
- * （默认用 `defaultExamLockRules()`）。
+ * 真实 schema：
+ *   {"hooks":{"PreToolUse":[{"matcher":"Write|Edit|MultiEdit|NotebookEdit|Bash",
+ *     "hooks":[{"type":"command","command":"node <abs>/exam-lock-hook.mjs"}]}]}}
+ * 声明式的 decision/pathPattern 在真实 Claude Code 中不存在；由 hook 脚本读
+ * stdin JSON 后返回 hookSpecificOutput.permissionDecision。
  */
 export function buildExamLockHook(rules: ExamLockRule[]): string {
+  const tools = [...new Set(rules.map((r) => r.matcher.tool))];
+  const matcher = tools.join("|");
+  const hookDir = dirname(fileURLToPath(import.meta.url));
+  const hookPath = join(hookDir, "exam-lock-hook.mjs");
   const config = {
     hooks: {
-      PreToolUse: rules.map((r) => ({
-        event: r.event,
-        matcher: r.matcher,
-        decision: r.decision,
-        reason: r.reason,
-      })),
+      PreToolUse: [
+        {
+          matcher,
+          hooks: [{ type: "command", command: `node ${hookPath}` }],
+        },
+      ],
     },
   };
   return JSON.stringify(config, null, 2);

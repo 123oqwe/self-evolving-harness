@@ -90,7 +90,7 @@ jobs:
             exit 1
           fi
           if [ "$ACTUAL" -lt "$BASELINE" ]; then
-            echo "::warning::greens $ACTUAL 祥低于 baseline $BASELINE (容差内, 疑单测抖动)"
+            echo "::warning::greens $ACTUAL 略低于 baseline $BASELINE (容差内, 疑单测抖动)"
           fi
           if [ "$ACTUAL" -gt "$BASELINE" ]; then
             echo "::warning::greens $ACTUAL > baseline $BASELINE — 有新实现, 记得更新 GREENS.baseline"

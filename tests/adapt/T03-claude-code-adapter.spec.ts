@@ -73,7 +73,7 @@ describe("ADP-T03 · exam-lock", () => {
     ];
     // When buildExamLockHook
     const hookJson = buildExamLockHook(rules);
-    // Then 输出合法 JSON + 含三类工具 deny 规则
+    // Then 输出真实 Claude Code schema (ISS-09): matcher 字符串 + command hook
     expect(() => JSON.parse(hookJson)).not.toThrow();
     const parsed = JSON.parse(hookJson);
     const serialized = JSON.stringify(parsed);
@@ -81,8 +81,14 @@ describe("ADP-T03 · exam-lock", () => {
     expect(serialized).toContain("Write");
     expect(serialized).toContain("Edit");
     expect(serialized).toContain("Bash");
-    expect(serialized).toContain("deny");
     expect(serialized).toContain("exam-lock");
+    // ISS-09 真实 schema 断言：command 类型 + 外部脚本路径，无声明式 decision 字段
+    expect(serialized).toContain('"type":"command"');
+    expect(serialized).toContain("exam-lock-hook.mjs");
+    expect(parsed.hooks.PreToolUse[0].hooks[0].type).toBe("command");
+    expect(parsed.hooks.PreToolUse[0].matcher).toContain("Write");
+    // 声明式的 decision 字段不应再出现（旧 schema 已废弃）
+    expect(parsed.hooks.PreToolUse[0].decision).toBeUndefined();
   });
 });
 
