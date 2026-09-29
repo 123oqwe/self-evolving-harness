@@ -114,11 +114,11 @@ export function filterForgedEperm(runs: VerifierRun[]): {
   for (const run of runs) {
     // exactOptionalPropertyTypes: run.epermHits may be undefined; normalize to []
     // (crossCheckEperm internally treats undefined/[] as "no EPERM signal").
-    const check = crossCheckEperm({
-      exitCode: run.exitCode,
-      epermHits: run.epermHits ?? [],
-      sandboxBypassed: run.sandboxBypassed,
-    });
+    const check = crossCheckEperm(
+      run.sandboxBypassed === undefined
+        ? { exitCode: run.exitCode, epermHits: run.epermHits ?? [] }
+        : { exitCode: run.exitCode, epermHits: run.epermHits ?? [], sandboxBypassed: run.sandboxBypassed },
+    );
     if (check.dropped) {
       dropped.push(run);
       warnings.push(
