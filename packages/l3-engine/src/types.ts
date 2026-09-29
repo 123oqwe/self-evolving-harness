@@ -96,7 +96,7 @@ export interface Optimizer {
 //
 // The circular type reference (canary-eval/lucky-pass.ts imports L3 Trajectory)
 // is type-only in both directions and safe under isolatedModules.
-import type { VerifierRun } from "@harness/canary-eval";
+import type { VerifierRun } from "@harness/contracts";
 
 export interface Evaluator {
   score(m: Mutant, split: "train" | "heldout"): Promise<Fitness>;

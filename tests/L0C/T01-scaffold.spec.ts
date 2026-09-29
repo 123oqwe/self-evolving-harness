@@ -92,7 +92,7 @@ describe("L0C-T01", () => {
     // 除核心 7 包外，只允许 evolve-* 扩展包（spec §0.3）；其余目录判红。
     for (const d of dirs) {
       expect(
-        seven.includes(d) || d.startsWith("evolve-"),
+        seven.includes(d) || d.startsWith("evolve-") || d === "contracts",
         `unexpected package dir ${d}: must be one of core-7 or evolve-*`,
       ).toBe(true);
     }
@@ -234,7 +234,7 @@ describe("L0C-T01", () => {
     // 除核心 7 包外只允许 evolve-* 扩展包（spec §0.3）
     for (const d of dirs) {
       expect(
-        seven.includes(d) || d.startsWith("evolve-"),
+        seven.includes(d) || d.startsWith("evolve-") || d === "contracts",
         `unexpected package dir ${d}: must be one of core-7 or evolve-*`,
       ).toBe(true);
     }

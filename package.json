@@ -29,7 +29,8 @@
     "@harness/l3-engine": "workspace:*",
     "@harness/telemetry": "workspace:*",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "@harness/contracts": "workspace:*"
   },
   "engines": {
     "node": ">=20"

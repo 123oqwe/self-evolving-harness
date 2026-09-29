@@ -9,7 +9,8 @@
     "build": "tsc --noEmit"
   },
   "dependencies": {
-    "@harness/l0-sandbox": "workspace:*"
+    "@harness/l0-sandbox": "workspace:*",
+    "@harness/contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0"
