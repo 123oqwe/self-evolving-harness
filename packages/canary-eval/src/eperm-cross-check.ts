@@ -43,7 +43,23 @@ export interface EpermCrossCheckResult {
 export function crossCheckEperm(run: {
   exitCode: number;
   epermHits?: string[];
+  /** ISS-11: 沙箱被旁路时 epermHits 一律不可信（NoneBackend 无内核拒绝审计）。 */
+  sandboxBypassed?: boolean;
 }): EpermCrossCheckResult {
+  // ISS-11: 被旁路沙箱产生的 epermHits 一律丢弃——无内核拒绝审计，stderr 解析不可信。
+  if (run.sandboxBypassed === true) {
+    const hits = run.epermHits ?? [];
+    if (hits.length > 0) {
+      return {
+        verdict: "forged-suspect",
+        reason:
+          `forged-suspect: sandboxBypassed=true — epermHits.length=${hits.length} from a bypassed ` +
+          `sandbox is untrustworthy (no kernel deny audit); dropped (ISS-11 + ISS-05)`,
+        dropped: true,
+      };
+    }
+  }
+
   const hits = run.epermHits ?? [];
   const hasEperm = hits.length > 0;
 
@@ -101,6 +117,7 @@ export function filterForgedEperm(runs: VerifierRun[]): {
     const check = crossCheckEperm({
       exitCode: run.exitCode,
       epermHits: run.epermHits ?? [],
+      sandboxBypassed: run.sandboxBypassed,
     });
     if (check.dropped) {
       dropped.push(run);
