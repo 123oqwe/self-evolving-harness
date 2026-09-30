@@ -171,7 +171,7 @@ cat reports/evolution-run-001.md
    （breaker clause 对齐）。pre-commit 静态检查 + 不变量测试 + 异常熔断回 static
    三层守卫。
 
-2. **考卷锁定（出题权分离，TEST-LOCK §1）**：canary 集对 agent 不可见、不可训、不可改
+2. **考卷锁定（出题权分离，TEST-LOCK §1）**：canary 集对 agent 不可改（静态核心只读 + manifest 哈希钉死 L0 常量，加载时校验）；「不可见」未满足——manifest 在仓库内（见 ISS-06b：hidden 集划分 + 仓库外存储）
    （防 train/eval leakage 与 Thompson 投毒）。`tests/**/*.spec.ts` 由 test-author
    锁定（sha256 gate，`scripts/verify.sh` 领单入口强制重算比对），implementer 不得改
    测试断言——只能加 `skipIf` / 环境门控，涉及锁定文件须走申诉通道。Claude Code 适配器

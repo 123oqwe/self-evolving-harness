@@ -90,6 +90,9 @@ importers:
       '@harness/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@harness/l0-core':
+        specifier: workspace:*
+        version: link:../l0-core
       '@harness/l0-sandbox':
         specifier: workspace:*
         version: link:../l0-sandbox

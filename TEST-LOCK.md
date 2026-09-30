@@ -210,7 +210,7 @@
 
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
-| CE-T01a | `tests/CE/CE-T01a.spec.ts` | `567c736350aa2c6a4c0f33a355f29a73060288edc2751596e6dc97c3cb6b73c6` |
+| CE-T01a | `tests/CE/CE-T01a.spec.ts` | `3a09537b248d8d8eada2e03b89015543e087436093c2d36605f298a26325a5c4` |
 | CE-T01b | `tests/CE/CE-T01b.spec.ts` | `8d85c16a5fb5c7f9d4fcfac23b5a764fa28d339e41f3305cc5e386880501e2dc` |
 | CE-T01c | `tests/CE/CE-T01c.spec.ts` | `98ce3710ab2066ab6af8ad6a9889bc970d91b93aa33ec025187656f59b00b5f2` |
 | CE-T02 | `tests/CE/CE-T02.spec.ts` | `2629040e64d1496b4ab0bb1afd4a4574b058a1e9829a014cf9aef55f7a626c0f` |

@@ -6,6 +6,7 @@
 export {
   loadCanary,
   isDecontaminated,
+  ManifestTamperedError,
 } from "./canary/loader.js";
 
 export {
