@@ -22,10 +22,14 @@ import { computeManifestSha256 } from "./manifest-hash.js";
  * 篡改 manifest（连同自声明 sha256 一起改）无法绕过——除非改 L0 常量（受只读保护）。
  */
 export class ManifestTamperedError extends Error {
-  constructor(public readonly actual: string, public readonly expected: string) {
+  readonly actual: string;
+  readonly expected: string;
+  constructor(actual: string, expected: string) {
     super(
       `canary manifest tampered: computed=${actual.slice(0, 16)}… expected=${expected.slice(0, 16)}… (ISS-06a L0 trust root)`,
     );
+    this.actual = actual;
+    this.expected = expected;
     this.name = "ManifestTamperedError";
   }
 }

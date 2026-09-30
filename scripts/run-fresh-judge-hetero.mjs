@@ -3,7 +3,7 @@
 // Spec: execution/adapt/TASKS.md §REAL-T03.
 //
 // 复用铁律（§0.2）：本脚本只**组装**已实现组件，不新造算法/接口：
-//   - RealLLMPort（REAL-T01, @harness/l3-engine/src/llm/pi-headless-port.ts）
+//   - RealLLMPort（REAL-T01, @harness/l3-engine）
 //     配置不同 model id 实现"异模型判定"（mutate 用 A、judge 用 B，A≠B）。
 //   - runDebiasedJudge + calibrateAgainstL0（CE-T05, @harness/canary-eval）
 //     ——`opts.judge` 注入 RealLLMPort(B) 的 swap A/B 两次评分。
@@ -20,24 +20,23 @@
 
 import { register } from "node:module";
 import { pathToFileURL } from "node:url";
+register(pathToFileURL("./scripts/lib/ts-resolve.mjs").href, import.meta.url);
 import { writeFileSync, mkdirSync } from "node:fs";
 // ISS-12: 报告输出层统一脱敏（repo 根 → <repo>，HOME → ~）。
 import { redactPaths } from "./lib/redact-paths.mjs";
 
 // ── TS 源码直跑 shim（与 run-evolution-001.mjs 同构）─────────────────────────
-register(pathToFileURL("./scripts/lib/ts-resolve.mjs").href, import.meta.url);
-
 const { RealLLMPort } = await import(
-  "@harness/l3-engine/src/llm/pi-headless-port.ts"
+  "@harness/l3-engine"
 );
 const {
   runDebiasedJudge,
   calibrateAgainstL0,
-} = await import("@harness/canary-eval/src/judge-debias.ts");
+} = await import("@harness/canary-eval");
 const {
   SameModelFamilyError,
   extractModelFamily,
-} = await import("@harness/canary-eval/src/judge-pool.ts");
+} = await import("@harness/canary-eval");
 
 // ── 配置：异模型族 pair（不同 provider = 真异模型族）──────────────────────────
 // mutate/agent model A = openai/gpt-4o-mini （family=openai）

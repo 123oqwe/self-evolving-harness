@@ -3,7 +3,7 @@
 // Spec: execution/adapt/TASKS.md §REAL-T02.
 //
 // 复用铁律（§0.2）：本脚本只**组装**已实现组件，不新造算法/接口：
-//   - RealLLMPort（REAL-T01, @harness/l3-engine/src/llm/pi-headless-port.ts）
+//   - RealLLMPort（REAL-T01, @harness/l3-engine）
 //   - ReflectiveMutator（L3-T03，消费 LLMPort + 失败轨迹 → 变异候选）
 //   - loadCanary + runVerify（CE-T01a/CE-T02，@harness/canary-eval）
 //   - NoneBackend（L0S-T02，@harness/l0-sandbox，真实 spawn 产出 exitCode）
@@ -19,6 +19,7 @@
 
 import { register } from "node:module";
 import { pathToFileURL } from "node:url";
+register(pathToFileURL("./scripts/lib/ts-resolve.mjs").href, import.meta.url);
 import {
   readFileSync,
   writeFileSync,
@@ -32,24 +33,22 @@ import { createHash } from "node:crypto";
 import { randomUUID } from "node:crypto";
 
 // ── TS 源码直跑 shim（Node 24 type-stripping + .js→.ts 解析钩子）─────────────
-register(pathToFileURL("./scripts/lib/ts-resolve.mjs").href, import.meta.url);
-
 const { RealLLMPort } = await import(
-  "@harness/l3-engine/src/llm/pi-headless-port.ts"
+  "@harness/l3-engine"
 );
 const { ReflectiveMutator, MalformedMutation } = await import(
-  "@harness/l3-engine/src/reflective-mutation.ts"
+  "@harness/l3-engine"
 );
 const { StrictImprovementGate } = await import(
-  "@harness/l3-engine/src/strict-improvement.ts"
+  "@harness/l3-engine"
 );
-const { bumpVersion } = await import("@harness/l3-engine/src/retain/commit-on-success.ts");
-const { loadCanary } = await import("@harness/canary-eval/src/canary/loader.ts");
-const { runVerify } = await import("@harness/canary-eval/src/verifier.ts");
+const { bumpVersion } = await import("@harness/l3-engine");
+const { loadCanary } = await import("@harness/canary-eval");
+const { runVerify } = await import("@harness/canary-eval");
 const { assertFreshEvidence, AbortSelectError } = await import(
-  "@harness/canary-eval/src/fresh-evidence-gate.ts"
+  "@harness/canary-eval"
 );
-const { NoneBackend } = await import("@harness/l0-sandbox/src/os-sandbox/none.ts");
+const { NoneBackend } = await import("@harness/l0-sandbox");
 // contentSha 等价 = sha256(content)（ADP-T01 port.ts 纯函数，但该模块 runtime-import
 // @harness/l3-engine barrel 会拉起 e2e-adapter.ts 的 TS parameter-property 语法，
 // Node strip-only 模式不支持。contentSha 本身是 createHash 单行工具，非接口契约，
@@ -578,7 +577,7 @@ async function main() {
   push("");
   push("## 附录：复用组件清单（复用铁律 §0.2）");
   push("");
-  push("- `RealLLMPort` (@harness/l3-engine/src/llm/pi-headless-port.ts, REAL-T01)");
+  push("- `RealLLMPort` (@harness/l3-engine, REAL-T01)");
   push("- `ReflectiveMutator` + `MalformedMutation` (L3-T03)");
   push("- `loadCanary` (CE-T01a) + `runVerify` (CE-T02) + `NoneBackend` (L0S-T02)");
   push("- `StrictImprovementGate` (L3-T04) + `assertFreshEvidence` (CE-T07)");

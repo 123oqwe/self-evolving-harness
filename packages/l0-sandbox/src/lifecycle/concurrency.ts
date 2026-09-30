@@ -10,7 +10,8 @@ export class Semaphore {
   private active = 0;
   private readonly waiters: Array<() => void> = [];
 
-  constructor(private readonly max: number) {}
+    private readonly max: number;
+  constructor(max: number) { this.max = max; }
 
   async acquire(): Promise<AcquiredSlot> {
     if (this.active >= this.max) {

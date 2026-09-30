@@ -68,7 +68,8 @@ export function computeSegmentHash(
  * `verify`；`hasEntry` 供 repo 仅对清单覆盖的文件触发校验，避免误判无清单文件。
  */
 export class SignatureVerifier {
-  constructor(private readonly manifest: SignatureManifest) {}
+  private readonly manifest: SignatureManifest;
+  constructor(manifest: SignatureManifest) { this.manifest = manifest; }
 
   /** 该文件是否在签名清单中（是 → load 时校验 safety 段 sha）。 */
   hasEntry(filePath: string): boolean {

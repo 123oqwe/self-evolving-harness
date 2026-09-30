@@ -27,7 +27,8 @@ export interface HttpLlmConfig {
 
 /** OpenAI-compatible HTTP LLM port（Node 内置 fetch，零依赖）。 */
 export class HttpLlmPort implements LLMPort {
-  constructor(private readonly cfg: HttpLlmConfig) {}
+    private readonly cfg: HttpLlmConfig;
+  constructor(cfg: HttpLlmConfig) { this.cfg = cfg; }
   async complete(prompt: string): Promise<string> {
     const url = `${this.cfg.baseUrl.replace(/\/+$/, "")}/chat/completions`;
     const res = await fetch(url, {
