@@ -13,5 +13,9 @@
   },
   "dependencies": {
     "@harness/contracts": "workspace:*"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./experimental": "./src/experimental.ts"
   }
 }

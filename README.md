@@ -236,3 +236,22 @@ reports/                 # 进化循环报告（evolution-run-*.md / metrics-tre
 - `TEST-LOCK.md` 测试锁定规则与 sha256 gate（出题权分离）
 - `docs/adapters.md` 11 家 harness 接入矩阵（PLG-T10）
 - `docs/runbooks/evolution-real.md` 真实进化模式 runbook（密钥配置 + 回滚预案）
+
+## 优化器状态矩阵（ISS-16 选项 A）
+
+| 优化器 | 状态 | 说明 |
+|---|---|---|
+| beam-search（GEPA 降配） | ✅ 已接入 | runEvolutionCycle 主路径 |
+| reflective-mutation | ✅ 已接入 | 变异源 |
+| strict-improvement gate | ✅ 已接入 | select 门 |
+| DSPy MIPRO | 库可用 | 未接入闭环 |
+| **AdasMetaSearchOptimizer** | 🧪 实验性 | 未接入（`@harness/l3-engine/experimental`） |
+| **FullPopulationBeamSearch** | 🧪 实验性 | 未接入 |
+| **FullParetoSelector** | 🧪 实验性 | 未接入 |
+| **IslandArchive** (MAP-Elites) | 🧪 实验性 | 未接入 |
+| **AFlowMctsOptimizer** | 🧪 实验性 | 未接入 |
+| **TextGradOptimizer** | 🧪 实验性 | 未接入 |
+| **BayesianSurrogate** | 🧪 实验性 | 未接入 |
+| WeightChannelGate | 🧪 实验性 | 权重通道 spec，默认关闭 |
+
+> 实验性优化器经测试可达但未接入闭环；接入需先落地 ISS-02/04（canary 因果 + 统计检验）。
