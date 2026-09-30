@@ -8,3 +8,5 @@ coverage/
 .harness/evolve-state.json
 .corepack-home/
 .npm-cache/
+*.log
+baseline-gen.log

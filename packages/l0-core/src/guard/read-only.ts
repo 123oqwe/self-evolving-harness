@@ -122,3 +122,13 @@ export async function enforceReadOnly(
     await originalWritePath(p);
   };
 }
+
+// ---------------------------------------------------------------------------
+// ISS-06a: canary manifest 内容哈希钉死为 L0 常量（信任根）。
+// ---------------------------------------------------------------------------
+// canary 集当前仅满足「不可改」（STATIC_CORE_DIRS 含 packages/canary-eval/canary），
+// 未满足「不可见」（manifest 在仓库内）。此常量是把 manifest 冻结内容钉进不可变
+// 核心的最小信任根：loadCanary 校验计算哈希 === 此常量，篡改 manifest（连同其自
+// 声明 sha256 一起改）也无法通过——除非同时改本 L0 常量（受 static-core 只读保护）。
+export const CANARY_MANIFEST_SHA256 =
+  "189f6182d8bd6a621f0be0241c8a8a48250e62d4229ab63152dbf0993b0674ed";

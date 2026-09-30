@@ -4,7 +4,7 @@
 > 工作流配置的 **agent 运行时底座**——把"进化闭环"从绑定单一宿主中抽出来，同一套
 > L0–L3 抽象可跑在 pi / Claude Code / 任意通用 harness 上。
 
-本仓库是 PRD §1（执行摘要）与 ARCHITECTURE.txt 的工程落地：四层基质分层
+本仓库是自进化 agent harness 层（L0 不可变核心 → L3 进化引擎）的工程落地：四层基质分层
 （L0 不可变核心 / L1 离线版本化配置 / L2 在线记忆与技能 / L3 进化引擎）+
 适配层（`adapters/`）+ 信任域严格分离（brain / hands / session log）。所有进化变更
 走 `mine → mutate → score → select → deploy → verify` 闭环，优先确定性验证器
@@ -69,7 +69,7 @@ never-auto-delete 回滚，最坏情况一条 `git checkout` 回滚全部基质�
      SESSION LOG(append-only 独立日志, crash 后 wake(sessionId) 重水化)
 ```
 
-> 架构图素材取自 `ARCHITECTURE.txt`；适配层（`adapters/`）位于 L3 之下、harness 宿主
+> 适配层（`adapters/`）位于 L3 之下、harness 宿主
 > 之上，把宿主耦合（基质路径 / 轨迹格式 / LLM 调用 / 部署机制）抽成显式 `HarnessPort`。
 
 ---
@@ -171,7 +171,7 @@ cat reports/evolution-run-001.md
    （breaker clause 对齐）。pre-commit 静态检查 + 不变量测试 + 异常熔断回 static
    三层守卫。
 
-2. **考卷锁定（出题权分离，TEST-LOCK §1）**：canary 集对 agent 不可见、不可训、不可改
+2. **考卷锁定（出题权分离，TEST-LOCK §1）**：canary 集对 agent 不可改（静态核心只读 + manifest 哈希钉死 L0 常量，加载时校验）；「不可见」未满足——manifest 在仓库内（见 ISS-06b：hidden 集划分 + 仓库外存储）
    （防 train/eval leakage 与 Thompson 投毒）。`tests/**/*.spec.ts` 由 test-author
    锁定（sha256 gate，`scripts/verify.sh` 领单入口强制重算比对），implementer 不得改
    测试断言——只能加 `skipIf` / 环境门控，涉及锁定文件须走申诉通道。Claude Code 适配器
@@ -229,8 +229,10 @@ reports/                 # 进化循环报告（evolution-run-*.md / metrics-tre
 
 ## 相关文档
 
-- `PRD.md` §1 执行摘要 · §9 成功指标 · §11 安全与合规要求
-- `ARCHITECTURE.txt` 总体架构（L0–L3 + 信任域 + 进化元循环）
-- `execution/adapt/TASKS.md` 适配层任务规格（本 README 的数据源）
-- `TEST-LOCK.md` 测试锁定规则与 sha256 gate
+> 规划文档（PRD / ARCHITECTURE.txt / execution/*/TASKS.md / ERRATA-w01/02）在仓库外的
+> `~/self-evolving-harness/` 目录，不随代码公开（含演进与裁决记录）。代码内任务号
+> （如 `L3-T04`）指向这些仓库外规划文档；本 README 只内联了落地后的真实状态。
+
+- `TEST-LOCK.md` 测试锁定规则与 sha256 gate（出题权分离）
+- `docs/adapters.md` 11 家 harness 接入矩阵（PLG-T10）
 - `docs/runbooks/evolution-real.md` 真实进化模式 runbook（密钥配置 + 回滚预案）

@@ -79,7 +79,7 @@ describe("CE-T01a", () => {
 
   it("should load >=30 decontaminated tasks", () => {
     const p = writeManifest(dir, 32);
-    const m: CanaryManifest = loadCanary(p);
+    const m: CanaryManifest = loadCanary(p, { verifyHash: false });
 
     expect(m.tasks.length).toBeGreaterThanOrEqual(30);
     for (const t of m.tasks) {
@@ -112,7 +112,7 @@ describe("CE-T01a", () => {
   it("should keep agentVisible=false invariant", () => {
     // 正常 manifest：加载后 agentVisible 仍为 false
     const p = writeManifest(dir, 32);
-    const m = loadCanary(p);
+    const m = loadCanary(p, { verifyHash: false });
     expect(m.agentVisible).toBe(false);
 
     // 不变量违反：manifest 声明 agentVisible: true → loadCanary 必须拒绝（throw）

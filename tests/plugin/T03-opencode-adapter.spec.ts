@@ -85,7 +85,7 @@ describe("PLG-T03 OpenCodeAdapter", () => {
     const a = newAdapter(repo.root);
     const staged = await a.writeSubstrate("opencode/AGENTS.md", "# mutated\n");
     const headBefore = repo.head();
-    const out = await captureStdout(() => a.deploy(staged.sha));
+    const out = await captureStderr(() => a.deploy(staged.sha));
     expect(repo.head()).not.toBe(headBefore);
     expect(out).toMatch(/restart opencode/i);
   });
@@ -126,17 +126,17 @@ describe("PLG-T03 OpenCodeAdapter", () => {
   });
 });
 
-async function captureStdout(fn: () => Promise<unknown>): Promise<string> {
+async function captureStderr(fn: () => Promise<unknown>): Promise<string> {
   let output = "";
-  const orig = process.stdout.write.bind(process.stdout);
-  (process.stdout as { write: (s: string) => boolean }).write = (s: string) => {
+  const orig = process.stderr.write.bind(process.stderr);
+  (process.stderr as { write: (s: string) => boolean }).write = (s: string) => {
     output += s;
     return true;
   };
   try {
     await fn();
   } finally {
-    process.stdout.write = orig as typeof process.stdout.write;
+    process.stderr.write = orig as typeof process.stderr.write;
   }
   return output;
 }

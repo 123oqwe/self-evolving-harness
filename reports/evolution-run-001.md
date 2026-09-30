@@ -136,9 +136,9 @@ canary 集来源: `packages/canary-eval/canary/manifest.yaml` (loadCanary, CE-T0
 
 | taskId | exitCode | ms | stdout 摘要 | sandboxBypassed |
 |---|---|---|---|---|
-| CE-TASK-0001 | 0 | 1363 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T02-turn.s | true |
-| CE-TASK-0002 | 0 | 1260 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T03-stop.s | true |
-| CE-TASK-0003 | 0 | 1245 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T04-retry- | true |
+| CE-TASK-0001 | 0 | 1363 |  RUN v2.1.9 <repo> ✓ tests/L0C/T02-turn.s | true |
+| CE-TASK-0002 | 0 | 1260 |  RUN v2.1.9 <repo> ✓ tests/L0C/T03-stop.s | true |
+| CE-TASK-0003 | 0 | 1245 |  RUN v2.1.9 <repo> ✓ tests/L0C/T04-retry- | true |
 
 baseline Fitness: resolve_rate=1, token=868, cache_hit=0
 

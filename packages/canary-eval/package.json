@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@harness/l0-sandbox": "workspace:*",
-    "@harness/contracts": "workspace:*"
+    "@harness/contracts": "workspace:*",
+    "@harness/l0-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.0"

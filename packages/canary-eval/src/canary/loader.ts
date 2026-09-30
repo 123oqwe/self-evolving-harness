@@ -14,6 +14,21 @@
 
 import { readFileSync } from "node:fs";
 import type { CanaryManifest, CanaryTask, Trajectory } from "./types.js";
+import { CANARY_MANIFEST_SHA256 } from "@harness/l0-core";
+import { computeManifestSha256 } from "./manifest-hash.js";
+
+/**
+ * ISS-06a: 加载时校验 manifest 内容哈希 === L0 钉死常量。
+ * 篡改 manifest（连同自声明 sha256 一起改）无法绕过——除非改 L0 常量（受只读保护）。
+ */
+export class ManifestTamperedError extends Error {
+  constructor(public readonly actual: string, public readonly expected: string) {
+    super(
+      `canary manifest tampered: computed=${actual.slice(0, 16)}… expected=${expected.slice(0, 16)}… (ISS-06a L0 trust root)`,
+    );
+    this.name = "ManifestTamperedError";
+  }
+}
 
 /**
  * 判定单条 canary 任务是否去污染（repo 结构定位不命中 trainSet）。
@@ -40,7 +55,18 @@ export function isDecontaminated(
  *
  * @throws 当 manifest 声明 `agentVisible: true`（不变量违反）或 schema 反序列化失败。
  */
-export function loadCanary(manifestPath: string): CanaryManifest {
+export function loadCanary(
+  manifestPath: string,
+  opts?: { verifyHash?: boolean },
+): CanaryManifest {
+  // ISS-06a: 加载时校验 manifest 哈希与 L0 钉死常量一致，防篡改。
+  // verifyHash=false 仅用于动态 fixture 的解析单元测试（不经过真实 manifest）。
+  if (opts?.verifyHash !== false) {
+    const actualSha = computeManifestSha256(manifestPath);
+    if (actualSha !== CANARY_MANIFEST_SHA256) {
+      throw new ManifestTamperedError(actualSha, CANARY_MANIFEST_SHA256);
+    }
+  }
   const text = readFileSync(manifestPath, "utf8");
   return parseCanaryManifest(text);
 }

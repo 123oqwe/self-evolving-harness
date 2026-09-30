@@ -210,7 +210,7 @@
 
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
-| CE-T01a | `tests/CE/CE-T01a.spec.ts` | `567c736350aa2c6a4c0f33a355f29a73060288edc2751596e6dc97c3cb6b73c6` |
+| CE-T01a | `tests/CE/CE-T01a.spec.ts` | `3a09537b248d8d8eada2e03b89015543e087436093c2d36605f298a26325a5c4` |
 | CE-T01b | `tests/CE/CE-T01b.spec.ts` | `8d85c16a5fb5c7f9d4fcfac23b5a764fa28d339e41f3305cc5e386880501e2dc` |
 | CE-T01c | `tests/CE/CE-T01c.spec.ts` | `98ce3710ab2066ab6af8ad6a9889bc970d91b93aa33ec025187656f59b00b5f2` |
 | CE-T02 | `tests/CE/CE-T02.spec.ts` | `2629040e64d1496b4ab0bb1afd4a4574b058a1e9829a014cf9aef55f7a626c0f` |
@@ -282,7 +282,7 @@
 | PLG-T01 | `tests/plugin/T01-evolve-core.spec.ts` | `2b1af89c2d2c79716ef32de2c1cb4df92b74e8bd89fbab664054c161f84773a9` |
 | PLG-T02 | `tests/plugin/T02-codex-adapter.spec.ts` | `716036e32172d9890f4a2e4cec4069df51c97bac287c8f83f9b5a0f0cb0a2551` |
 | PLG-T02 | `tests/plugin/T02-codex-smoke.spec.ts` | `d6a7b63ec68e60b511c2a03379c0f792a00c91d58833eb6936173f494e690948` |
-| PLG-T03 | `tests/plugin/T03-opencode-adapter.spec.ts` | `05f27cc5b0083a102b1af31f25ada423977130e62f1521fe1e32773b3c553555` |
+| PLG-T03 | `tests/plugin/T03-opencode-adapter.spec.ts` | `5ed80ea24761b7b25da0d3e84b73d68088f4d48aae9d32cf85c59229cade1934` |
 | PLG-T04 | `tests/plugin/T04-hermes-adapter.spec.ts` | `abae112271fe4c35fef8ecd1f1b2947fafeb04dbf7fe0829f2a5c6d72fe649dc` |
 | PLG-T05 | `tests/plugin/T05-openclaw-adapter.spec.ts` | `209940ab73af01b0d2f8a9e8736844c1a97e885cc46352c491eea8a686fd7dca` |
 | PLG-T06 | `tests/plugin/T06-cursor-adapter.spec.ts` | `5cccef11a2cac2ff74a9ce7d88d667f7d1dcbcb52d81704d81261f90262a8fc0` |
