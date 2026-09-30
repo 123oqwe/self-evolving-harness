@@ -133,9 +133,8 @@ export class OpenCodeAdapter implements HarnessPort {
       // configDir 不可写不阻塞 deploy（git 已落）。
     }
     // 提示重启 opencode 以加载新基质（调研明确运行中不热重载）。
-    // 直写 process.stdout（而非 console.log）以兼容测试对 stdout 的捕获
-    // （vitest 拦截 console.log，不经过 process.stdout.write）。
-    process.stdout.write("[opencode] restart opencode to load new substrate\n");
+    // ISS-24: 改 stderr——库代码不得写 stdout（污染 vitest --reporter=json 流）。
+    process.stderr.write("[opencode] restart opencode to load new substrate\n");
     return Object.freeze({
       version,
       sha: newHead,

@@ -282,7 +282,7 @@
 | PLG-T01 | `tests/plugin/T01-evolve-core.spec.ts` | `2b1af89c2d2c79716ef32de2c1cb4df92b74e8bd89fbab664054c161f84773a9` |
 | PLG-T02 | `tests/plugin/T02-codex-adapter.spec.ts` | `716036e32172d9890f4a2e4cec4069df51c97bac287c8f83f9b5a0f0cb0a2551` |
 | PLG-T02 | `tests/plugin/T02-codex-smoke.spec.ts` | `d6a7b63ec68e60b511c2a03379c0f792a00c91d58833eb6936173f494e690948` |
-| PLG-T03 | `tests/plugin/T03-opencode-adapter.spec.ts` | `05f27cc5b0083a102b1af31f25ada423977130e62f1521fe1e32773b3c553555` |
+| PLG-T03 | `tests/plugin/T03-opencode-adapter.spec.ts` | `5ed80ea24761b7b25da0d3e84b73d68088f4d48aae9d32cf85c59229cade1934` |
 | PLG-T04 | `tests/plugin/T04-hermes-adapter.spec.ts` | `abae112271fe4c35fef8ecd1f1b2947fafeb04dbf7fe0829f2a5c6d72fe649dc` |
 | PLG-T05 | `tests/plugin/T05-openclaw-adapter.spec.ts` | `209940ab73af01b0d2f8a9e8736844c1a97e885cc46352c491eea8a686fd7dca` |
 | PLG-T06 | `tests/plugin/T06-cursor-adapter.spec.ts` | `5cccef11a2cac2ff74a9ce7d88d667f7d1dcbcb52d81704d81261f90262a8fc0` |
