@@ -73,7 +73,8 @@ class EvolveSandbox implements Sandbox {
   public readonly log: { securityEvents: SecurityEvent[] } = {
     securityEvents: [],
   };
-  constructor(private readonly workspaceDir: string) {}
+    private readonly workspaceDir: string;
+  constructor(workspaceDir: string) { this.workspaceDir = workspaceDir; }
   async runVerify(
     cmd: string,
     opts?: { cwd?: string; timeoutMs?: number },
@@ -129,15 +130,31 @@ class InlineEvaluator implements Evaluator {
   /** 最后一个通过 fresh-evidence 门的变异内容（供 deploy 写回）。 */
   public retainedContent: string | null = null;
 
+  private readonly harnessPort: HarnessPort;
+  private readonly sandbox: Sandbox;
+  private readonly canary: EvolveCanaryTask[];
+  private readonly workspaceDir: string;
+  private readonly substrateId: string;
+  private readonly baselineContent: string;
+  private readonly trajectories: Trajectory[];
+
   constructor(
-    private readonly harnessPort: HarnessPort,
-    private readonly sandbox: Sandbox,
-    private readonly canary: EvolveCanaryTask[],
-    private readonly workspaceDir: string,
-    private readonly substrateId: string,
-    private readonly baselineContent: string,
-    private readonly trajectories: Trajectory[],
-  ) {}
+    harnessPort: HarnessPort,
+    sandbox: Sandbox,
+    canary: EvolveCanaryTask[],
+    workspaceDir: string,
+    substrateId: string,
+    baselineContent: string,
+    trajectories: Trajectory[],
+  ) {
+    this.harnessPort = harnessPort;
+    this.sandbox = sandbox;
+    this.canary = canary;
+    this.workspaceDir = workspaceDir;
+    this.substrateId = substrateId;
+    this.baselineContent = baselineContent;
+    this.trajectories = trajectories;
+  }
 
   private async runCanary(): Promise<VerifierRun[]> {
     const runs: VerifierRun[] = [];

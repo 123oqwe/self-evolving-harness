@@ -187,7 +187,8 @@ const PRECEDENCE: Record<string, number> = {
 
 class Parser {
   private pos = 0;
-  constructor(private readonly toks: Tok[]) {}
+    private readonly toks: Tok[];
+  constructor(toks: Tok[]) { this.toks = toks; }
 
   parse(): ASTNode {
     const body: ASTNode[] = [];

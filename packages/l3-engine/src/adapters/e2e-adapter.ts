@@ -127,7 +127,8 @@ class E2ESandbox implements Sandbox {
    * 命令（捕获 exitCode）以产出机械证据，assertReadonly 仅强制 e2e 局域
    * 不变量（workspace 不得包含 static-core 子树）。
    */
-  constructor(private readonly workspaceDir: string) {}
+    private readonly workspaceDir: string;
+  constructor(workspaceDir: string) { this.workspaceDir = workspaceDir; }
   async runVerify(
     cmd: string,
     opts?: { cwd?: string; timeoutMs?: number },
@@ -187,11 +188,18 @@ const DEFAULT_GOOD_OBS: CanaryObservations = {
 class ModeEvaluator {
   private callIdx = 0;
   private _lastFitness: Fitness | null = null;
+  private readonly mode: MutationSource["mode"];
+  private readonly sandbox: Sandbox;
+  private readonly canary: MiniCanaryTask[];
   constructor(
-    private readonly mode: MutationSource["mode"],
-    private readonly sandbox: Sandbox,
-    private readonly canary: MiniCanaryTask[],
-  ) {}
+    mode: MutationSource["mode"],
+    sandbox: Sandbox,
+    canary: MiniCanaryTask[],
+  ) {
+    this.mode = mode;
+    this.sandbox = sandbox;
+    this.canary = canary;
+  }
   async score(m: Mutant, _split: "train" | "heldout"): Promise<Fitness> {
     this.callIdx += 1;
     let fitness: Fitness;

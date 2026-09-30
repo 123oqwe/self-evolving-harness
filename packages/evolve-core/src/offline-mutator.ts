@@ -27,7 +27,8 @@ import type { Trajectory } from "@harness/l3-engine";
  * 只负责 mine 步的 diagnosis 源裁决。
  */
 export class OfflineMutator {
-  constructor(private readonly offline: boolean) {}
+    private readonly offline: boolean;
+  constructor(offline: boolean) { this.offline = offline; }
 
   /**
    * 裁决 mine 步的 failure diagnosis 源。

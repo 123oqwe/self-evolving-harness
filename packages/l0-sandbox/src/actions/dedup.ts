@@ -10,7 +10,8 @@ import type { Observation } from "./protocol.js";
 export class ToolUseIdDedup {
   private readonly index = new Map<string, Observation>();
 
-  constructor(private readonly sessionId: string) {}
+    private readonly sessionId: string;
+  constructor(sessionId: string) { this.sessionId = sessionId; }
 
   private key(toolUseId: string): string {
     return `${this.sessionId}:${toolUseId}`;

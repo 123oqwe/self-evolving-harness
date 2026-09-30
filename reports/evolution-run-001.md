@@ -1,6 +1,6 @@
 # REAL-T02 · 首次真实进化循环报告 (evolution-run-001)
 
-> 生成时间: 2026-09-23T21:23:45.517Z
+> 生成时间: 2026-09-30T15:32:45.407Z
 > 执行节点: local (pi -p 真实 LLM)
 > Spec: execution/adapt/TASKS.md §REAL-T02
 
@@ -116,14 +116,12 @@ Never o
 ### 3.2 真实 LLM 输出（raw reply，截断至 3000 字符）
 
 ```
-[{"content":"# Compaction Summary\n\nThe messages above are a conversation to summarize. Produce a structured context\ncheckpoint that another LLM will use to continue the work with zero information\nloss on the three failure axes below.\n\n## Output format (use these headings verbatim)\n\n## Goal\n[What the user is trying to accomplish. Multiple items allowed if the session\nspans different tasks.]\n\n## Constraints\n- [Constraints, preferences, or requirements stated by the user]\n- [Or \"(none)\"]\n\n## Progress\n### Done\n- [x] [Completed tasks/changes]\n\n### In Progress\n- [ ] [Current work]\n\n### Blocked — UNRESOLVED ISSUES (never omit, never merge into Done/In Progress)\n- [Every unresolved bug, failing test, or open question. One bullet per issue.\n   If there are none, write exactly: \"(none — all issues resolved)\".\n   Do NOT delete this heading even if empty.]\n\n## Decisions\n- **[Decision]**: [Rationale]\n\n## Next Steps\n1. [Ordered list]\n\n## Critical Context — PRESERVE VERBATIM\n- [Copy error messages, stack traces, and exception text in full. Do not\n   paraphrase, summarize, or truncate. If a message exceeds ~500 chars, still\n   include the complete text; length is never a reason to shorten.\n- Include the exact tool_use_id and tool name for any tool result that the next\n   LLM may need to reference.]\n- [Or \"(none)\"]\n\n<read-files>\n- [Exact file paths read this session, one per line]\n</read-files>\n\n<modified-files>\n- [Exact file paths created/modified this session, one per line]\n- For each path, append the producing tool_use_id in the form:\n   path/to/file  (tool_use_id=call_XXXX, tool=edit|write|bash)\n  so the next LLM can cite a real, existing tool_use_id. List every tool call\n  that touched the file, including overwrites.\n</modified-files>\n\n<safety>\n1. Never omit unresolved bugs from Progress > Blocked. If you are tempted to\n   merge Blocked into another section, STOP — keep it separate.\n2. Never drop a tool_use_id pairing. Every entry in <modified-files> must carry\n   its producing tool_use_id; every tool_use_id referenced in Critical Context\n   must exist in <modified-files> or in the messages above.\n3. Never truncate error messages. Copy them verbatim into Critical Context.\n</safety>\n\nKeep prose sections concise, but never trade accuracy for brevity. Preserve\nexact file paths, function names, tool_use_ids, and error strings.\n"},{"content":"# Compaction Summary\n\nYou are compacting the conversation above into a checkpoint for a fresh LLM.\nThree classes of loss have caused downstream failures; this template is\nhardened against them. Follow the format exactly.\n\n## Goal\n[The user's objective(s). Multiple bullets if the session covers several tasks.]\n\n## Constraints\n- [Stated constraints / preferences / requirements]\n- [Or \"(none)\"]\n\n## Progress\n### Done\n- [x] ...\n\n### In Progress\n- [ ] ...\n\n### Open Issues  ← MANDATORY SECTION, DO NOT DELETE\nList every unresolved bug, fail
+(无输出/调用失败)
 ```
 
-### 3.3 解析结果: ✅ 3 个有效变异候选
+### 3.3 解析结果: ❌ PiHeadlessError — pi headless non-zero exit after 3 attempt(s)
 
-- 候选 0: id=`r-0`, origin=`reflective`, parentSha=de3eb464202a…, content=2340 bytes
-- 候选 1: id=`r-1`, origin=`reflective`, parentSha=de3eb464202a…, content=2537 bytes
-- 候选 2: id=`r-2`, origin=`reflective`, parentSha=de3eb464202a…, content=2459 bytes
+该候选丢弃（spec §边界：LLM 输出非法 JSON → 记录 MalformedMutation + 丢弃，循环继续）。
 
 ## 4. score 步：≥3 canary 任务上的 VerifierRun
 
@@ -136,99 +134,52 @@ canary 集来源: `packages/canary-eval/canary/manifest.yaml` (loadCanary, CE-T0
 
 | taskId | exitCode | ms | stdout 摘要 | sandboxBypassed |
 |---|---|---|---|---|
-| CE-TASK-0001 | 0 | 1363 |  RUN v2.1.9 <repo> ✓ tests/L0C/T02-turn.s | true |
-| CE-TASK-0002 | 0 | 1260 |  RUN v2.1.9 <repo> ✓ tests/L0C/T03-stop.s | true |
-| CE-TASK-0003 | 0 | 1245 |  RUN v2.1.9 <repo> ✓ tests/L0C/T04-retry- | true |
+| CE-TASK-0001 | 0 | 6716 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T02-turn.s | true |
+| CE-TASK-0002 | 0 | 6410 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T03-stop.s | true |
+| CE-TASK-0003 | 0 | 7546 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T04-retry- | true |
 
-baseline Fitness: resolve_rate=1, token=868, cache_hit=0
+baseline Fitness: resolve_rate=1, token=878, cache_hit=0
 
-### 4.2 候选评分
-
-> **诚实声明（substrate 不敏感性）**：implementer 范围禁止改 real repo 的
-> `packages/l1-config/prompts/compaction-summary.md`（「只动自己范围」约束），且已核实
-> 所选 canary 任务（L0C 单测）均使用各自 fixture workspace，**不读取** real compaction prompt
-> 文件。故候选内容未被部署至 canary 可见路径，canary verify 对候选与 baseline 产出**相同**
-> `VerifierRun`。候选 Fitness = baseline Fitness。这是 v0 canary 集对 compaction prompt 基质
-> 不敏感的真实发现（非伪造——见下 select 步如实记录 Δ=0）。
-
-- 候选 `r-0`: resolve_rate=1 (= baseline, Δ=0)
-- 候选 `r-1`: resolve_rate=1 (= baseline, Δ=0)
-- 候选 `r-2`: resolve_rate=1 (= baseline, Δ=0)
+### 4.2 候选评分: 跳过（mutate 步无有效候选）
 
 ## 5. select 步：StrictImprovementGate + assertFreshEvidence
 
 - τ (per-dim): { resolve_rate: 0, token: 0, cache_hit: 0 }（最严：任一退化即 reject）
 
-### 候选 `r-0`
-
-- assertFreshEvidence: ✅ pass
-  - verifications: 3 条; exitCodes=[0,0,0]
-- StrictImprovementGate.decide: accept=true, deltas={"resolve_rate":0,"token":0,"cache_hit":0}, regressions=[]
-
-### 候选 `r-1`
-
-- assertFreshEvidence: ✅ pass
-  - verifications: 3 条; exitCodes=[0,0,0]
-- StrictImprovementGate.decide: accept=true, deltas={"resolve_rate":0,"token":0,"cache_hit":0}, regressions=[]
-
-### 候选 `r-2`
-
-- assertFreshEvidence: ✅ pass
-  - verifications: 3 条; exitCodes=[0,0,0]
-- StrictImprovementGate.decide: accept=true, deltas={"resolve_rate":0,"token":0,"cache_hit":0}, regressions=[]
+无有效候选 → select 步跳过。
 
 ## 6. deploy 步
 
-候选 `r-0` 通过 select（assertFreshEvidence ✅ + gate accept）→ 部署。
+无候选通过 select → 不部署。
 
-> **隔离部署**：deploy 在临时 git workspace（`.harness/evolution-run-001/deploy-<uuid>/`）
-> 执行，**不**写 real repo、**不**改 `adapt-impl` 分支（遵守 implementer「禁 git commit / 只动自己范围」）。
-> deploy git commit 真实落 workspace 仓库，记录 sha + version + rollbackTo。
+## 7. verify 步
 
-- version: `compaction-summary.mdV2` (bumpVersion, L3-T08)
-- deploy sha: `fc7ec74a4f450f03b1c1d20c47b94f2618460e3f`
-- rollbackTo (部署前 HEAD): `d5fa8697f0821f7ecebb8c0feeeee64841261e95`
-- workspace: `.harness/evolution-run-001/deploy-d3db34b2-1ce9-4a60-94ec-ec7ac1d400ac`
-
-- rollback 演练: ✅ `git checkout d5fa8697f082… -- prompts/compaction-summary.md` 成功（L1-T01 回滚语义）
-
-## 7. verify 步：回归 canary（部署后 vs baseline）
-
-部署落隔离 workspace，real repo 未变更 → 回归 canary 评分 = baseline 评分（如实记录）：
-
-| taskId | baseline exitCode | post-deploy exitCode | Δ |
-|---|---|---|---|
-| CE-TASK-0001 | 0 | 0 | 0 |
-| CE-TASK-0002 | 0 | 0 | 0 |
-| CE-TASK-0003 | 0 | 0 | 0 |
-
-post-deploy resolve_rate=1 (= baseline 1)
+无部署 → 无回归验证。
 
 ## 8. 最终结论
 
-**decision: ACCEPT (no-regression)，lift = Δresolve_rate = 0.0000**
+**decision: REJECT_ALL**
 
-gate 接受候选 `r-0`（无退化：Δ=0），但 **lift=0**——未检测到真实改进。
-原因（真实发现，非伪造）：v0 canary 集对 compaction prompt 基质**不敏感**——所选 canary 任务
-（L0C 单测）使用各自 fixture，不消费 real compaction prompt，故候选与 baseline 的 VerifierRun
-完全相同。strict-improvement gate 为 no-regression 语义（仅退化即 reject），Δ=0 通过门但非真实提升。
+mutate 步 LLM 输出非法 JSON（MalformedMutation），全部候选丢弃，无候选进入 score/select。
+这是诚实结果——**未伪造任何 lift**。mutate 步 raw reply 原文已记录于 §3.2，可供复核。
 
-**未伪造成功**：本报告如实记录 lift=0，部署仅为演练 deploy/rollback 机制，不声称进化成功。
-建议 V1 引入 compaction-specific canary（如 recall 信号回归测试）以提供真实区分力。
+- reject 步: mutate
+- 依据: LLM 输出非合法 JSON 数组（ReflectiveMutator 抛 MalformedMutation）
+- lift: N/A（无候选评分）
 
 ## metrics (machine-parseable, OPS-T02 字段约定)
 
-decision: accept
-lift: 0.0000
-retained: 1
-rejected: 2
-tokens: 4340
+decision: reject
+lift: n/a (reject)
+retained: 0
+rejected: 0
+tokens: 878
 
 ---
 
 ## 附录：复用组件清单（复用铁律 §0.2）
 
-- `RealLLMPort` (@harness/l3-engine/src/llm/pi-headless-port.ts, REAL-T01)
+- `RealLLMPort` (@harness/l3-engine, REAL-T01)
 - `ReflectiveMutator` + `MalformedMutation` (L3-T03)
 - `loadCanary` (CE-T01a) + `runVerify` (CE-T02) + `NoneBackend` (L0S-T02)
 - `StrictImprovementGate` (L3-T04) + `assertFreshEvidence` (CE-T07)
