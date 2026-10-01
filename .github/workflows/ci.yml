@@ -33,6 +33,9 @@ jobs:
           node-version: 22
       - name: Verify locked test sha256 against TEST-LOCK.md §2
         run: node scripts/lib/test-lock-check.mjs
+      - name: ISS-26 commit prefix check (tests/ or TEST-LOCK.md touches need test-lock:)
+        if: github.event_name == 'pull_request'
+        run: node scripts/lib/test-lock-check.mjs --commits ${{ github.event.pull_request.base.sha }}..HEAD
 
   # ── 哨兵门: 已实现任务的测试必须全绿, 不许回归 ─────────────────────
   # 这是权威验收: 本地跑的不算数, 这里 exit 0 才算过

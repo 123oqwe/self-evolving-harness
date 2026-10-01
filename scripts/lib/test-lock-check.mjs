@@ -33,6 +33,7 @@
 //   2  usage error / TEST-LOCK.md unreadable
 
 import { createHash } from "node:crypto";
+import { execSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -55,6 +56,41 @@ for (let i = 0; i < args.length; i++) {
     process.stderr.write(`test-lock-check: unknown arg '${a}'\n`);
     process.exit(2);
   }
+}
+
+// ISS-26: --commits 模式 —— 触碰 tests/ 或 TEST-LOCK.md 的提交必须带 test-lock: 前缀。
+if (commitsRange) {
+  const root = findRepoRoot(process.cwd());
+  let log = "";
+  try {
+    log = execSync(`git -C "${root}" log --format="%H|%s" ${commitsRange}`, { encoding: "utf8" });
+  } catch (e) {
+    process.stderr.write(`test-lock-check --commits: git log failed: ${e.message}\n`);
+    process.exit(2);
+  }
+  const commits = log.trim().split("\n").filter(Boolean).map((l) => {
+    const i = l.indexOf("|");
+    return { hash: l.slice(0, i), subject: l.slice(i + 1) };
+  });
+  const bad = [];
+  for (const c of commits) {
+    let files = "";
+    try {
+      files = execSync(`git -C "${root}" diff-tree --no-commit-id --name-only -r "${c.hash}"`, { encoding: "utf8" });
+    } catch { continue; }
+    const touches = files.split("\n").some((f) =>
+      f.startsWith("tests/") || f === "TEST-LOCK.md");
+    if (touches && !c.subject.startsWith("test-lock:")) {
+      bad.push(`${c.hash.slice(0, 8)} "${c.subject}" (touches locked files without test-lock: prefix)`);
+    }
+  }
+  if (bad.length > 0) {
+    process.stderr.write(`test-lock-check --commits: ${bad.length} violation(s):\n`);
+    for (const b of bad) process.stderr.write("  " + b + "\n");
+    process.exit(1);
+  }
+  process.stdout.write(`test-lock-check --commits: ok (${commits.length} commits checked)\n`);
+  process.exit(0);
 }
 
 // Resolve repo root from CWD: walk up until TEST-LOCK.md is found.
@@ -204,41 +240,3 @@ if (!quiet) {
   process.stdout.write(`test-lock-check: ${table.length} locked files intact, 0 violations\n`);
 }
 process.exit(0);
-
-// ISS-26: --commits 模式 —— 触碰 tests/ 或 TEST-LOCK.md 的提交必须带 test-lock: 前缀。
-if (commitsRange) {
-  import("node:child_process").then(({ execSync }) => {
-    const root = findRepoRoot(process.cwd());
-    let subjects = {};
-    try {
-      subjects = execSync(`git -C "${root}" log --format="%H|%s" ${commitsRange}`, { encoding: "utf8" })
-        .trim().split("\n").filter(Boolean).reduce((m, l) => {
-          const [h, ...rest] = l.split("|");
-          m[h] = rest.join("|");
-          return m;
-        }, {});
-    } catch (e) {
-      console.error(`test-lock-check --commits: git log failed: ${e.message}`);
-      process.exit(2);
-    }
-    const bad = [];
-    for (const [hash, subject] of Object.entries(subjects)) {
-      let files = "";
-      try {
-        files = execSync(`git -C "${root}" diff-tree --no-commit-id --name-only -r "${hash}"`, { encoding: "utf8" });
-      } catch (e) { continue; }
-      const touchesLocked = files.split("\n").some((f) =>
-        f.startsWith("tests/") || f === "TEST-LOCK.md" || f.startsWith("scripts/lib/"));
-      if (touchesLocked && !subject.startsWith("test-lock:")) {
-        bad.push(`${hash.slice(0, 8)} ${subject} (touches tests//TEST-LOCK without test-lock: prefix)`);
-      }
-    }
-    if (bad.length > 0) {
-      console.error(`test-lock --commits: ${bad.length} commit(s) violate ISS-26:`);
-      for (const b of bad) console.error("  " + b);
-      process.exit(1);
-    }
-    console.log(`test-lock --commits: ok (${Object.keys(subjects).length} commits checked)`);
-    process.exit(0);
-  });
-}
