@@ -33,19 +33,22 @@
 //   2  usage error / TEST-LOCK.md unreadable
 
 import { createHash } from "node:crypto";
+import { execSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const args = process.argv.slice(2);
 let quiet = false;
 let onlyFile = null;
+let commitsRange = null;
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === "--quiet") quiet = true;
   else if (a === "--file") onlyFile = args[++i];
+  else if (a === "--commits") commitsRange = args[++i];
   else if (a === "-h" || a === "--help") {
     process.stdout.write(
-      `usage: test-lock-check.mjs [--quiet] [--file <path>]\n` +
+      `usage: test-lock-check.mjs [--quiet] [--file <path>] [--commits <base>..<head>]\n` +
         `  Verifies sha256 of locked test files against TEST-LOCK.md §2.\n`,
     );
     process.exit(0);
@@ -53,6 +56,41 @@ for (let i = 0; i < args.length; i++) {
     process.stderr.write(`test-lock-check: unknown arg '${a}'\n`);
     process.exit(2);
   }
+}
+
+// ISS-26: --commits 模式 —— 触碰 tests/ 或 TEST-LOCK.md 的提交必须带 test-lock: 前缀。
+if (commitsRange) {
+  const root = findRepoRoot(process.cwd());
+  let log = "";
+  try {
+    log = execSync(`git -C "${root}" log --format="%H|%s" ${commitsRange}`, { encoding: "utf8" });
+  } catch (e) {
+    process.stderr.write(`test-lock-check --commits: git log failed: ${e.message}\n`);
+    process.exit(2);
+  }
+  const commits = log.trim().split("\n").filter(Boolean).map((l) => {
+    const i = l.indexOf("|");
+    return { hash: l.slice(0, i), subject: l.slice(i + 1) };
+  });
+  const bad = [];
+  for (const c of commits) {
+    let files = "";
+    try {
+      files = execSync(`git -C "${root}" diff-tree --no-commit-id --name-only -r "${c.hash}"`, { encoding: "utf8" });
+    } catch { continue; }
+    const touches = files.split("\n").some((f) =>
+      f.startsWith("tests/") || f === "TEST-LOCK.md");
+    if (touches && !c.subject.startsWith("test-lock:")) {
+      bad.push(`${c.hash.slice(0, 8)} "${c.subject}" (touches locked files without test-lock: prefix)`);
+    }
+  }
+  if (bad.length > 0) {
+    process.stderr.write(`test-lock-check --commits: ${bad.length} violation(s):\n`);
+    for (const b of bad) process.stderr.write("  " + b + "\n");
+    process.exit(1);
+  }
+  process.stdout.write(`test-lock-check --commits: ok (${commits.length} commits checked)\n`);
+  process.exit(0);
 }
 
 // Resolve repo root from CWD: walk up until TEST-LOCK.md is found.

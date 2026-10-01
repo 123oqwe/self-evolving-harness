@@ -1,0 +1,10 @@
+# ISS-26: 测试锁信任根（出题权分离的仓库外执行点）。
+# 以下路径的改动须由 test-author（本仓库测试作者）审查。
+# 注意: CODEOWNERS 只是信号; 真正的强制需在 GitHub 分支保护里
+# 开启 "Require review from Code Owners"（仓库设置, 需管理员操作, 代码无法替代）。
+
+# 锁定测试 + 锁定表 + 门禁脚本 + CI 配置 = 考卷与判卷机制, 归测试作者
+tests/**                        @123oqwe
+TEST-LOCK.md                    @123oqwe
+scripts/lib/**                  @123oqwe
+.github/**                      @123oqwe
