@@ -39,13 +39,15 @@ import { join, relative } from "node:path";
 const args = process.argv.slice(2);
 let quiet = false;
 let onlyFile = null;
+let commitsRange = null;
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === "--quiet") quiet = true;
   else if (a === "--file") onlyFile = args[++i];
+  else if (a === "--commits") commitsRange = args[++i];
   else if (a === "-h" || a === "--help") {
     process.stdout.write(
-      `usage: test-lock-check.mjs [--quiet] [--file <path>]\n` +
+      `usage: test-lock-check.mjs [--quiet] [--file <path>] [--commits <base>..<head>]\n` +
         `  Verifies sha256 of locked test files against TEST-LOCK.md §2.\n`,
     );
     process.exit(0);
@@ -202,3 +204,41 @@ if (!quiet) {
   process.stdout.write(`test-lock-check: ${table.length} locked files intact, 0 violations\n`);
 }
 process.exit(0);
+
+// ISS-26: --commits 模式 —— 触碰 tests/ 或 TEST-LOCK.md 的提交必须带 test-lock: 前缀。
+if (commitsRange) {
+  import("node:child_process").then(({ execSync }) => {
+    const root = findRepoRoot(process.cwd());
+    let subjects = {};
+    try {
+      subjects = execSync(`git -C "${root}" log --format="%H|%s" ${commitsRange}`, { encoding: "utf8" })
+        .trim().split("\n").filter(Boolean).reduce((m, l) => {
+          const [h, ...rest] = l.split("|");
+          m[h] = rest.join("|");
+          return m;
+        }, {});
+    } catch (e) {
+      console.error(`test-lock-check --commits: git log failed: ${e.message}`);
+      process.exit(2);
+    }
+    const bad = [];
+    for (const [hash, subject] of Object.entries(subjects)) {
+      let files = "";
+      try {
+        files = execSync(`git -C "${root}" diff-tree --no-commit-id --name-only -r "${hash}"`, { encoding: "utf8" });
+      } catch (e) { continue; }
+      const touchesLocked = files.split("\n").some((f) =>
+        f.startsWith("tests/") || f === "TEST-LOCK.md" || f.startsWith("scripts/lib/"));
+      if (touchesLocked && !subject.startsWith("test-lock:")) {
+        bad.push(`${hash.slice(0, 8)} ${subject} (touches tests//TEST-LOCK without test-lock: prefix)`);
+      }
+    }
+    if (bad.length > 0) {
+      console.error(`test-lock --commits: ${bad.length} commit(s) violate ISS-26:`);
+      for (const b of bad) console.error("  " + b);
+      process.exit(1);
+    }
+    console.log(`test-lock --commits: ok (${Object.keys(subjects).length} commits checked)`);
+    process.exit(0);
+  });
+}
