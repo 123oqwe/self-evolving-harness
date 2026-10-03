@@ -6,7 +6,7 @@
 //   - RealLLMPort（REAL-T01, @harness/l3-engine）
 //   - ReflectiveMutator（L3-T03，消费 LLMPort + 失败轨迹 → 变异候选）
 //   - loadCanary + runVerify（CE-T01a/CE-T02，@harness/canary-eval）
-//   - NoneBackend（L0S-T02，@harness/l0-sandbox，真实 spawn 产出 exitCode）
+//   - detect()（L0S-T02，@harness/l0-sandbox，Seatbelt/bwrap 真实沙箱后端）
 //   - StrictImprovementGate（L3-T04）+ assertFreshEvidence（CE-T07）
 //   - bumpVersion（L3-T08 Retain 版本后缀）+ contentSha（ADP-T01 port 纯函数）
 //   - L1 compaction baseline（packages/l1-config/prompts/compaction-summary.md）
@@ -48,7 +48,7 @@ const { runVerify } = await import("@harness/canary-eval");
 const { assertFreshEvidence, AbortSelectError } = await import(
   "@harness/canary-eval"
 );
-const { NoneBackend } = await import("@harness/l0-sandbox");
+const { detect } = await import("@harness/l0-sandbox");
 // contentSha 等价 = sha256(content)（ADP-T01 port.ts 纯函数，但该模块 runtime-import
 // @harness/l3-engine barrel 会拉起 e2e-adapter.ts 的 TS parameter-property 语法，
 // Node strip-only 模式不支持。contentSha 本身是 createHash 单行工具，非接口契约，
@@ -211,7 +211,8 @@ async function mutate(substrate, trajectories) {
 // ---------------------------------------------------------------------------
 
 async function scoreOnCanary(canaryTasks) {
-  const sb = new NoneBackend();
+  // ISS-05: 用 detect() 选真实沙箱后端(Seatbelt/bwrap), 不硬编码 NoneBackend。
+  const sb = detect();
   const runs = [];
   for (const task of canaryTasks) {
     const t0 = Date.now();
@@ -268,7 +269,7 @@ async function main() {
   push("");
   push("本报告记录首次真实进化循环（mine → mutate → score → select → deploy → verify）。");
   push("mutate 步使用 RealLLMPort（`pi -p` 无头子进程，timeout ≤120s，重试 ≤2）调用真实 LLM；");
-  push("score 步使用 CE-T02 `runVerify` + L0S-T02 `NoneBackend` 在 ≥3 个 canary 任务上产出真实");
+  push("score 步使用 CE-T02 `runVerify` + L0S-T02 `detect()` 沙箱后端在 ≥3 个 canary 任务上产出真实");
   push("`VerifierRun`（exitCode 由真实进程退出码裁决）。复用铁律：所有组件为已实现接口，本脚本仅组装。");
   push("");
 
@@ -579,7 +580,7 @@ async function main() {
   push("");
   push("- `RealLLMPort` (@harness/l3-engine, REAL-T01)");
   push("- `ReflectiveMutator` + `MalformedMutation` (L3-T03)");
-  push("- `loadCanary` (CE-T01a) + `runVerify` (CE-T02) + `NoneBackend` (L0S-T02)");
+  push("- `loadCanary` (CE-T01a) + `runVerify` (CE-T02) + `detect()` 沙箱后端 (L0S-T02)");
   push("- `StrictImprovementGate` (L3-T04) + `assertFreshEvidence` (CE-T07)");
   push("- `bumpVersion` (L3-T08) + `contentSha` (ADP-T01 port)");
   push("- L1 compaction baseline (packages/l1-config/prompts/compaction-summary.md)");
