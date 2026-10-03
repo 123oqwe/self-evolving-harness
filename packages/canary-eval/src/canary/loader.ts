@@ -288,3 +288,63 @@ function assignTaskField(task: RawTask, key: string, rawVal: string): void {
 
 // 类型重导出（CE-T03/CE-T05 等后续任务经 @harness/canary-eval 导入 Trajectory）
 export type { CanaryManifest, CanaryTask, Trajectory } from "./types.js";
+
+// ---------------------------------------------------------------------------
+// ISS-07: mine ↔ canary 去污染检查（防评测泄漏）
+// ---------------------------------------------------------------------------
+
+/**
+ * 去污染判据（两级）：
+ * ① 轨迹引用的 taskId 不得命中任何 canary taskId；
+ * ② 轨迹文本与 canary 任务描述(verify 命令)的 4-gram 重叠率须低于阈值。
+ * 任一违反 → throw ContaminationError（闭环 abort，防泄漏进变异 prompt）。
+ */
+export class ContaminationError extends Error {
+  constructor(message: string) {
+    super(`canary contamination: ${message} (ISS-07)`);
+    this.name = "ContaminationError";
+  }
+}
+
+function ngrams(s: string, n: number): Set<string> {
+  const t = s.toLowerCase().replace(/[^a-z0-9_/.-]+/g, " ");
+  const words = t.split(/\s+/).filter(Boolean);
+  const out = new Set<string>();
+  for (let i = 0; i + n <= words.length; i++) out.add(words.slice(i, i + n).join(" "));
+  return out;
+}
+
+export function assertNoCanaryLeak(
+  trajectories: Array<{ id: string; sessionId?: string; diagnosis?: string; raw?: unknown }>,
+  canaryTasks: Array<{ id: string; verify: string }>,
+  opts?: { overlapThreshold?: number; n?: number },
+): void {
+  const threshold = opts?.overlapThreshold ?? 0.3;
+  const n = opts?.n ?? 4;
+  const canaryIds = new Set(canaryTasks.map((t) => t.id));
+  // ① taskId 级：轨迹 id 不得命中 canary taskId（含诊断文本中引用 canary id）。
+  for (const traj of trajectories) {
+    const text = `${traj.id} ${traj.sessionId ?? ""} ${traj.diagnosis ?? ""}`;
+    for (const cid of canaryIds) {
+      if (text.includes(cid)) {
+        throw new ContaminationError(`trajectory "${traj.id}" references canary taskId "${cid}"`);
+      }
+    }
+  }
+  // ② 内容级：轨迹文本与 canary verify 命令的 n-gram 重叠率。
+  for (const task of canaryTasks) {
+    const cng = ngrams(task.verify, n);
+    if (cng.size === 0) continue;
+    for (const traj of trajectories) {
+      const tng = ngrams(`${traj.diagnosis ?? ""} ${JSON.stringify(traj.raw ?? "")}`.slice(0, 4000), n);
+      if (tng.size === 0) continue;
+      let overlap = 0;
+      for (const g of tng) if (cng.has(g)) overlap++;
+      if (overlap / cng.size > threshold) {
+        throw new ContaminationError(
+          `trajectory "${traj.id}" overlaps canary "${task.id}" verify (${overlap}/${cng.size} n-grams)`,
+        );
+      }
+    }
+  }
+}

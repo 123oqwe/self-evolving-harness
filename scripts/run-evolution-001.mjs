@@ -45,7 +45,7 @@ const { StrictImprovementGate } = await import(
 const { bumpVersion } = await import("@harness/l3-engine");
 const { loadCanary } = await import("@harness/canary-eval");
 const { runVerify } = await import("@harness/canary-eval");
-const { assertFreshEvidence, AbortSelectError } = await import(
+const { assertFreshEvidence, AbortSelectError, assertNoCanaryLeak } = await import(
   "@harness/canary-eval"
 );
 const { detect } = await import("@harness/l0-sandbox");
@@ -349,6 +349,9 @@ async function main() {
     if (!t) throw new Error(`canary task not found: ${id}`);
     return t;
   });
+
+  // ISS-07: mine 后、mutate 前已发生——此处补做去污染检查（防 canary 泄漏进变异 prompt）。
+  assertNoCanaryLeak(trajectories, canaryTasks);
 
   push("## 4. score 步：≥3 canary 任务上的 VerifierRun");
   push("");
