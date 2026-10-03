@@ -91,6 +91,12 @@ function extractInt(md, field, fallback = 0) {
   return num ? parseInt(num[1], 10) : fallback;
 }
 
+function extractStringField(md, field) {
+  const re = new RegExp(`^${field}:\\s*(.+)$`, "m");
+  const m = md.match(re);
+  return m ? m[1].trim() : null;
+}
+
 function extractDecision(md) {
   const raw = extractMetric(md, "decision");
   if (raw === null) return null;
@@ -112,6 +118,9 @@ function parseReport(filename, md) {
   const retained = extractInt(md, "retained", 0);
   const rejected = extractInt(md, "rejected", 0);
   const tokensUsed = extractInt(md, "tokens", 0);
+  // ISS-03: valid 字段——报告声明"结论无效"或 valid:false 时不计入 summary。
+  const invalidReason = extractStringField(md, "invalidReason");
+  const valid = !(invalidReason || /结论无效|invalid run|valid:\s*false/i.test(md));
   return {
     report: filename,
     lift,
@@ -119,6 +128,8 @@ function parseReport(filename, md) {
     rejected,
     tokensUsed,
     decision,
+    valid,
+    invalidReason: invalidReason || null,
   };
 }
 
@@ -168,6 +179,8 @@ function summarize(runs) {
   let totalTokens = 0;
   let liftCount = 0;
   for (const r of runs) {
+    // ISS-03: invalid run 不计入 lift 聚合。
+    if (r.valid === false) continue;
     if (typeof r.lift === "number" && !Number.isNaN(r.lift)) {
       totalLift += r.lift;
       liftCount += 1;

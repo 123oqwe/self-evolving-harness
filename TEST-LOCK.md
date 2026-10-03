@@ -266,7 +266,7 @@
 | ADP-T03 | `tests/adapt/T03-claude-code-adapter.spec.ts` | `9f20bea09ad807c30d4336b05e13e6179ee7d218a3394401b009949e15dd2a4f` |
 | REAL-T01 | `tests/L3/real-llm.spec.ts` | `5fc4b12218157b67ba726bf17ece80f05aee67418cc06757be0a64ecb92c7916` |
 | SEC-T01 | `tests/CE/SEC-T01-eperm-cross-check.spec.ts` | `ab0f6b980fb10a36ef72aed5ce377aa14a64408ca5158d3de2e47bcedd4250d4` |
-| OPS-T02 | `tests/ops/metrics.spec.ts` | `608bdb56214318b4e8c8563c0ce73364d7b39a89c949bcbf47fe9914fe141ae1` |
+| OPS-T02 | `tests/ops/metrics.spec.ts` | `614d39835534a8f5c5270be1a51244dc0724bed71c8dfa67ce6b4cbc806a09fb` |
 | OPS-T03 | `tests/adapt/OPS-T03-flaky-locator.spec.ts` | `632d747ee014a4f849a47127b5c48491166ce70c38874451a7a3085f715b9bcd` |
 
 ### 2.12 — plugin 模块 spec（`tests/plugin/` + fixtures，16 文件）

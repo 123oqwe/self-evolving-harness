@@ -31,6 +31,7 @@ function evolutionReport(opts: {
   rejected?: number;
   tokens?: number;
   decision: "accept" | "reject";
+  invalidReason?: string;
 }): string {
   const liftLine =
     opts.decision === "accept" && opts.lift !== undefined
@@ -66,6 +67,7 @@ function evolutionReport(opts: {
     `rejected: ${opts.rejected ?? 0}`,
     `tokens: ${opts.tokens ?? 0}`,
     `decision: ${opts.decision}`,
+    ...(opts.invalidReason ? [`invalidReason: ${opts.invalidReason}`] : []),
     "",
     "CE-TASK-0001 pass",
     "CE-TASK-0002 pass",
@@ -168,6 +170,22 @@ describe("OPS-T02 · metrics aggregation", () => {
       (r) => r.report === "evolution-run-001.md",
     );
     expect(hasIt).toBe(false);
+  });
+
+  it("ISS-03: invalid run (invalidReason) excluded from summary.totalLift", () => {
+    const dir = mkdtempSync(join(tmpdir(), "metrics-invalid-"));
+    afterEach(() => rmSync(dir, { recursive: true, force: true }));
+    writeFileSync(
+      join(dir, "evolution-run-001.md"),
+      evolutionReport({ decision: "accept", lift: 0.5, retained: 1, tokens: 100, invalidReason: "ISS-01+ISS-02 lift=0 false positive" }),
+    );
+    const out = join(dir, "metrics.json");
+    runMetrics(dir, out);
+    const m = JSON.parse(readFileSync(out, "utf8"));
+    const run = m.runs[0];
+    expect(run.valid).toBe(false);
+    expect(run.invalidReason).toContain("ISS-01");
+    expect(m.summary.totalLift).toBe(0);
   });
 
   it("emits reports/metrics-trend.md trend table", () => {
