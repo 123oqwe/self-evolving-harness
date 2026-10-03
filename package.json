@@ -30,7 +30,8 @@
     "@harness/telemetry": "workspace:*",
     "typescript": "^5.6.3",
     "vitest": "^2.1.8",
-    "@harness/contracts": "workspace:*"
+    "@harness/contracts": "workspace:*",
+    "@vitest/coverage-v8": "^2.1.9"
   },
   "engines": {
     "node": ">=20"
