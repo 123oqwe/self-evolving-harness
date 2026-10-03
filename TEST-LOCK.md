@@ -222,6 +222,7 @@
 | CE-T08 | `tests/CE/CE-T08.spec.ts` | `eb7fd7886c18b3dac09173e4b83036daba7c0461f07cf1002e0e37e5c142e912` |
 | CE-T09 | `tests/CE/CE-T09.spec.ts` | `3acf7c46a581c09bf5e551505b596f6d8e23fb155f82debedb6f0fd3ab61cd19` |
 | ISS-07 | `tests/CE/ISS07-contamination.spec.ts` | `bbe18f29ee3d3fc7203bfaf382236b6d178f69a301f0d168f1b60ac37eedfbb1` |
+| ISS-04 | `tests/CE/ISS04-select-evidence.spec.ts` | `e5cf96b453936711925a2f750692c09f49596f5dd28e787e06a264a6b1fef2a1` |
 | CE-T10 | `tests/CE/CE-T10.spec.ts` | `c15bc24291b3b352db93589fa668698efa0a84370117e4f78bef692a9f7a7334` |
 | CE-T11 | `tests/CE/CE-T11.spec.ts` | `e2cc4d225857d077c3799eee61c2153ba491f23f94498848eb9dbe76f18e7467` |
 | CE-T12 | `tests/CE/CE-T12.spec.ts` | `1ed1b98e6e49cd7bbe15d77ee5731720d1f43e0760834721b42340059a4ab28a` |
@@ -265,7 +266,7 @@
 | ADP-T03 | `tests/adapt/T03-claude-code-adapter.spec.ts` | `9f20bea09ad807c30d4336b05e13e6179ee7d218a3394401b009949e15dd2a4f` |
 | REAL-T01 | `tests/L3/real-llm.spec.ts` | `5fc4b12218157b67ba726bf17ece80f05aee67418cc06757be0a64ecb92c7916` |
 | SEC-T01 | `tests/CE/SEC-T01-eperm-cross-check.spec.ts` | `ab0f6b980fb10a36ef72aed5ce377aa14a64408ca5158d3de2e47bcedd4250d4` |
-| OPS-T02 | `tests/ops/metrics.spec.ts` | `608bdb56214318b4e8c8563c0ce73364d7b39a89c949bcbf47fe9914fe141ae1` |
+| OPS-T02 | `tests/ops/metrics.spec.ts` | `614d39835534a8f5c5270be1a51244dc0724bed71c8dfa67ce6b4cbc806a09fb` |
 | OPS-T03 | `tests/adapt/OPS-T03-flaky-locator.spec.ts` | `632d747ee014a4f849a47127b5c48491166ce70c38874451a7a3085f715b9bcd` |
 
 ### 2.12 — plugin 模块 spec（`tests/plugin/` + fixtures，16 文件）

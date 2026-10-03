@@ -1,3 +1,4 @@
+import { requiredNFor5pp } from "./power-analysis.js";
 // CE-T08: paired McNemar + unresolved-comparison budget 报告器（5-step audit protocol）。
 //
 // 接口签名严格对齐 execution/canary-eval/TASKS.md §CE-T08 + ERRATA-w2plus CE-19/CE-20：
@@ -324,3 +325,55 @@ export function runPairedMcNemar(
     modelScaffoldJoint: true, // step 1：model+scaffold 联合分数
   };
 }
+
+// ---------------------------------------------------------------------------
+// ISS-04: selectWithEvidence —— 统计检验接入闭环
+// ---------------------------------------------------------------------------
+
+export interface SelectEvidenceResult {
+  decision: "accept" | "reject" | "underpowered";
+  n: number;
+  b: number;
+  c: number;
+  pValue: number;
+  reason: string;
+}
+
+export function selectWithEvidence(
+  matrix: PairedMatrix,
+  opts?: { alpha?: number; minTasks?: number; coverage?: number },
+): SelectEvidenceResult {
+  const alpha = opts?.alpha ?? 0.05;
+  const n = matrix.pairs.length;
+  const minTasks = opts?.minTasks ?? requiredNFor5pp();
+  if (n < minTasks) {
+    return {
+      decision: "underpowered", n, b: 0, c: 0, pValue: 1,
+      reason: `n=${n} < minTasks=${minTasks} (power-analysis: 5pp effect) — do not deploy`,
+    };
+  }
+  let b = 0, c = 0;
+  for (const pair of matrix.pairs) {
+    if (pair.baseline === 1 && pair.variant === 0) b++;
+    else if (pair.baseline === 0 && pair.variant === 1) c++;
+  }
+  const report = runPairedMcNemar(matrix, opts?.coverage === undefined ? {} : { coverage: opts.coverage });
+  const pValue = report.pValue;
+  if (pValue >= alpha) {
+    return {
+      decision: "reject", n, b, c, pValue,
+      reason: `p=${pValue.toFixed(4)} >= α=${alpha} — not statistically significant`,
+    };
+  }
+  if (c > b) {
+    return {
+      decision: "accept", n, b, c, pValue,
+      reason: `p=${pValue.toFixed(4)} < α=${alpha} and c=${c} > b=${b} — significant improvement`,
+    };
+  }
+  return {
+    decision: "reject", n, b, c, pValue,
+    reason: `p=${pValue.toFixed(4)} < α=${alpha} but c=${c} < b=${b} — significant regression`,
+  };
+}
+
