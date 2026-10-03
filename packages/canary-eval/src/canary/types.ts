@@ -19,6 +19,10 @@ export interface CanaryTask {
   expectedExit: 0;
   decontaminated: boolean;
   frozenInRelease: string; // release sha
+  /** ISS-02: 基质敏感代理任务标记（结构代理任务，verify 经 HARNESS_SUBSTRATE_PATH 注入）。 */
+  proxy?: boolean;
+  /** ISS-02: 被代理基质依赖（仓库相对路径，如 compaction-summary.md）。 */
+  substrate?: string;
 }
 
 /**

@@ -12,10 +12,11 @@
  * 注：allowlist proxy 绑定在 T04a 完善；seccomp 精细化在 T07。
  */
 
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { runShell } from "./spawn.js";
+import { STATIC_CORE_PATHS } from "../fs-isolation/static-core.js";
 import {
   hasVisibleNetDeny,
   mergeNetVerifyEvidence,
@@ -151,6 +152,28 @@ function createDenyReadShadows(
   });
 }
 
+/**
+ * ISS-18: resolve denyWrite paths (caller rules + always-on STATIC_CORE_PATHS)
+ * against cwd, dedupe, and keep only existing paths. bwrap `--ro-bind` requires
+ * an existing source; non-existent subtrees (e.g. cwd is not the repo root)
+ * are skipped — enforcement is a no-op there, matching the "nothing to protect"
+ * semantics of the repo-root-relative static-core list.
+ */
+function resolveDenyWriteTargets(denyWrite: string[], cwd: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const add = (p: string): void => {
+    const abs = resolve(cwd, p);
+    if (!existsSync(abs)) return;
+    if (seen.has(abs)) return;
+    seen.add(abs);
+    out.push(abs);
+  };
+  for (const p of denyWrite) add(p);
+  for (const rel of STATIC_CORE_PATHS) add(rel);
+  return out;
+}
+
 export class BubblewrapBackend implements OssandboxBackend {
   readonly platform = "linux-bwrap" as const;
 
@@ -182,6 +205,15 @@ export class BubblewrapBackend implements OssandboxBackend {
     // （裁决 A5：真实内核拒绝，非 ENOENT）。
     for (const { source, target } of denyReadShadows) {
       args.push("--ro-bind", source, target);
+    }
+    // ISS-18: denyWrite → read-only re-mount over the writable --bind cwd cwd.
+    // Order matters: --ro-bind must come AFTER --bind cwd cwd so static-core
+    // subtrees (which live inside cwd) are re-mounted read-only. Includes the
+    // always-on STATIC_CORE_PATHS plus caller fsRules.denyWrite. Paths resolved
+    // against cwd and filtered to existing ones (bwrap refuses --ro-bind on a
+    // non-existent source).
+    for (const abs of resolveDenyWriteTargets(fsRules.denyWrite, cwd)) {
+      args.push("--ro-bind", abs, abs);
     }
     args.push("--", "sh", "-c", cmd);
     return args;
