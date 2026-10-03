@@ -10,3 +10,4 @@ export type { ResolvedFsRules } from "./rules.js";
 export { resolveFsRules, isDenied } from "./rules.js";
 export { createWorktree } from "./worktree.js";
 export type { CreateWorktreeOpts, WorktreeHandle } from "./worktree.js";
+export { STATIC_CORE_PATHS } from "./static-core.js";

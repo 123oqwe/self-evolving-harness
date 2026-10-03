@@ -58,7 +58,7 @@
 | L0C-T09b | `tests/L0C/invariants-B.spec.ts` | `85286df55f40c8edb928f12da10a647b02cbb54294703bcc381f33d20531a815` |
 | L0C-T12 | `tests/L0C/redteam.spec.ts` | `e89b77627254239b650640fdfeaaf331ce78b71965e390060d439f7a30ccfcac` |
 
-### 2.2 — L0S 根级 spec（`tests/L0S/`，52 文件）
+### 2.2 — L0S 根级 spec（`tests/L0S/`，53 文件）
 
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
@@ -114,6 +114,7 @@
 | L0S-T14 | `tests/L0S/T14.metadata-blocked.spec.ts` | `10963097ad821a43186724593e1540f9d79487347f88c44382be651046f95d6d` |
 | L0S-T14 | `tests/L0S/T14.ssh-read-blocked.spec.ts` | `6cd253c89e4db123053ff9e85a3239283cb8ed3e4746c33d08aa02bf5731ab76` |
 | L0S-T14 | `tests/L0S/T14.zero-escape.spec.ts` | `d79a45f684311c88cde93f1d9e026cfa1b175fad13ee78b06e2ac8881df09cd2` |
+| ISS-18 | `tests/L0S/ISS18-static-core-readonly.spec.ts` | `3dd707870623f53016bcf6536a164c85377cfe606c8c0b58e16babd90d825727` |
 
 ### 2.3 — TL 根级 spec（`tests/TL/`，12 文件）
 
@@ -247,7 +248,7 @@
 | CLN-T02 | `tests/cleanup/T02-mutation-gate.spec.ts` | `76367339fd5161f431b1581c675caf84095d420962780464e6f4b4d044b07220` |
 | CLN-T03 | `tests/cleanup/T03-linux-ci-nonroot.spec.ts` | `9ed5b197ef5c617ffd97328bc7325b33ce00fb3c9d8f376d7eca47d17d72f8c5` |
 
-### 2.11 — adapt 模块 spec（`tests/adapt/` + 跨目录，9 文件）
+### 2.11 — adapt 模块 spec（`tests/adapt/` + 跨目录，10 文件）
 
 > Wave 3 adapt 模块（HarnessPort 适配器契约 + 真实进化接线 + 运维安全）出题。
 > 由隔离 test-author 仅依 spec（`execution/adapt/TASKS.md`）预生成并锁定。
@@ -268,6 +269,7 @@
 | SEC-T01 | `tests/CE/SEC-T01-eperm-cross-check.spec.ts` | `ab0f6b980fb10a36ef72aed5ce377aa14a64408ca5158d3de2e47bcedd4250d4` |
 | OPS-T02 | `tests/ops/metrics.spec.ts` | `614d39835534a8f5c5270be1a51244dc0724bed71c8dfa67ce6b4cbc806a09fb` |
 | OPS-T03 | `tests/adapt/OPS-T03-flaky-locator.spec.ts` | `632d747ee014a4f849a47127b5c48491166ce70c38874451a7a3085f715b9bcd` |
+| ISS-10 | `tests/adapt/ISS10-exam-lock-bash.spec.ts` | `bdba3da2be5a03bc65fd53b304801ffc44fcad68dc303385f57276a185ddf7ac` |
 
 ### 2.12 — plugin 模块 spec（`tests/plugin/` + fixtures，16 文件）
 
@@ -303,12 +305,24 @@
 > (3) **空壳可蒙混** — `tests/plugin/T05-openclaw-adapter.spec.ts` 的 `readTrajectories reads jsonl-only when sqlite missing` 原指向不存在的 `no-openclaw-state` 目录、仅断 `Array.isArray(trajs)`，`return []` 空壳实现即可骗过。新增真 fixture `fixtures/openclaw-agent-jsonl-only/agents/oc-agent-1/sessions/sess-jsonl-only-1.jsonl`（有 jsonl 无 `agent/openclaw-agent.sqlite`），改为断言 `oc-jsonl-only-1` 入结果、`failed===true`、`diagnosis` 非空、无 error 信号的 `oc-jsonl-only-ok` 不入结果——空壳无法蒙混。
 > 其余审查项达标：① 每任务 GWT 覆盖（T01–T12 各 §RED 节 GWT 用例齐，含错误路径 SubstrateNotFoundError/canary<3/InvalidHooksError/InvalidGenericConfigError）；② 抽样走逻辑（T06 Cursor `readTrajectories==[]` 为 spec 铁律非空壳、T05/T11 容错多 error 字段名 + 按行容错不让空壳骗过）；③ fixture 形状与 spec 调研一致（codex rollout envelope `thread_id`/`content.is_error`、opencode 三层 info/message/part pretty-printed、hermes+openclaw SQLite sessions/messages/transcript + error 信号、cursor mdc frontmatter、generic 4 格式 yaml、dsh append-only 事件流 `sessionId`/`session_id` 多字段、grok 插件目录 skills/hooks.json/.mcp.json）；④ 探针门控正确（T02-smoke `describe.skipIf(!hasCodex)` / T11-smoke `describe.skipIf(!hasDsh)`，`which()` 用 `command -v; echo $?` 解析 0/1，失败即 skip，CI 无环境 exit 0 不红）；⑤ import 路径与 spec 声明一致（全部 `@harness/evolve-*` 包名 + `@harness/adapters`/`@harness/l3-engine` 契约源对齐，仅上述 3 处偏差已直修）。
 
+### 2.12b — ISS-02 remediation spec（`tests/CE/`，2 文件）
+
+> **test(lock) 申诉/新增锁定**：ISS-02（canary 因果性地基）修复新增两条纯函数守卫单测
+> （③敏感性守卫 + ④阴性对照 / ②结构代理 + ①部署后打分骨架）。implementer 不修改任何
+> 既有锁定测试；新增测试由实现同步 sha256 + 本表登记。理由：spec §ISS-02 验收要求「相关
+> 测试绿」，守卫为纯函数、独立可测，须有锁定测试背书防未来篡改。
+
+| 任务 | 测试文件 | sha256 |
+| --- | --- | --- |
+| ISS-02 | `tests/CE/ISS02-substrate-sensitivity.spec.ts` | `07f26f6abfa8ef5d5a391cce093939de9700c6f778f35e91f6cdfd7c0a72e7a6` |
+| ISS-02 | `tests/CE/ISS02-compaction-proxy.spec.ts` | `a756a4ed8420e4612385c0b7ba72fc2e3e4ef539431f442ff8052cea21ae5d99` |
+
 ### 2.13 锁定合计
 
 | 波次 | 模块 | 文件数 | 测试数 |
 | --- | --- | --- | --- |
 | Wave 0 | L0C | 14 | 233 |
-| Wave 1 | L0S | 52 | 86 |
+| Wave 1 | L0S | 53 | 91 |
 | Wave 1 | TL | 12 | 72 |
 | Wave 2 | L1 | 24 | 131 |
 | Wave 2 | L2 | 18 | 119 |
@@ -317,9 +331,10 @@
 | Wave 2 | XM | 1 | 0（parse error：import 目标未落地） |
 | Wave 1 | gates | 1 | 3 |
 | Wave 2 | CLN | 3 | —（CLN RED 形态，helper/bwrap 未落地） |
-| Wave 3 | adapt | 9 | 55 |
+| Wave 3 | adapt | 10 | 59 |
 | Wave 4 | plugin | 16 | 135 |
-| **合计** | | **181** | **985+** |
+| remediation | ISS-02 | 2 | 20 |
+| **合计** | | **185** | **1014+** |
 
 > RED 门基线（`pnpm vitest run`，详见 `TEST-BASELINE.md`）：已实现 18 任务（L0C T01–T08/T10/T11 + L0S T01/T02/T03/T06 + TL T01/T02/T05/T06）+ G1 smoke 全绿；Wave 2 未实现模块测试全 RED（`Cannot find module @harness/*` / `X is not a function`）。终审实测：276 passed / 519 failed / 795 total，1 文件级 parse error（`tests/XM/T01-e2e-evolution-loop.spec.ts`：`Failed to load url ../../scripts/xm/g5-report.ts`）。
 >

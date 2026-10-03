@@ -13,7 +13,7 @@
 # verify 命令为该回归的锁定 spec（exit 0 = 未退化）。repo 为源仓定位
 # （不离开源仓风格），不命中 trainSet（去污染）。
 version: v0
-sha256: 189f6182d8bd6a621f0be0241c8a8a48250e62d4229ab63152dbf0993b0674ed
+sha256: eb83d9b5f086699fb3a31366ab8b532ffe93387ca1547871cfeac79f92c7eabe
 frozenAt: 2026-09-19T02:52:27-04:00
 agentVisible: false
 tasks:
@@ -209,3 +209,46 @@ tasks:
     expectedExit: 0
     decontaminated: true
     frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+  # ── ISS-02 步骤②: 基质敏感结构代理任务(compaction prompt, 明确标 proxy) ──
+  # verify 静态命令读取 HARNESS_SUBSTRATE_PATH(评分器注入, 见步骤①)。
+  # proxy=true + substrate 声明对 compaction prompt 的基质依赖。
+  - id: CE-PROXY-0001
+    repo: harness/l1-compaction-proxy
+    verify: "node scripts/check-compaction-proxy.mjs --check required-sections"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+    proxy: true
+    substrate: packages/l1-config/prompts/compaction-summary.md
+  - id: CE-PROXY-0002
+    repo: harness/l1-compaction-proxy
+    verify: "node scripts/check-compaction-proxy.mjs --check blocked-not-merged"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+    proxy: true
+    substrate: packages/l1-config/prompts/compaction-summary.md
+  - id: CE-PROXY-0003
+    repo: harness/l1-compaction-proxy
+    verify: "node scripts/check-compaction-proxy.mjs --check tool-use-id-preserved"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+    proxy: true
+    substrate: packages/l1-config/prompts/compaction-summary.md
+  - id: CE-PROXY-0004
+    repo: harness/l1-compaction-proxy
+    verify: "node scripts/check-compaction-proxy.mjs --check error-text-preserved"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+    proxy: true
+    substrate: packages/l1-config/prompts/compaction-summary.md
+  - id: CE-PROXY-0005
+    repo: harness/l1-compaction-proxy
+    verify: "node scripts/check-compaction-proxy.mjs --check safety-complete"
+    expectedExit: 0
+    decontaminated: true
+    frozenInRelease: a5ced17e8dc839fedfe3beb51b92f0a9717aa62f
+    proxy: true
+    substrate: packages/l1-config/prompts/compaction-summary.md

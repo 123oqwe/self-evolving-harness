@@ -48,6 +48,14 @@ const { runVerify } = await import("@harness/canary-eval");
 const { assertFreshEvidence, AbortSelectError, assertNoCanaryLeak } = await import(
   "@harness/canary-eval"
 );
+// ISS-02: 基质敏感代理任务评分(①) + 敏感性守卫/阴性对照(③④)。
+const {
+  deploySubstrateToWorkspace,
+  scoreSubstrateTask,
+  breakCompactionPrompt,
+  checkNegativeControl,
+  detectSubstrateInsensitivity,
+} = await import("@harness/canary-eval");
 const { detect } = await import("@harness/l0-sandbox");
 // contentSha 等价 = sha256(content)（ADP-T01 port.ts 纯函数，但该模块 runtime-import
 // @harness/l3-engine barrel 会拉起 e2e-adapter.ts 的 TS parameter-property 语法，
@@ -228,6 +236,25 @@ async function scoreOnCanary(canaryTasks) {
   return { runs, fitness };
 }
 
+// ISS-02 ①②: 基质敏感代理任务评分（部署后打分）——把基质内容写入临时 workspace，
+// 经 HARNESS_SUBSTRATE_PATH 注入代理任务 verify 命令。baseline 与候选同法，故候选
+// 破坏结构即降分 → 打分对基质有因果。
+async function scoreProxyOnSubstrate(substrateContent, proxyTasks, sandbox) {
+  const tmp = join(REPO_ROOT, ".harness", "evolution-run-001", `proxy-${randomUUID()}`);
+  const substratePath = deploySubstrateToWorkspace(
+    substrateContent,
+    tmp,
+    "prompts/compaction-summary.md",
+  );
+  const runs = [];
+  for (const t of proxyTasks) {
+    const run = await scoreSubstrateTask(t, substratePath, sandbox);
+    runs.push({ run, ms: 0 });
+  }
+  try { rmSync(tmp, { recursive: true, force: true }); } catch { /* ignore */ }
+  return runs;
+}
+
 // ---------------------------------------------------------------------------
 // Step 5: deploy — 隔离 temp git workspace（不污染 real repo / 不改分支）
 // ---------------------------------------------------------------------------
@@ -375,23 +402,70 @@ async function main() {
   push(`baseline Fitness: resolve_rate=${baselineScore.fitness.resolve_rate}, token=${baselineScore.fitness.token}, cache_hit=${baselineScore.fitness.cache_hit}`);
   push("");
 
+  // ── ISS-02 ①④: 基质敏感代理任务评分(部署后打分) + 阴性对照 ──
+  const proxyTasks = canaryManifest.tasks.filter((t) => t.proxy === true);
+  let proxyScoring = null; // { baselineRuns, nc, proxyTasks }
+  let sensitivity = null; // ③ 敏感性裁决(在候选评分后计算)
+  push("### 4.1b 基质敏感代理任务评分（ISS-02 部署后打分）");
+  push("");
+  if (proxyTasks.length === 0) {
+    push("> manifest 未声明 proxy 任务 → 无基质敏感信号（ISS-02 未接线）。");
+    push("");
+  } else {
+    const proxySb = detect();
+    push(`proxy 任务: ${proxyTasks.map((t) => t.id).join(", ")}（proxy=true, substrate=${proxyTasks[0]?.substrate ?? "?"}）`);
+    push("");
+    const baselineProxyRuns = await scoreProxyOnSubstrate(substrate.content, proxyTasks, proxySb);
+    const baselineProxyRate = baselineProxyRuns.filter((r) => r.run.exitCode === 0).length / baselineProxyRuns.length;
+    push(`baseline 代理 resolve_rate=${baselineProxyRate}`);
+    // ④ 阴性对照: 删 Blocked 段的破坏候选必须降分，否则任务集无效 abort。
+    const brokenRuns = await scoreProxyOnSubstrate(
+      breakCompactionPrompt(substrate.content, "remove-blocked"),
+      proxyTasks,
+      proxySb,
+    );
+    const nc = checkNegativeControl(
+      baselineProxyRuns.map((r) => r.run),
+      brokenRuns.map((r) => r.run),
+    );
+    push(`- **④ 阴性对照**: ${nc.valid ? "✅ valid" : "❌ INVALID"} (baseline=${nc.baselineScore}, broken=${nc.brokenScore})`);
+    if (!nc.valid) push(`  - abort: ${nc.reason}`);
+    push("");
+    proxyScoring = { baselineRuns: baselineProxyRuns, nc, proxyTasks };
+  }
+
   // 候选评分
   let candidates = [];
   if (mutRes.ok) {
     push("### 4.2 候选评分");
     push("");
-    push("> **诚实声明（substrate 不敏感性）**：implementer 范围禁止改 real repo 的");
-    push("> `packages/l1-config/prompts/compaction-summary.md`（「只动自己范围」约束），且已核实");
-    push("> 所选 canary 任务（L0C 单测）均使用各自 fixture workspace，**不读取** real compaction prompt");
-    push("> 文件。故候选内容未被部署至 canary 可见路径，canary verify 对候选与 baseline 产出**相同**");
-    push("> `VerifierRun`。候选 Fitness = baseline Fitness。这是 v0 canary 集对 compaction prompt 基质");
-    push("> 不敏感的真实发现（非伪造——见下 select 步如实记录 Δ=0）。");
+    push("> **ISS-02 修复**：候选经 HARNESS_SUBSTRATE_PATH 注入代理任务评分（部署后打分），");
+    push("> 不再复用 baseline VerifierRuns。L0C 任务仍各自 fixture（不读基质），但代理任务");
+    push("> 直接检查被进化的 compaction prompt 结构 → 打分对基质有因果。");
     push("");
+    const proxySb = proxyScoring ? detect() : null;
+    const candProxyRuns = [];
     for (const m of mutRes.mutants) {
-      // substrate-insensitive: 复用 baseline VerifierRuns（已诚实声明）
       const candFitness = { ...baselineScore.fitness };
-      candidates.push({ mutant: m, fitness: candFitness, runs: baselineScore.runs });
-      push(`- 候选 \`${m.id}\`: resolve_rate=${candFitness.resolve_rate} (= baseline, Δ=0)`);
+      let proxyRunVectors = null;
+      if (proxyScoring && proxySb) {
+        const runs = await scoreProxyOnSubstrate(m.content, proxyScoring.proxyTasks, proxySb);
+        proxyRunVectors = runs.map((r) => r.run);
+        candProxyRuns.push({ id: m.id, runs: proxyRunVectors });
+        const rate = proxyRunVectors.filter((r) => r.exitCode === 0).length / proxyRunVectors.length;
+        push(`- 候选 \`${m.id}\`: proxy resolve_rate=${rate}（L0C Δ=0）`);
+      } else {
+        push(`- 候选 \`${m.id}\`: resolve_rate=${candFitness.resolve_rate} (= baseline, Δ=0)`);
+      }
+      candidates.push({ mutant: m, fitness: candFitness, runs: baselineScore.runs, proxyRuns: proxyRunVectors });
+    }
+    // ③ 敏感性守卫: baseline 与所有候选的代理任务结果向量全等 → insensitive。
+    if (proxyScoring) {
+      sensitivity = detectSubstrateInsensitivity(
+        proxyScoring.baselineRuns.map((r) => r.run),
+        candProxyRuns,
+      );
+      push(`- **③ 敏感性守卫**: ${sensitivity.insensitive ? "❌ insensitive" : "✅ sensitive"} (identical=${sensitivity.identicalCandidates}/${sensitivity.totalCandidates})`);
     }
     push("");
   } else {
@@ -407,6 +481,18 @@ async function main() {
   });
   push(`- τ (per-dim): { resolve_rate: 0, token: 0, cache_hit: 0 }（最严：任一退化即 reject）`);
   push("");
+
+  // ── ISS-02 ③④ 因果门: 阴性对照无效或基质不敏感 → 强制 reject accept ──
+  const negativeControlInvalid = proxyScoring !== null && proxyScoring.nc.valid === false;
+  const substrateInsensitive = sensitivity !== null && sensitivity.insensitive === true;
+  const causalOk = !negativeControlInvalid && !substrateInsensitive;
+  if (!causalOk) {
+    const parts = [];
+    if (negativeControlInvalid) parts.push("④ 阴性对照无效");
+    if (substrateInsensitive) parts.push("③ 基质不敏感");
+    push(`- **ISS-02 因果门: ${parts.join(" + ")} → 强制 reject accept（无因果信号）**`);
+    push("");
+  }
 
   let deployed = null;
   let verifyResult = null;
@@ -473,7 +559,7 @@ async function main() {
       push(`  - verifications: ${verifs.length} 条; exitCodes=[${verifs.map((v) => v.exitCode).join(",")}]`);
       push(`- StrictImprovementGate.decide: accept=${decision.accept}, deltas=${JSON.stringify(decision.deltas)}, regressions=${JSON.stringify(decision.regressions)}`);
       push("");
-      if (freshOk && decision.accept && accepted === null) {
+      if (causalOk && freshOk && decision.accept && accepted === null) {
         accepted = c;
       }
     }
