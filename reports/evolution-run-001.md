@@ -1,6 +1,6 @@
 # REAL-T02 · 首次真实进化循环报告 (evolution-run-001)
 
-> 生成时间: 2026-09-30T15:32:45.407Z
+> 生成时间: 2026-10-03T01:45:42.361Z
 > 执行节点: local (pi -p 真实 LLM)
 > Spec: execution/adapt/TASKS.md §REAL-T02
 
@@ -8,7 +8,7 @@
 
 本报告记录首次真实进化循环（mine → mutate → score → select → deploy → verify）。
 mutate 步使用 RealLLMPort（`pi -p` 无头子进程，timeout ≤120s，重试 ≤2）调用真实 LLM；
-score 步使用 CE-T02 `runVerify` + L0S-T02 `NoneBackend` 在 ≥3 个 canary 任务上产出真实
+score 步使用 CE-T02 `runVerify` + L0S-T02 `detect()` 沙箱后端在 ≥3 个 canary 任务上产出真实
 `VerifierRun`（exitCode 由真实进程退出码裁决）。复用铁律：所有组件为已实现接口，本脚本仅组装。
 
 ## 1. baseline 基质
@@ -134,11 +134,11 @@ canary 集来源: `packages/canary-eval/canary/manifest.yaml` (loadCanary, CE-T0
 
 | taskId | exitCode | ms | stdout 摘要 | sandboxBypassed |
 |---|---|---|---|---|
-| CE-TASK-0001 | 0 | 6716 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T02-turn.s | true |
-| CE-TASK-0002 | 0 | 6410 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T03-stop.s | true |
-| CE-TASK-0003 | 0 | 7546 |  RUN v2.1.9 /Users/guanjieqiao/self-evolving-harness/repo ✓ tests/L0C/T04-retry- | true |
+| CE-TASK-0001 | 0 | 9693 |  RUN v2.1.9 <repo> ✓ tests/L0C/T02-turn.s | true |
+| CE-TASK-0002 | 0 | 12988 |  RUN v2.1.9 <repo> ✓ tests/L0C/T03-stop.s | true |
+| CE-TASK-0003 | 0 | 15657 |  RUN v2.1.9 <repo> ✓ tests/L0C/T04-retry- | true |
 
-baseline Fitness: resolve_rate=1, token=878, cache_hit=0
+baseline Fitness: resolve_rate=1, token=880, cache_hit=0
 
 ### 4.2 候选评分: 跳过（mutate 步无有效候选）
 
@@ -173,7 +173,7 @@ decision: reject
 lift: n/a (reject)
 retained: 0
 rejected: 0
-tokens: 878
+tokens: 880
 
 ---
 
@@ -181,7 +181,7 @@ tokens: 878
 
 - `RealLLMPort` (@harness/l3-engine, REAL-T01)
 - `ReflectiveMutator` + `MalformedMutation` (L3-T03)
-- `loadCanary` (CE-T01a) + `runVerify` (CE-T02) + `NoneBackend` (L0S-T02)
+- `loadCanary` (CE-T01a) + `runVerify` (CE-T02) + `detect()` 沙箱后端 (L0S-T02)
 - `StrictImprovementGate` (L3-T04) + `assertFreshEvidence` (CE-T07)
 - `bumpVersion` (L3-T08) + `contentSha` (ADP-T01 port)
 - L1 compaction baseline (packages/l1-config/prompts/compaction-summary.md)

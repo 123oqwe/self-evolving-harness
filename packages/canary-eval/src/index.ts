@@ -7,6 +7,8 @@ export {
   loadCanary,
   isDecontaminated,
   ManifestTamperedError,
+  assertNoCanaryLeak,
+  ContaminationError,
 } from "./canary/loader.js";
 
 export {

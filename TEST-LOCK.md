@@ -221,6 +221,7 @@
 | CE-T07 | `tests/CE/CE-T07.spec.ts` | `b06c5c17870b6df2a6e5260aa89db714bf26980d64e968aaf0ad3bbae1745652` |
 | CE-T08 | `tests/CE/CE-T08.spec.ts` | `eb7fd7886c18b3dac09173e4b83036daba7c0461f07cf1002e0e37e5c142e912` |
 | CE-T09 | `tests/CE/CE-T09.spec.ts` | `3acf7c46a581c09bf5e551505b596f6d8e23fb155f82debedb6f0fd3ab61cd19` |
+| ISS-07 | `tests/CE/ISS07-contamination.spec.ts` | `bbe18f29ee3d3fc7203bfaf382236b6d178f69a301f0d168f1b60ac37eedfbb1` |
 | CE-T10 | `tests/CE/CE-T10.spec.ts` | `c15bc24291b3b352db93589fa668698efa0a84370117e4f78bef692a9f7a7334` |
 | CE-T11 | `tests/CE/CE-T11.spec.ts` | `e2cc4d225857d077c3799eee61c2153ba491f23f94498848eb9dbe76f18e7467` |
 | CE-T12 | `tests/CE/CE-T12.spec.ts` | `1ed1b98e6e49cd7bbe15d77ee5731720d1f43e0760834721b42340059a4ab28a` |

@@ -35,6 +35,8 @@ export interface FreshEvidence {
   variantSha: string;
   verifications: VerifierRun[]; // ≥1 条，每条 exitCode===0（pass 裁决）
   hasExitCodeEvidence: boolean; // 不变量
+  /** ISS-05: true = 允许旁路沙箱证据(打 unsafeDev 标记)；默认 false = 拒绝。 */
+  allowSandboxBypass?: boolean;
 }
 
 /**
@@ -76,6 +78,19 @@ export function assertFreshEvidence(e: FreshEvidence): void {
   for (const w of warnings) {
     // eslint-disable-next-line no-console
     console.warn(w);
+  }
+
+  // ISS-05: 旁路沙箱的证据默认拒绝——不可信代码只能在 hands 沙箱运行。
+  // 仅显式 allowSandboxBypass=true 放行(调用方须在报告打 unsafeDev 标记)。
+  if (e.allowSandboxBypass !== true) {
+    const bypassed = verifications.filter((v) => v.sandboxBypassed === true);
+    if (bypassed.length > 0) {
+      throw new AbortSelectError(
+        `fresh-evidence gate: variant "${e.variantSha}" has ${bypassed.length} sandbox-bypassed ` +
+          `verification(s) (taskId="${bypassed[0]?.taskId ?? "?"}") — untrusted code ran outside the ` +
+          `hands sandbox; select aborted (ISS-05). Opt in with allowSandboxBypass=true + unsafeDev marker.`,
+      );
+    }
   }
 
   // 边界：verifications 为空集 → 无机械证据 → abort。

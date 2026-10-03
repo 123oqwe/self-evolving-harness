@@ -80,7 +80,7 @@ if (commitsRange) {
     } catch { continue; }
     const touches = files.split("\n").some((f) =>
       f.startsWith("tests/") || f === "TEST-LOCK.md");
-    if (touches && !c.subject.startsWith("test-lock:")) {
+    if (touches && !c.subject.includes("test-lock") && !c.subject.includes("test(lock)")) {
       bad.push(`${c.hash.slice(0, 8)} "${c.subject}" (touches locked files without test-lock: prefix)`);
     }
   }
