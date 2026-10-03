@@ -102,6 +102,7 @@ export {
 // ERRATA-w2plus CE-19：runPairedMcNemar 双参 `(m, opts?)`；opts.coverage 缺省按 0。
 // ERRATA-w2plus CE-20：n≈30 用 Yates 连续性校正 χ²；n<25 退化精确二项检验；CI=95% Wilson 区间。
 export { runPairedMcNemar, mcnemarChi2Yates, exactBinomialPValue, IncompletePairsError } from "./mcnemar.js";
+export { selectWithEvidence } from "./mcnemar.js";
 
 export type { PairedMatrix, McNemarReport } from "./mcnemar.js";
 
