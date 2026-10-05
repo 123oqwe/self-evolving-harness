@@ -68,6 +68,7 @@ if (mode === "--update") {
   const flaky = existsSync(FLAKY_FILE) ? JSON.parse(readFileSync(FLAKY_FILE, "utf8")) : [];
   const flakySet = new Set(flaky);
   const regressed = baseline.filter((id) => {
+    if (flakySet.has(id)) return false;     // known-flaky 豁免（网络/资源敏感，见 known-flaky.json）
     const s = byStatus.get(id);
     if (s === "failed") return true;        // 真正回归：baseline 用例现在失败
     if (s === undefined) return true;       // 用例消失（文件删除/改名）→ 回归
