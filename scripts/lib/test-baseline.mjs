@@ -43,18 +43,20 @@ function runVitest() {
   return JSON.parse(lines[lines.length - 1]);
 }
 
-function passedIds(summary) {
-  const ids = [];
+function statusMap(summary) {
+  // id → 状态（passed/failed/skipped/todo/disabled/pending）。
+  const m = new Map();
   for (const fr of summary.testResults ?? []) {
     for (const ar of fr.assertionResults ?? []) {
-      if (ar.status === "passed") ids.push(normalizeTestId(fr, ar.fullName));
+      m.set(normalizeTestId(fr, ar.fullName), ar.status);
     }
   }
-  return ids.sort();
+  return m;
 }
 
 const summary = runVitest();
-const passed = passedIds(summary);
+const byStatus = statusMap(summary);
+const passed = [...byStatus.entries()].filter(([, s]) => s === "passed").map(([id]) => id).sort();
 const mode = process.argv[2];
 
 if (mode === "--update") {
@@ -65,16 +67,27 @@ if (mode === "--update") {
   const baseline = JSON.parse(readFileSync(BASELINE_FILE, "utf8"));
   const flaky = existsSync(FLAKY_FILE) ? JSON.parse(readFileSync(FLAKY_FILE, "utf8")) : [];
   const flakySet = new Set(flaky);
-  const passedSet = new Set(passed);
-  const regressed = baseline.filter((id) => !passedSet.has(id) && !flakySet.has(id));
+  const regressed = baseline.filter((id) => {
+    const s = byStatus.get(id);
+    if (s === "failed") return true;        // 真正回归：baseline 用例现在失败
+    if (s === undefined) return true;       // 用例消失（文件删除/改名）→ 回归
+    return false;                           // passed/skipped/todo/pending → 容忍(平台门控)
+  });
+  const skipped = baseline.filter((id) => {
+    const s = byStatus.get(id);
+    return s === "skipped" || s === "todo" || s === "pending" || s === "disabled";
+  });
   if (regressed.length > 0) {
-    console.error(`::error::Regression: ${regressed.length} baseline tests no longer passing`);
-    for (const id of regressed.slice(0, 25)) console.error(`::error::  ${id}`);
+    console.error(`::error::Regression: ${regressed.length} baseline tests now failed/missing`);
+    for (const id of regressed.slice(0, 40)) console.error(`::error::  ${id}`);
     process.exit(1);
+  }
+  if (skipped.length > 0) {
+    console.warn(`Note: ${skipped.length} baseline tests skipped/todo on this platform (tolerated)`);
   }
   const added = passed.filter((id) => !baseline.includes(id));
   if (added.length > 0) {
     console.warn(`Warning: ${added.length} new passing tests not in baseline — run --update`);
   }
-  console.log(`baseline ok: ${passed.length} passed | ${regressed.length} regressed | ${flaky.length} flaky-exempt`);
+  console.log(`baseline ok: ${passed.length} passed | ${regressed.length} regressed | ${skipped.length} skipped-tolerated | ${flaky.length} flaky-exempt`);
 }
