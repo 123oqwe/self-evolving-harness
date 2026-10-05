@@ -22,6 +22,47 @@ export type {
   Trajectory,
 } from "./canary/types.js";
 
+// ISS-02 步骤②: 基质敏感代理任务(compaction prompt 确定性结构代理)。
+export {
+  checkCompactionPromptStructure,
+  buildCompactionProxyTasks,
+  COMPACTION_PROXY_CHECKS,
+  COMPACTION_CHECK_KEYS,
+  COMPACTION_SUBSTRATE_PATH,
+} from "./canary/compaction-proxy.js";
+
+export type { CompactionCheckKey, CompactionStructureVerdict } from "./canary/compaction-proxy.js";
+
+// ISS-02 步骤③④: 敏感性守卫 + 阴性对照(纯函数)。
+export {
+  toResultVector,
+  resultVectorsIdentical,
+  detectSubstrateInsensitivity,
+  assertSubstrateSensitive,
+  SubstrateInsensitiveError,
+  breakCompactionPrompt,
+  resolveRateFromRuns,
+  checkNegativeControl,
+  assertNegativeControl,
+  NegativeControlInvalidError,
+} from "./canary/substrate-sensitivity.js";
+
+export type {
+  TaskResultVector,
+  InsensitivityVerdict,
+  NegativeControlVerdict,
+} from "./canary/substrate-sensitivity.js";
+
+// ISS-02 步骤①: 部署后打分(基质依赖注入骨架)。
+export {
+  SUBSTRATE_ENV,
+  injectSubstratePath,
+  deploySubstrateToWorkspace,
+  scoreSubstrateTask,
+} from "./canary/substrate-scoring.js";
+
+export type { SubstrateDependency } from "./canary/substrate-scoring.js";
+
 // CE-T01b 落地：SWE-ABS coverage+mutation 对抗加强（G0 降级最小可行 mutation 方案）。
 export {
   strengthenTask,

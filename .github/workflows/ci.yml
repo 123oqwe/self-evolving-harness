@@ -105,9 +105,9 @@ jobs:
           grep -E '^\s*×|FAIL ' /tmp/sentinel.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done
           exit $EXIT
 
-  # ── 全量套件: 当前 MVP 未完成, 未实现任务的红项是合法 RED ──────────
-  # 报告 green/red 并与 GREENS.baseline 对比: 绿数不许低于基线(回归即fail)
-  # MVP 完成后: 基线 = 全量, 此 job 即成为完整验收门
+  # ── 全量套件: 逐用例 ID 集合回归门 (ISS-24) ──────────────────────
+  # 用 tests/.baseline/passed.json 的用例 ID 集合比对(删除计数容差弱点)。
+  # ID 归一化见 scripts/lib/test-baseline.mjs normalizeTestId——平台无关。
   full-suite:
     name: Full suite (baseline regression gate)
     runs-on: ubuntu-latest
@@ -128,40 +128,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Test-lock sha256 gate (defense in depth)
         run: node scripts/lib/test-lock-check.mjs
-      - name: Run full suite, count greens
-        id: suite
-        run: |
-          set +e
-          pnpm vitest run --reporter=basic > suite.log 2>&1
-          GREENS=$(grep -oE '[0-9]+ passed' suite.log | tail -1 | grep -oE '[0-9]+')
-          echo "greens=$GREENS" >> "$GITHUB_OUTPUT"
-          echo "Actual greens: $GREENS"
-          tail -5 suite.log
-      - name: Compare against baseline (no regression)
-        run: |
-          BASELINE=$(cat GREENS.baseline 2>/dev/null || echo 0)
-          ACTUAL=${{ steps.suite.outputs.greens }}
-          echo "baseline=$BASELINE actual=$ACTUAL"
-          # 容差 2: OPS-T03 收紧 (原 5)。唯一已知 flake (L0C-T01 pnpm -r build,
-          # 资源竞争型, 锁定测试, 须走申诉通道) 仅 ±1 green, 容差 2 足以吸收且仍挡 ≥2 批量回归。
-          if [ "$ACTUAL" -lt $((BASELINE - 2)) ]; then
-            echo "::error::Regression! greens $ACTUAL < baseline-2 ($((BASELINE - 2))) — 批量变红, 回归"
-            grep -E "^\s*×|FAIL " suite.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done
-            exit 1
-          fi
-          if [ "$ACTUAL" -lt "$BASELINE" ]; then
-            echo "::warning::greens $ACTUAL 略低于 baseline $BASELINE (容差内, 疑单测抖动); 失败用例:"
-            grep -E "^\s*×|FAIL " suite.log | head -8 | while IFS= read -r l; do echo "::warning::$l"; done
-          fi
-          if [ "$ACTUAL" -gt "$BASELINE" ]; then
-            echo "::warning::greens $ACTUAL > baseline $BASELINE — 有新实现, 记得更新 GREENS.baseline"
-          fi
-      - name: Upload suite log (on failure)
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        with:
-          name: suite-log-${{ github.sha }}
-          path: suite.log
+      - name: Full suite + per-test ID-set baseline gate (ISS-24)
+        run: node scripts/lib/test-baseline.mjs
 
   # ISS-30: 覆盖率报告(只报告不拦截, 独立 job 不影响其他门)
   coverage:

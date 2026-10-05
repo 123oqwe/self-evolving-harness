@@ -106,6 +106,9 @@ interface RawTask {
   expectedExit: number;
   decontaminated: boolean;
   frozenInRelease: string;
+  // ISS-02: 代理任务标记 + 基质依赖（可选字段）。
+  proxy?: boolean;
+  substrate?: string;
 }
 
 const TASK_FIELDS = new Set([
@@ -115,6 +118,8 @@ const TASK_FIELDS = new Set([
   "expectedExit",
   "decontaminated",
   "frozenInRelease",
+  "proxy",
+  "substrate",
 ]);
 
 /**
@@ -240,7 +245,7 @@ function parseCanaryManifest(text: string): CanaryManifest {
         `canary task ${t.id}: expectedExit must be 0 (got ${t.expectedExit})`,
       );
     }
-    return {
+    const task: CanaryTask = {
       id: t.id,
       repo: t.repo,
       verify: t.verify,
@@ -248,6 +253,12 @@ function parseCanaryManifest(text: string): CanaryManifest {
       decontaminated: t.decontaminated,
       frozenInRelease: t.frozenInRelease,
     };
+    // ISS-02: 仅当显式声明时才落可选字段(exactOptionalPropertyTypes)。
+    if (t.proxy === true) task.proxy = true;
+    if (t.substrate !== undefined && t.substrate !== "") {
+      task.substrate = t.substrate;
+    }
+    return task;
   });
 
   return {
@@ -280,6 +291,12 @@ function assignTaskField(task: RawTask, key: string, rawVal: string): void {
       break;
     case "frozenInRelease":
       task.frozenInRelease = String(val);
+      break;
+    case "proxy":
+      task.proxy = val === true;
+      break;
+    case "substrate":
+      task.substrate = String(val);
       break;
     default:
       break;

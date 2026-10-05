@@ -131,4 +131,4 @@ export async function enforceReadOnly(
 // 核心的最小信任根：loadCanary 校验计算哈希 === 此常量，篡改 manifest（连同其自
 // 声明 sha256 一起改）也无法通过——除非同时改本 L0 常量（受 static-core 只读保护）。
 export const CANARY_MANIFEST_SHA256 =
-  "189f6182d8bd6a621f0be0241c8a8a48250e62d4229ab63152dbf0993b0674ed";
+  "eb83d9b5f086699fb3a31366ab8b532ffe93387ca1547871cfeac79f92c7eabe";

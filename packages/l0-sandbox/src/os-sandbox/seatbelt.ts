@@ -45,9 +45,10 @@
  *      （不重跑、不降级缓存）。
  */
 
-import { realpathSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { resolve as resolvePath } from "node:path";
 import { runShell } from "./spawn.js";
+import { STATIC_CORE_PATHS } from "../fs-isolation/static-core.js";
 import {
   hasVisibleNetDeny,
   mergeNetVerifyEvidence,
@@ -143,7 +144,7 @@ export class SeatbeltBackend implements OssandboxBackend {
   readonly platform = "darwin-seatbelt" as const;
 
   /** 生成 sandbox-exec profile 字符串。 */
-  buildProfile(fsRules: FsRules, _netRules: NetRules): string {
+  buildProfile(fsRules: FsRules, _netRules: NetRules, cwd: string): string {
     const lines: string[] = ["(version 1)", "(allow default)"];
 
     // denyRead 同时禁止 read+write（spec 裁决 L0S-T03-A5：denyRead 隐含 denyWrite）。
@@ -154,6 +155,13 @@ export class SeatbeltBackend implements OssandboxBackend {
     }
     for (const p of fsRules.denyWrite) {
       const abs = resolveAbs(p);
+      lines.push(`(deny file-write* (subpath "${escapeSb(abs)}"))`);
+    }
+
+    // ISS-18: always-on static-core read-only (true boundary). Repo-root-relative
+    // paths resolved against cwd (repo root) before realpath, mirroring L0C-T11.
+    for (const rel of STATIC_CORE_PATHS) {
+      const abs = resolveAbs(resolvePath(cwd, rel));
       lines.push(`(deny file-write* (subpath "${escapeSb(abs)}"))`);
     }
 
@@ -189,7 +197,7 @@ export class SeatbeltBackend implements OssandboxBackend {
     cmd: string,
     opts: RunVerifyOptions,
   ): Promise<VerifyResult | null> {
-    const profile = this.buildProfile(opts.fsRules, opts.netRules);
+    const profile = this.buildProfile(opts.fsRules, opts.netRules, opts.cwd);
     // sandbox-exec -p <profile> sh -c <cmd>
     const argv = ["sandbox-exec", "-p", profile, "sh", "-c", cmd];
     const res = await runShell(argv, {
@@ -270,7 +278,16 @@ export class SeatbeltBackend implements OssandboxBackend {
     opts: RunVerifyOptions,
   ): Promise<VerifyResult> {
     const deniedRead = opts.fsRules.denyRead.map((p) => [p, resolveAbs(p)] as const);
-    const deniedWrite = opts.fsRules.denyWrite.map((p) => [p, resolveAbs(p)] as const);
+    const deniedWrite = opts.fsRules.denyWrite
+      .map((p) => [p, resolveAbs(p)] as const)
+      .concat(
+        // ISS-18: static-core 是 always-on denyWrite；仅当 repo 根相对子树在
+        // cwd 下真实存在时才计入（cwd 非 repo 根 → 无物可护 → 不 fail-closed，
+        // 与 bwrap --ro-bind 的存在性过滤一致）。
+        STATIC_CORE_PATHS
+          .map((rel) => [rel, resolveAbs(resolvePath(opts.cwd, rel))] as const)
+          .filter(([, abs]) => existsSync(abs)),
+      );
     // 网络约束判定：sealed 路径无条件 (deny network*)，故 allowedDomains 非空
     // （allowlist 语义 = 除白名单外全拒）或 denyOutCidr 非空都意味着需要强制
     // 网络隔离（round 2 缺陷 2）。两者皆空 = 调用方未要求任何网络约束。

@@ -1,0 +1,3 @@
+[
+  "tests/plugin/T09-dist.spec.ts > PLG-T09 distribution publish.mjs --dry-run exits 0 for all evolve-* packages"
+]
