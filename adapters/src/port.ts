@@ -268,6 +268,7 @@ export class ReferenceAdapter implements HarnessPort {
         id: sessionId,
         sessionId,
         substrateSha,
+        source: "real",
         failed: true,
         diagnosis: diag,
         luckyPass: lucky,

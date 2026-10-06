@@ -99,6 +99,7 @@ export function readOpenCodeTrajectories(
       id: sid,
       sessionId: sid,
       substrateSha,
+      source: "real",
       failed: true,
       diagnosis: diag,
       raw: events,

@@ -141,6 +141,7 @@ export function readCodexTrajectories(
       id: sessionId,
       sessionId,
       substrateSha,
+      source: "real",
       failed: true,
       diagnosis: diag,
       raw: lines,

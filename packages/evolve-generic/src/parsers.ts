@@ -76,6 +76,7 @@ function buildTrajectory(
     id: `${sessionId}#${substrateSha.slice(0, 8)}`,
     sessionId,
     substrateSha,
+    source: "real",
     failed: true,
     diagnosis,
   };

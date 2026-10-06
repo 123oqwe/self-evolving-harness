@@ -90,6 +90,7 @@ export function mapClaudeEventToTrajectory(
     id: extracted.sessionId,
     sessionId: extracted.sessionId,
     substrateSha,
+    source: "real",
     failed: true,
     diagnosis: extracted.diagnosis,
     luckyPass: false,

@@ -56,6 +56,10 @@ const {
   checkNegativeControl,
   detectSubstrateInsensitivity,
 } = await import("@harness/canary-eval");
+// ISS-08: 轨迹源真实性 —— deploy 前置门 + 真实 TL-T01 JSONL reader。
+const { deploySourceGate, readTlTrajectories } = await import(
+  "@harness/canary-eval"
+);
 const { detect } = await import("@harness/l0-sandbox");
 // contentSha 等价 = sha256(content)（ADP-T01 port.ts 纯函数，但该模块 runtime-import
 // @harness/l3-engine barrel 会拉起 e2e-adapter.ts 的 TS parameter-property 语法，
@@ -158,13 +162,21 @@ function loadBaseline() {
 // ---------------------------------------------------------------------------
 
 function mineTrajectories(substrateSha) {
-  // 手工构造 ≥3 条真实失败轨迹（failed=true, luckyPass=false, diagnosis 非空）。
+  // ISS-08: 优先读真实源（EVOLUTION_TRAJECTORY_DIR 指向 TL-T01 TranscriptWriter 落盘 JSONL 目录）。
+  const realDir = process.env.EVOLUTION_TRAJECTORY_DIR;
+  if (realDir) {
+    const real = readTlTrajectories(realDir, substrateSha);
+    if (real.length > 0) return real;
+  }
+  // 兜底：手工构造 ≥3 条 synthetic 失败轨迹（failed=true, luckyPass=false, diagnosis 非空）。
+  // source:"synthetic" 标记 — 纯 synthetic 输入时 deploy 前置门将拒绝部署（仅 dry-run）。
   // 诊断取自 compaction prompt 已知退化模式（PRD §9.1 recall 信号）。
   return [
     {
       id: "handmade-001",
       sessionId: "sess-001",
       substrateSha,
+      source: "synthetic",
       failed: true,
       diagnosis:
         "compaction 丢失未解决 bug：Progress.Blocked 段被合并掉，后续 LLM 重读 issue 才发现未修复 → recall 信号 +1",
@@ -174,6 +186,7 @@ function mineTrajectories(substrateSha) {
       id: "handmade-002",
       sessionId: "sess-002",
       substrateSha,
+      source: "synthetic",
       failed: true,
       diagnosis:
         "tool_use_id 配对丢失：<modified-files> 未保留某次 tool 调用结果，LLM 续写时引用了不存在的 tool_use_id → 续写失败",
@@ -183,6 +196,7 @@ function mineTrajectories(substrateSha) {
       id: "handmade-003",
       sessionId: "sess-003",
       substrateSha,
+      source: "synthetic",
       failed: true,
       diagnosis:
         "Critical Context 段过短：关键 error message 被截断为摘要，LLM 续写时误判根因 → 重复走错方向",
@@ -316,13 +330,29 @@ async function main() {
   const trajectories = mineTrajectories(substrate.sha);
   push("## 2. mine 步：失败轨迹");
   push("");
-  push("> 标注：**手工构造**（spec §执行提示(4) 允许——无 XM 演练数据时手工构造合法 Trajectory）。");
-  push("每条 failed=true, luckyPass=false, diagnosis 非空，形状对齐 L3-T03 Trajectory。");
+  const allSynth =
+    trajectories.length > 0 && trajectories.every((t) => t.source === "synthetic");
+  push(
+    `> 轨迹源：${allSynth ? "**全 synthetic（手工构造）**" : "含真实源（TL-T01 JSONL）"}。`,
+  );
+  push("每条 failed=true, luckyPass=false, diagnosis 非空，形状对齐 L3-T03 Trajectory（含 ISS-08 source 字段）。");
   push("");
   for (const t of trajectories) {
-    push(`- **${t.id}** (session=${t.sessionId}, substrateSha=${t.substrateSha.slice(0, 12)}…):`);
+    push(`- **${t.id}** (session=${t.sessionId}, source=${t.source}, substrateSha=${t.substrateSha.slice(0, 12)}…):`);
     push(`  - diagnosis: ${t.diagnosis}`);
     push(`  - luckyPass=${t.luckyPass} (CE-T03 过滤后保留——非盲重试)`);
+  }
+  push("");
+
+  // ISS-08: deploy 前置判定 —— 全 synthetic 只允许 dry-run（除非 --allow-synthetic-deploy）。
+  const allowSyntheticDeploy = process.argv.includes("--allow-synthetic-deploy");
+  const sourceGate = deploySourceGate(trajectories, { allowSyntheticDeploy });
+  push(
+    `- **ISS-08 deploy 前置门**: allowDeploy=${sourceGate.allowDeploy}, mode=${sourceGate.mode}（real=${sourceGate.realCount}, synthetic=${sourceGate.syntheticCount}/${sourceGate.total}）`,
+  );
+  if (!sourceGate.allowDeploy) {
+    push(`  - reason: ${sourceGate.reason}`);
+    push("  - 纯 synthetic 输入 → deploy 被拒，仅 dry-run（除非 `--allow-synthetic-deploy` 且报告标注）。");
   }
   push("");
 
@@ -566,7 +596,7 @@ async function main() {
 
     push("## 6. deploy 步");
     push("");
-    if (accepted) {
+    if (accepted && sourceGate.allowDeploy) {
       deployed = deployInWorkspace(substrate, accepted.mutant);
       push(`候选 \`${accepted.mutant.id}\` 通过 select（assertFreshEvidence ✅ + gate accept）→ 部署。`);
       push("");
@@ -587,6 +617,10 @@ async function main() {
       } catch (e) {
         push(`- rollback 演练: ❌ ${e.message}`);
       }
+      push("");
+    } else if (accepted && !sourceGate.allowDeploy) {
+      push(`候选 \`${accepted.mutant.id}\` 通过 select，但 **ISS-08 deploy 前置门拒绝部署**（${sourceGate.reason}）。`);
+      push("> 全部候选轨迹 source 为 synthetic → 仅 dry-run，不部署（除非 `--allow-synthetic-deploy` 且报告标注）。");
       push("");
     } else {
       push("无候选通过 select → 不部署。");
