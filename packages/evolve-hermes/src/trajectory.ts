@@ -34,6 +34,7 @@ export function readHermesTrajectories(
       id: f.sessionId,
       sessionId: f.sessionId,
       substrateSha,
+      source: "real",
       failed: true as const,
       diagnosis: f.diagnosis,
       raw: f.raw,

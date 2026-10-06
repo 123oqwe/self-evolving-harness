@@ -317,6 +317,17 @@
 | ISS-02 | `tests/CE/ISS02-substrate-sensitivity.spec.ts` | `07f26f6abfa8ef5d5a391cce093939de9700c6f778f35e91f6cdfd7c0a72e7a6` |
 | ISS-02 | `tests/CE/ISS02-compaction-proxy.spec.ts` | `a756a4ed8420e4612385c0b7ba72fc2e3e4ef539431f442ff8052cea21ae5d99` |
 
+### 2.12c — ISS-08 remediation spec（`tests/CE/`，1 文件）
+
+> **test(lock) 申诉/新增锁定**：ISS-08（失败轨迹源真实性）修复新增一条单测，覆盖「纯 synthetic
+> 输入 deploy 被拒」与「真实 TL-T01 JSONL fixture 走通 mine 步」两条验收。implementer 不修改
+> 任何既有锁定测试；新增测试由实现同步 sha256 + 本表登记。理由：spec §ISS-08 验收要求「相关
+> 测试绿」，deploySourceGate / readTlTrajectories 为纯函数、独立可测，须有锁定测试背书防篡改。
+
+| 任务 | 测试文件 | sha256 |
+| --- | --- | --- |
+| ISS-08 | `tests/CE/ISS08-trajectory-source.spec.ts` | `53397558fdd8438f089f27ca0bd49b0944d6ba5186894cb4a4928df247211398` |
+
 ### 2.13 锁定合计
 
 | 波次 | 模块 | 文件数 | 测试数 |

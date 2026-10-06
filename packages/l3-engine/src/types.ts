@@ -71,6 +71,8 @@ export interface Trajectory {
   id: string;
   sessionId: string;
   substrateSha: string;
+  /** ISS-08: 轨迹源真实性 —— real=真实会话日志；synthetic=手工构造。 */
+  source: "real" | "synthetic";
   failed: true;
   diagnosis: string;
   luckyPass?: boolean;

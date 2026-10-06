@@ -14,6 +14,7 @@ export interface MakeTrajectoryOpts {
   diagnosis?: string;
   luckyPass?: boolean;
   raw?: unknown;
+  source?: "real" | "synthetic";
 }
 
 export function makeTrajectory(opts: MakeTrajectoryOpts): Trajectory {
@@ -21,6 +22,7 @@ export function makeTrajectory(opts: MakeTrajectoryOpts): Trajectory {
     id: opts.id ?? `traj-${Math.random().toString(36).slice(2, 10)}`,
     sessionId: opts.sessionId ?? "sess-fake",
     substrateSha: opts.substrateSha,
+    source: opts.source ?? "synthetic",
     failed: true,
     diagnosis: opts.diagnosis ?? "no diagnosis",
     luckyPass: opts.luckyPass,

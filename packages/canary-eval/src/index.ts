@@ -63,6 +63,17 @@ export {
 
 export type { SubstrateDependency } from "./canary/substrate-scoring.js";
 
+// ISS-08: 轨迹源真实性 —— Trajectory.source 契约 + deploy 前置门 + 真实 TL-T01 JSONL reader。
+export {
+  deploySourceGate,
+  extractTlDiagnosis,
+  readTlTrajectories,
+} from "./trajectory-source.js";
+export type {
+  TrajectorySource,
+  DeploySourceGateResult,
+} from "./trajectory-source.js";
+
 // CE-T01b 落地：SWE-ABS coverage+mutation 对抗加强（G0 降级最小可行 mutation 方案）。
 export {
   strengthenTask,

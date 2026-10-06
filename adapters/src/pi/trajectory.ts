@@ -67,6 +67,7 @@ export function readTlTrajectories(
       id: sessionId,
       sessionId,
       substrateSha,
+      source: "real",
       failed: true,
       diagnosis: diag,
       luckyPass: false,

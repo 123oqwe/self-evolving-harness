@@ -128,6 +128,7 @@ export function filterAndTag(
       id: t.sessionId,
       sessionId: t.sessionId,
       substrateSha: ctx.substrateSha,
+      source: "real",
       failed: true as const,
       diagnosis: verdict.reason,
       luckyPass: verdict.isLuckyPass,
