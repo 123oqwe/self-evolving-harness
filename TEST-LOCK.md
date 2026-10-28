@@ -327,6 +327,8 @@
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
 | ISS-08 | `tests/CE/ISS08-trajectory-source.spec.ts` | `53397558fdd8438f089f27ca0bd49b0944d6ba5186894cb4a4928df247211398` |
+| ISS-28 | `tests/E2E/ISS28-e2e-loop-fake-pi.spec.ts` | `9d2cfce1ee91ea092483047ae01a1d0931d387474e4353e38e696f1c81eba942` |
+| ISS-28 | `tests/ops/ISS28-baseline-blindspot.spec.ts` | `21ac5e6a8589ac21e638adaeeda32346d0b80b4a9e30b6dff2776d8172033ba8` |
 
 ### 2.13 锁定合计
 

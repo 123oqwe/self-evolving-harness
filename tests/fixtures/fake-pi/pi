@@ -1,0 +1,36 @@
+#!/bin/sh
+# ISS-28 fake `pi` headless fixture (no npm deps — plain POSIX sh).
+#
+# Contract mirrored from packages/l3-engine/src/llm/pi-headless-port.ts:
+#   - argv: `-p` (print mode) and optional `--model <pattern>`
+#   - prompt arrives on stdin
+#   - stdout = LLM reply text, exit 0 on success
+#
+# Env knobs used by tests/E2E/ISS28-e2e-loop-fake-pi.spec.ts:
+#   FAKE_PI_LOG   append argv + stdin record to this file (proves real spawn)
+#   FAKE_PI_REPLY canned stdout (default: mutation JSON payload)
+#   FAKE_PI_EXIT  force a non-zero exit code
+set -u
+
+stdin_data=$(cat)
+
+if [ -n "${FAKE_PI_LOG:-}" ]; then
+  {
+    echo "ARGV: $*"
+    echo "STDIN-BEGIN"
+    printf '%s\n' "$stdin_data"
+    echo "STDIN-END"
+  } >> "$FAKE_PI_LOG"
+fi
+
+if [ -n "${FAKE_PI_EXIT:-}" ]; then
+  echo "fake-pi: forced non-zero exit ${FAKE_PI_EXIT}" >&2
+  exit "${FAKE_PI_EXIT}"
+fi
+
+if [ -n "${FAKE_PI_REPLY:-}" ]; then
+  printf '%s\n' "${FAKE_PI_REPLY}"
+  exit 0
+fi
+
+printf '%s\n' '{"prompt":"# Compaction Summary","variant":"MUT-ISS28"}'
