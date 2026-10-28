@@ -149,6 +149,13 @@ node scripts/run-evolution-001.mjs     # 须本地有 pi 环境
 cat reports/evolution-run-001.md
 ```
 
+> **无密钥也能在 CI 验证闭环（ISS-28）**：`.github/workflows/evolution.yml` 的
+> `e2e-fake-pi` job 用 `tests/fixtures/fake-pi/pi`（POSIX sh 假 pi，记录 argv/stdin）
+> 在 ubuntu 上真跑 `mine → mutate(真实 spawn) → score → select → deploy → verify`，
+> 断言 canary 命令真实 exit-code 与机械证据落盘（`tests/E2E/ISS28-e2e-loop-fake-pi.spec.ts`）。
+> 真实模式 `real-evolution` 为**条件 job**（`workflow_dispatch` + `real_evolution=true` +
+> 已配置 `PI_API_KEY`），未配置 secret 时自动跳过而非红——不再整段注释。
+
 > 说明：聚合 metrics 的 `scripts/metrics.mjs`（OPS-T02）已落地——跑完进化循环后
 > 执行 `node scripts/metrics.mjs --reports reports/ --out metrics.json` 即可聚合
 > `reports/evolution-run-*.md` 的 lift/retained/rejected/tokens/decision，产出

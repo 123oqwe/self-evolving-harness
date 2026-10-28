@@ -176,7 +176,9 @@ jobs:
   real-evolution:
     name: Real evolution loop (needs LLM secret)
     needs: audit  # 审计门先过, 再烧 LLM 费用
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.real_evolution == true && secrets.PI_API_KEY != '' }}
+    # 注: secrets 上下文在 job-level if 不可用（GitHub 会判 workflow invalid）。
+    # 故此处只判触发条件，secret 是否存在由首个 step 探测后 gate 后续步骤。
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.real_evolution == true }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
@@ -188,16 +190,30 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Detect LLM secret (gate)
+        id: gate
+        env:
+          PI_KEY: ${{ secrets.PI_API_KEY }}
+        run: |
+          if [ -n "$PI_KEY" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::PI_API_KEY 未配置 — 跳过真实进化（reject 也是合法结果，不伪造 lift）"
+          fi
       - name: Install deps
+        if: steps.gate.outputs.run == 'true'
         run: pnpm install --frozen-lockfile
       - name: Build
+        if: steps.gate.outputs.run == 'true'
         run: pnpm -r run build
       - name: Run real evolution loop (REAL-T02)
         # reject (strict-improvement 拦退化) 是合法结果 → exit 0.
         # 仅 LLM 超时/崩溃/非法调用才非零 exit.
+        if: steps.gate.outputs.run == 'true'
         run: node scripts/run-evolution-001.mjs
       - name: Upload evolution report artifact
-        if: always()
+        if: always() && steps.gate.outputs.run == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: evolution-run-${{ github.sha }}
