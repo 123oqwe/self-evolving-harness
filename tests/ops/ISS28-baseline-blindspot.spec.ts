@@ -121,6 +121,18 @@ describe("ISS-28 · baseline gate blindspot (skipped-at-baseline tests)", () => 
     expect(r.stderr).toContain("already covered case");
   });
 
+  it("NEW test (not in any baseline) now FAILED → gate exits 1 (no silent new breakage)", () => {
+    // 新测试不在 passed.json 也不在 skipped.json——旧逻辑会静默放过。
+    // ISS-28 诚实性：任何失败用例都必须让门禁红，否则新坏的测试不可见。
+    writeBaseline([], []);
+    const r = runGate(
+      baselineDir,
+      vitestSummary([{ fullName: "brand-new-broken-case", status: "failed" }]),
+    );
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("brand-new-broken-case");
+  });
+
   it("backward compatible: passed.json only (no skipped.json) → gate exits 0", () => {
     writeBaseline([PASSED_ID]);
     const r = runGate(

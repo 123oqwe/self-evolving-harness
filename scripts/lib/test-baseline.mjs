@@ -103,6 +103,12 @@ if (mode === "--update") {
     if (flakySet.has(id)) return false;
     return byStatus.get(id) === "failed";
   });
+  // ISS-28: 任何失败用例（含不在任何基线里的新测试）都必须让门禁红。
+  // 旧逻辑只看 baseline ID → 新坏的测试静默不可见（vitest 非零退出码被忽略）。
+  const allFailed = [...byStatus.entries()]
+    .filter(([id, s]) => s === "failed" && !flakySet.has(id))
+    .map(([id]) => id)
+    .sort();
   // 基线 skip 但本次通过 → 提示更新基线（不红）。
   const newlyPassing = skippedAtBaseline.filter(
     (id) => byStatus.get(id) === "passed" && !baseline.includes(id),
@@ -119,7 +125,11 @@ if (mode === "--update") {
     const s = byStatus.get(id);
     return s === "skipped" || s === "todo" || s === "pending" || s === "disabled";
   });
-  if (regressed.length > 0 || blindspotFailed.length > 0) {
+  if (regressed.length > 0 || blindspotFailed.length > 0 || allFailed.length > 0) {
+    if (allFailed.length > 0) {
+      console.error(`::error::Failing tests: ${allFailed.length} test(s) FAILED (not flaky-exempt)`);
+      for (const id of allFailed.slice(0, 40)) console.error(`::error::  ${id}`);
+    }
     if (regressed.length > 0) {
       console.error(`::error::Regression: ${regressed.length} baseline tests now failed/missing`);
       for (const id of regressed.slice(0, 40)) console.error(`::error::  ${id}`);
@@ -146,6 +156,6 @@ if (mode === "--update") {
     console.warn(`Warning: ${added.length} new passing tests not in baseline — run --update`);
   }
   console.log(
-    `baseline ok: ${passed.length} passed | ${regressed.length} regressed | ${blindspotFailed.length} blindspot-failed | ${skipped.length} skipped-tolerated | ${flaky.length} flaky-exempt`,
+    `baseline ok: ${passed.length} passed | ${allFailed.length} failed | ${regressed.length} regressed | ${blindspotFailed.length} blindspot-failed | ${skipped.length} skipped-tolerated | ${flaky.length} flaky-exempt`,
   );
 }
