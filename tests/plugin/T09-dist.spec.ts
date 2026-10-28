@@ -29,10 +29,30 @@ describe("PLG-T09 distribution", () => {
     const script = join(DIST, "scripts", "publish.mjs");
     expect(existsSync(script)).toBe(true);
     // dry-run 须对每包 exit 0（无 missing files/main 错误）
-    const out = execSync(`node ${JSON.stringify(script)} --dry-run`, {
-      cwd: REPO,
-      stdio: ["ignore", "pipe", "ignore"],
-    }).toString();
+    //
+    // T05: 原版把 stderr 丢弃（stdio 第 3 位 "ignore"），一旦失败只剩
+    // "Command failed" 无从定位，只能靠 known-flaky 豁免掩盖。改为捕获
+    // stderr 尾部并写进失败消息，使云端日志可诊断。
+    let out = "";
+    try {
+      out = execSync(`node ${JSON.stringify(script)} --dry-run`, {
+        cwd: REPO,
+        stdio: ["ignore", "pipe", "pipe"],
+      }).toString();
+    } catch (e) {
+      const err = e as { stdout?: Buffer | string; stderr?: Buffer | string };
+      const stdout = String(err.stdout ?? "");
+      const stderr = String(err.stderr ?? "");
+      const tail = stderr.trim().split("\n").slice(-40).join("\n");
+      // T05: 把 stderr 尾部作为 GitHub workflow command 输出 → 变成 CI annotation，
+      // 便于在无法下载日志时定位真实失败原因。
+      for (const line of tail.split("\n")) {
+        if (line.trim()) console.error(`::error::publish.mjs stderr: ${line.slice(0, 300)}`);
+      }
+      throw new Error(
+        `publish.mjs --dry-run failed.\n--- stdout ---\n${stdout.slice(-2000)}\n--- stderr (tail 40) ---\n${tail}`,
+      );
+    }
     expect(out).not.toMatch(/error|missing/i);
   });
 

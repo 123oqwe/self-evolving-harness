@@ -86,8 +86,22 @@ jobs:
           cache: pnpm
       - name: Install deps
         run: pnpm install --frozen-lockfile
+      # T05: 与 full-suite 环境对等（否则沙箱相关测试在 coverage job 里行为不同）
+      - name: Install bubblewrap (Linux only)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+      - name: Relax AppArmor userns restriction
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Run coverage
-        run: pnpm vitest run --coverage --reporter=basic || true
+        # T05: 去掉 `|| true`——不再吞掉失败；失败测试以 annotation 上浮。
+        run: |
+          set +e
+          pnpm vitest run --coverage --reporter=basic > cov.log 2>&1
+          CODE=$?
+          tail -30 cov.log
+          grep -E '^\s*×|FAIL |Error|error TS|Cannot find|Unhandled|ELIFECYCLE' cov.log | head -20 | while IFS= read -r l; do echo "::error::COV $l"; done
+          exit $CODE
       - name: Upload coverage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
