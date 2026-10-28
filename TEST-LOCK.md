@@ -327,9 +327,10 @@
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
 | ISS-08 | `tests/CE/ISS08-trajectory-source.spec.ts` | `53397558fdd8438f089f27ca0bd49b0944d6ba5186894cb4a4928df247211398` |
-| ISS-28 | `tests/E2E/ISS28-e2e-loop-fake-pi.spec.ts` | `9d2cfce1ee91ea092483047ae01a1d0931d387474e4353e38e696f1c81eba942` |
+| ISS-28 | `tests/E2E/ISS28-e2e-loop-fake-pi.spec.ts` | `10f91570907f9a131f8fcd5899c946c4b512e523c9b3d3317eafaeb69e2810a6` |
 | ISS-28 | `tests/ops/ISS28-baseline-blindspot.spec.ts` | `415cd30418eb8ddb85d5a51b6d407239f06d2f1d6629ccb245e5eb0f02178e4b` |
 | ISS-17 | `tests/L1/ISS17-gate-consistency.spec.ts` | `0fe00658a1bc00c83893cf784a02f6fb6e1fb3c631b3c6252a9871135faf90e3` |
+| T01 | `tests/L3/T01-mutation-llm-isolation.spec.ts` | `f991024c33c1d837fe57174bb9f368fad7555171e09d607657636f67fbb8a454` |
 
 ### 2.13 锁定合计
 

@@ -28,7 +28,58 @@
 //   PiHeadlessLLM 测试同构），不依赖 vi.doMock。
 
 import { spawn } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { LLMPort } from "../reflective-mutation.js";
+
+// ── T01：变异 LLM 隔离 ─────────────────────────────────────────────────────
+// pi 默认启用 read/write/edit/bash 且无权限弹窗（pi README:91/503/662）。
+// 变异环节喂给它的失败轨迹是「不可信数据」——一条注入就能让它在本机执行 shell。
+// 因此必须：去工具、不落 session、cwd 隔离到临时目录、env 走白名单。
+
+/** 允许透传给子进程的环境变量（非密钥类）。 */
+const ENV_ALLOWLIST = [
+  "PATH",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TERM",
+  "TMPDIR",
+  "SHELL",
+  "USER",
+] as const;
+
+/**
+ * 允许透传的 provider 凭据名（pi 调 LLM 必需）。
+ * 其余 *_KEY / *_TOKEN / GITHUB_* / AWS_* 一律不传给变异子进程。
+ */
+const ENV_ALLOWED_SECRET_KEYS = new Set([
+  "PI_API_KEY",
+  "PI_BASE_URL",
+  "PI_MODEL",
+  "OPENAI_API_KEY",
+  "OPENAI_BASE_URL",
+  "ANTHROPIC_API_KEY",
+  "ANTHROPIC_BASE_URL",
+]);
+
+/** T01：构造子进程环境（白名单 + 临时 HOME，杜绝密钥/家目录泄漏）。 */
+export function buildIsolatedEnv(
+  src: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const k of ENV_ALLOWLIST) {
+    const v = src[k];
+    if (v !== undefined) out[k] = v;
+  }
+  for (const [k, v] of Object.entries(src)) {
+    if (v !== undefined && ENV_ALLOWED_SECRET_KEYS.has(k)) out[k] = v;
+  }
+  // 注：HOME 刻意保留真实值——pi 的 provider 凭据在 ~/.pi，临时 HOME 会让
+  // 真实路径认证失败。写家目录的风险由 `--no-session` + 白名单 env 消解。
+  return out;
+}
 
 // ---------------------------------------------------------------------------
 // Options
@@ -120,9 +171,11 @@ export class RealLLMPort implements LLMPort {
   }
 
   async complete(prompt: string): Promise<string> {
+    // T01: 变异 LLM 不得带工具跑，且不落 session。
+    const base = ["-p", "--no-tools", "--no-session"];
     const argv: string[] = this.model
-      ? ["-p", "--model", this.model]
-      : ["-p"];
+      ? [...base, "--model", this.model]
+      : base;
 
     let lastStderr = "";
     let lastExit: number | null = null;
@@ -174,9 +227,16 @@ export class RealLLMPort implements LLMPort {
   ): Promise<SpawnOutcome> {
     return new Promise((resolve) => {
       let child: ReturnType<typeof spawn>;
+      // T01: cwd 隔离到一次性临时目录，env 走白名单（临时 HOME）。
+      const tempCwd = mkdtempSync(join(tmpdir(), "pi-mutate-"));
+      const cleanup = (): void => {
+        rmSync(tempCwd, { recursive: true, force: true });
+      };
       try {
         child = spawn(this.piBin, argv, {
           stdio: ["pipe", "pipe", "pipe"],
+          cwd: tempCwd,
+          env: buildIsolatedEnv(process.env),
         });
       } catch (e) {
         // spawn 同步抛（典型 ENOENT：piBin 不存在）→ 不可重试。
@@ -191,6 +251,7 @@ export class RealLLMPort implements LLMPort {
             message: err?.message ?? String(e),
           },
         });
+        cleanup();
         return;
       }
 
@@ -206,6 +267,7 @@ export class RealLLMPort implements LLMPort {
         settled = true;
         if (timer) clearTimeout(timer);
         if (grace) clearTimeout(grace);
+        cleanup(); // T01: 每次 spawn 结束清理隔离目录
         resolve(result);
       };
 

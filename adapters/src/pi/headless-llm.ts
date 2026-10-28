@@ -15,7 +15,48 @@
 // 超时用 setTimeout + proc.kill('SIGTERM')；非零 exit（非超时）重试 maxRetries 次。
 
 import { spawn } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { LLMPort } from "@harness/l3-engine";
+
+// ── T01：变异/判分 LLM 隔离（与 l3 RealLLMPort 同契约）─────────────────────
+// pi 默认带 read/write/edit/bash 且无权限弹窗；不可信轨迹文本可诱导其执行 shell。
+// 故一律去工具、不落 session、cwd 隔离、env 白名单。
+const ENV_ALLOWLIST = [
+  "PATH",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TERM",
+  "TMPDIR",
+  "SHELL",
+  "USER",
+] as const;
+const ENV_ALLOWED_SECRET_KEYS = new Set([
+  "PI_API_KEY",
+  "PI_BASE_URL",
+  "PI_MODEL",
+  "OPENAI_API_KEY",
+  "OPENAI_BASE_URL",
+  "ANTHROPIC_API_KEY",
+  "ANTHROPIC_BASE_URL",
+]);
+
+function buildIsolatedEnv(
+  src: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  const out: NodeJS.ProcessEnv = {};
+  for (const k of ENV_ALLOWLIST) {
+    const v = src[k];
+    if (v !== undefined) out[k] = v;
+  }
+  for (const [k, v] of Object.entries(src)) {
+    if (v !== undefined && ENV_ALLOWED_SECRET_KEYS.has(k)) out[k] = v;
+  }
+  // 注：HOME 保留真实值（pi 凭据在 ~/.pi）。
+  return out;
+}
 
 /** PiHeadlessLLM 选项。 */
 export interface PiHeadlessLLMOptions {
@@ -95,8 +136,12 @@ function spawnPiOnce(opts: {
   timeoutMs: number;
 }): Promise<SpawnOutcome> {
   return new Promise((resolve) => {
+    // T01: cwd/env 隔离
+    const tempCwd = mkdtempSync(join(tmpdir(), "pi-mutate-"));
     const proc = spawn(opts.piBin, opts.args, {
       stdio: ["pipe", "pipe", "pipe"],
+      cwd: tempCwd,
+      env: buildIsolatedEnv(process.env),
     });
     let stdout = "";
     let stderr = "";
@@ -112,6 +157,8 @@ function spawnPiOnce(opts: {
     const finish = (outcome: SpawnOutcome) => {
       if (settled) return;
       settled = true;
+      // T01: 清理隔离目录
+      rmSync(tempCwd, { recursive: true, force: true });
       if (bootTimer) clearTimeout(bootTimer);
       if (responseTimer) clearTimeout(responseTimer);
       if (killGraceTimer) clearTimeout(killGraceTimer);
@@ -204,9 +251,11 @@ export class PiHeadlessLLM implements LLMPort {
   }
 
   async complete(prompt: string): Promise<string> {
+    // T01: 去工具 + 不落 session。
+    const base = ["-p", "--no-tools", "--no-session"];
     const args: string[] = this.model
-      ? ["-p", "--model", this.model]
-      : ["-p"];
+      ? [...base, "--model", this.model]
+      : base;
     let lastStderr = "";
     let lastExit: number | null = null;
 
