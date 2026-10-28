@@ -23,6 +23,7 @@
 // （pi CompactionEntry 字段对齐，spec §L1-T15 执行提示(2)）。
 
 import { readFileSync } from "node:fs";
+import { strictImprovement } from "./strict-improvement.js";
 import { join } from "node:path";
 import type { ConfigRepo } from "./repo-layout.js";
 
@@ -136,11 +137,14 @@ export function contextModeStrictImprovementGate(
   baseline: ContextModeScore,
   tau: number,
 ): boolean {
-  // acceptanceInBudget 越高越好：candidate < baseline 为退化
-  if (baseline.acceptanceInBudget - cand.acceptanceInBudget >= tau) return false;
-  // redoRate 越低越好：candidate > baseline 为退化
-  if (cand.redoRate - baseline.redoRate >= tau) return false;
-  return true;
+  // ISS-17: 统一判定（Δ=0 一律 reject，与 ISS-01 一致）。
+  return strictImprovement(
+    [
+      cand.acceptanceInBudget - baseline.acceptanceInBudget, // 越高越好
+      baseline.redoRate - cand.redoRate, // 越低越好 → 反向
+    ],
+    tau,
+  );
 }
 
 // ── 纯函数：summarized 模板字段守卫 ─────────────────────────────────────────
