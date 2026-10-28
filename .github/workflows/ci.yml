@@ -100,7 +100,7 @@ jobs:
           pnpm vitest run --coverage --reporter=basic > cov.log 2>&1
           CODE=$?
           tail -30 cov.log
-          grep -E '^\s*×|FAIL ' cov.log | head -15 | while IFS= read -r l; do echo "::error::$l"; done
+          grep -E '^\s*×|FAIL |Error|error TS|Cannot find|Unhandled|ELIFECYCLE' cov.log | head -20 | while IFS= read -r l; do echo "::error::COV $l"; done
           exit $CODE
       - name: Upload coverage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
