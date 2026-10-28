@@ -44,6 +44,11 @@ describe("PLG-T09 distribution", () => {
       const stdout = String(err.stdout ?? "");
       const stderr = String(err.stderr ?? "");
       const tail = stderr.trim().split("\n").slice(-40).join("\n");
+      // T05: 把 stderr 尾部作为 GitHub workflow command 输出 → 变成 CI annotation，
+      // 便于在无法下载日志时定位真实失败原因。
+      for (const line of tail.split("\n")) {
+        if (line.trim()) console.error(`::error::publish.mjs stderr: ${line.slice(0, 300)}`);
+      }
       throw new Error(
         `publish.mjs --dry-run failed.\n--- stdout ---\n${stdout.slice(-2000)}\n--- stderr (tail 40) ---\n${tail}`,
       );
