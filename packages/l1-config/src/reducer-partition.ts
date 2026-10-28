@@ -28,6 +28,8 @@
 
 // ── 公共类型 ───────────────────────────────────────────────────────────────
 
+import { strictImprovement } from "./strict-improvement.js";
+
 export type MergeOp = "overwrite" | "append" | "dedup_by_id" | "custom_lua";
 
 export interface ReducerEntry {
@@ -116,11 +118,14 @@ export function reducerStrictImprovementGate(
   baseline: ReducerScore,
   tau: number,
 ): boolean {
-  // mergeConsistency 越高越好：candidate < baseline 为退化
-  if (baseline.mergeConsistency - cand.mergeConsistency >= tau) return false;
-  // partitionDisjointRate 越高越好：candidate < baseline 为退化
-  if (baseline.partitionDisjointRate - cand.partitionDisjointRate >= tau) return false;
-  return true;
+  // ISS-17: 统一判定（Δ=0 一律 reject，与 ISS-01 一致）。
+  return strictImprovement(
+    [
+      cand.mergeConsistency - baseline.mergeConsistency, // 越高越好
+      cand.partitionDisjointRate - baseline.partitionDisjointRate, // 越高越好
+    ],
+    tau,
+  );
 }
 
 // ── 纯函数：partition 不重叠守卫 ───────────────────────────────────────────

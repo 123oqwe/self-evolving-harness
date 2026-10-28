@@ -38,6 +38,7 @@ import type {
   SandboxExecutor,
   FailureTrajectory,
 } from "./evolution-driver.js";
+import { strictImprovement } from "./strict-improvement.js";
 
 // 复用 L1-T04a 公共类型，供本模块消费者从单一入口导入（与 tool-evolution 同构）。
 export type { LlmMutator, SandboxExecutor, FailureTrajectory };
@@ -231,11 +232,14 @@ export class DelegationSubstrate {
     baseline: DelegationScore,
     tau: number,
   ): boolean {
-    // acceptanceRate 越高越好：candidate < baseline 为退化
-    if (baseline.acceptanceRate - cand.acceptanceRate >= tau) return false;
-    // reDispatchRate 越低越好：candidate > baseline 为退化
-    if (cand.reDispatchRate - baseline.reDispatchRate >= tau) return false;
-    return true;
+    // ISS-17: 统一判定（Δ=0 一律 reject，与 ISS-01 一致）。
+    return strictImprovement(
+      [
+        cand.acceptanceRate - baseline.acceptanceRate, // 越高越好
+        baseline.reDispatchRate - cand.reDispatchRate, // 越低越好 → 反向
+      ],
+      tau,
+    );
   }
 
   /**
