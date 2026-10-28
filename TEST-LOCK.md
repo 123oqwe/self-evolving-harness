@@ -292,7 +292,7 @@
 | PLG-T06 | `tests/plugin/T06-cursor-adapter.spec.ts` | `5cccef11a2cac2ff74a9ce7d88d667f7d1dcbcb52d81704d81261f90262a8fc0` |
 | PLG-T07 | `tests/plugin/T07-generic-adapter.spec.ts` | `44b02bc5359bd6c8af1d027744d1918f1475dc3fabdc8b2701b609d8de9a23ee` |
 | PLG-T08 | `tests/plugin/T08-cli.spec.ts` | `1854a997fec8aef76be8f2e77d1e2385a326aa11c6fdb3bff36cfdee29e5e8cf` |
-| PLG-T09 | `tests/plugin/T09-dist.spec.ts` | `ffa57fddc44d10fd11f3d4991d12fe80505022d65adf46bcf52d39b100603ec0` |
+| PLG-T09 | `tests/plugin/T09-dist.spec.ts` | `36a2aa3ebd88667d94f108dbec1030fa338222528f3bc92910b3a474e1d7c880` |
 | PLG-T10 | `tests/plugin/T10-docs.spec.ts` | `96137b021c411941d15beb09b1889dac7c44d1a6b88ffe585e4d4f4c441bcd1c` |
 | PLG-T11 | `tests/plugin/T11-dsh-adapter.spec.ts` | `bad446bfbd79da365ace8837bd21764945fef6981bf6389a455c966c7269a862` |
 | PLG-T11 | `tests/plugin/T11-dsh-smoke.spec.ts` | `c6be2204d184d0967f2ef581b7bd3e858da6ee89700083422a84aaecb0c27fd8` |
