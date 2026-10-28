@@ -2,6 +2,9 @@ name: Diag (temporary)
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/diag.yml"
 
 permissions:
   contents: read
