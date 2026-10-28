@@ -202,9 +202,17 @@ describe("ISS-28 · evolution cycle e2e with fake pi", () => {
     expect(mined.signatures).toEqual(["blocked-section-merged"]);
 
     const log = join(dir, "fake-pi-calls.log");
-    process.env.FAKE_PI_LOG = log;
+    // T01 之后变异 LLM 走 env 白名单，测试直接导出的 FAKE_PI_LOG 不会传给子进程。
+    // 故用包装脚本在子进程内部自行注入（也顺带证明 env 白名单确实生效）。
+    const wrapper = join(dir, "pi-wrap.sh");
+    writeFileSync(
+      wrapper,
+      `#!/bin/sh\nexport FAKE_PI_LOG="${log}"\nexec "${FAKE_PI}" "$@"\n`,
+      "utf8",
+    );
+    chmodSync(wrapper, 0o755);
     try {
-      const port = new RealLLMPort({ piBin: FAKE_PI, timeoutMs: 20_000 });
+      const port = new RealLLMPort({ piBin: wrapper, timeoutMs: 20_000 });
       const reply = await port.complete(
         [
           "Propose a better compaction prompt for these failed trajectories:",
@@ -241,7 +249,10 @@ describe("ISS-28 · evolution cycle e2e with fake pi", () => {
 
     const result: CycleResult = await runEvolutionCycle(config);
 
-    // select: strict-improvement accept
+    // select: 流程跑通（注意：`reason: "improved"` 的分数目前来自 ModeEvaluator
+    // 的占位常量 0.6 > 基线 0.5，**不是真实测量**。按 EVAL-2026-10-28 的规则，
+    // 本测试只锁定「流程跑通 + 机械证据真实」，不把占位分数锁成验收标准；
+    // 真实分数断言留给 T04（删死分数）之后的新测试。
     expect(result.committed).not.toBeNull();
     expect(result.committed?.origin).toBe("e2e");
     expect(git(["log", "--pretty=%s"], dir)).toContain("origin=e2e");
@@ -258,8 +269,9 @@ describe("ISS-28 · evolution cycle e2e with fake pi", () => {
     // 机械证据落盘（VerifierRun.exitCode 来自真实进程退出码）
     expect(existsSync(reportPath)).toBe(true);
     const report = JSON.parse(readFileSync(reportPath, "utf8")) as CycleReport;
-    expect(report.decision).toBe("accept");
-    expect(report.reason).toBe("improved");
+    // 只断言决策字段存在且取值合法（不锁定 "improved" —— 见上方说明）。
+    expect(["accept", "reject"]).toContain(report.decision);
+    expect(typeof report.reason).toBe("string");
     expect(Array.isArray(report.evidence)).toBe(true);
     const evidence = report.evidence ?? [];
     expect(evidence.length).toBeGreaterThanOrEqual(3);
@@ -270,7 +282,9 @@ describe("ISS-28 · evolution cycle e2e with fake pi", () => {
       expect(e.exitCode).toBe(0);
       expect(e.command.length).toBeGreaterThan(0);
     }
-    expect(report.mutantResolveRate).toBeGreaterThan(report.baselineResolveRate ?? 0);
+    // 占位分数：仅断言数值形状，不当作「真实改进」的验收证据（待 T04）。
+    expect(typeof report.mutantResolveRate).toBe("number");
+    expect(typeof report.baselineResolveRate).toBe("number");
   });
 
   it("failing canary exit-code is real: select rejects and no commit happens", async () => {
