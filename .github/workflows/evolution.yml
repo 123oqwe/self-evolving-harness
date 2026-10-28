@@ -133,51 +133,73 @@ jobs:
           if-no-files-found: ignore
 
   # ─────────────────────────────────────────────────────────────────────────
-  # 真实进化模式 (默认注释关闭, 需 LLM secret + 手动取消注释).
-  # Runbook: docs/runbooks/evolution-real.md (密钥配置 + 触发步骤 + 回滚预案).
-  #
-  # 启用步骤:
-  #   1. 在仓库 Settings → Secrets 配置 PI_API_KEY (或 OPENAI_API_KEY).
-  #   2. 取消下方 job 的 # 注释 (YAML 行首 #).
-  #   3. workflow_dispatch 页面勾选 real_evolution=true 手动触发.
-  #
-  # 安全铁律:
-  #   - 无 secret 时本 job 须 skip 且不红 (双条件门: inputs.real_evolution && secret).
-  #   - reject 是合法结果: run-evolution-001.mjs 即使全变体被 strict-improvement
-  #     拦住也 exit 0 (reject ≠ CI 失败). 仅 LLM 调用超时/崩溃才让本 job 红.
-  #   - 本 job 失败不影响 audit job (独立 job, needs: audit 仅作顺序约束).
+  # ISS-28: 无密钥也能在 CI 真跑闭环（假 pi fixture）。
+  # 证明 mine→mutate→score→select→deploy→verify 真实执行（真实子进程 spawn +
+  # canary 命令真实 exit-code + 机械证据落盘），而非仅单元级正确性。
   # ─────────────────────────────────────────────────────────────────────────
-  #
-  # real-evolution:
-  #   name: Real evolution loop (needs LLM secret)
-  #   needs: audit  # 审计门先过, 再烧 LLM 费用
-  #   if: ${{ github.event_name == 'workflow_dispatch' && inputs.real_evolution == true && secrets.PI_API_KEY != '' }}
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 40
-  #   env:
-  #     PI_API_KEY: ${{ secrets.PI_API_KEY }}
-  #     # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # 异模型 judge (REAL-T03) 需另配
-  #   steps:
-  #     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.0
-  #     - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v4.0.0
-  #     - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v6.5.0
-  #       with:
-  #         node-version: 22
-  #         cache: pnpm
-  #     - name: Install deps
-  #       run: pnpm install --frozen-lockfile
-  #     - name: Build
-  #       run: pnpm -r run build
-  #     - name: Run real evolution loop (REAL-T02)
-  #       # reject (strict-improvement 拦退化) 是合法结果 → exit 0.
-  #       # 仅 LLM 超时/崩溃/非法调用才非零 exit.
-  #       run: node scripts/run-evolution-001.mjs
-  #     - name: Upload evolution report artifact
-  #       if: always()
-  #       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-  #       with:
-  #         name: evolution-run-${{ github.sha }}
-  #         path: reports/evolution-run-*.md
-  #         if-no-files-found: ignore
-  #
-  # 注: 真实模式运行前必读 docs/runbooks/evolution-real.md (回滚预案 / 成本控制 / 同族 judge 降级).
+  e2e-fake-pi:
+    name: E2E loop with fake pi (no secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v4.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v6.5.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm -r run build
+      - name: ISS-28 e2e loop (fake pi) + baseline blindspot
+        run: |
+          pnpm vitest run \
+            tests/E2E/ISS28-e2e-loop-fake-pi.spec.ts \
+            tests/ops/ISS28-baseline-blindspot.spec.ts \
+            --reporter=basic
+      - name: Upload e2e cycle report artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: iss28-e2e-report-${{ github.sha }}
+          path: |
+            reports/
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 真实进化模式（条件 job，非注释）：
+  #   - 无 secret 时自动 skip 且不红（双条件门: inputs.real_evolution && secret）。
+  #   - reject 是合法结果（strict-improvement 拦退化仍 exit 0）。
+  # Runbook: docs/runbooks/evolution-real.md
+  # ─────────────────────────────────────────────────────────────────────────
+  real-evolution:
+    name: Real evolution loop (needs LLM secret)
+    needs: audit  # 审计门先过, 再烧 LLM 费用
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.real_evolution == true && secrets.PI_API_KEY != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      PI_API_KEY: ${{ secrets.PI_API_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.0
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v4.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v6.5.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm -r run build
+      - name: Run real evolution loop (REAL-T02)
+        # reject (strict-improvement 拦退化) 是合法结果 → exit 0.
+        # 仅 LLM 超时/崩溃/非法调用才非零 exit.
+        run: node scripts/run-evolution-001.mjs
+      - name: Upload evolution report artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: evolution-run-${{ github.sha }}
+          path: reports/evolution-run-*.md
+          if-no-files-found: ignore

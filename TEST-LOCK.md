@@ -246,7 +246,7 @@
 | --- | --- | --- |
 | CLN-T01 | `tests/cleanup/T01-typebox-migration.spec.ts` | `cafce786d781e5dded8239bb76497beeda3121877d1f4145f4b6bd8bb80ec7a7` |
 | CLN-T02 | `tests/cleanup/T02-mutation-gate.spec.ts` | `76367339fd5161f431b1581c675caf84095d420962780464e6f4b4d044b07220` |
-| CLN-T03 | `tests/cleanup/T03-linux-ci-nonroot.spec.ts` | `9ed5b197ef5c617ffd97328bc7325b33ce00fb3c9d8f376d7eca47d17d72f8c5` |
+| CLN-T03 | `tests/cleanup/T03-linux-ci-nonroot.spec.ts` | `35d76652beab2e5efdeaac20f6ac81f698c108a1d1bfbf69055bca81a02f40f0` |
 
 ### 2.11 — adapt 模块 spec（`tests/adapt/` + 跨目录，10 文件）
 
@@ -327,6 +327,8 @@
 | 任务 | 测试文件 | sha256 |
 | --- | --- | --- |
 | ISS-08 | `tests/CE/ISS08-trajectory-source.spec.ts` | `53397558fdd8438f089f27ca0bd49b0944d6ba5186894cb4a4928df247211398` |
+| ISS-28 | `tests/E2E/ISS28-e2e-loop-fake-pi.spec.ts` | `9d2cfce1ee91ea092483047ae01a1d0931d387474e4353e38e696f1c81eba942` |
+| ISS-28 | `tests/ops/ISS28-baseline-blindspot.spec.ts` | `415cd30418eb8ddb85d5a51b6d407239f06d2f1d6629ccb245e5eb0f02178e4b` |
 
 ### 2.13 锁定合计
 

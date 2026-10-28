@@ -18,7 +18,7 @@
 // canaryRelease / revertExec 借助 CE-T06（@harness/canary-eval）。回滚演练
 // 必须走 revertExec（禁止测试内直接 git checkout 绕过回滚本体）。
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -91,6 +91,26 @@ export interface E2EConfig {
   mutationSource: MutationSource;
   canaryPolicy: ReleasePolicy;
   regressionObservations?: CanaryObservations;
+  /** ISS-28: 机械证据报告落盘路径（可省略；省略则只回传 CycleResult）。 */
+  reportPath?: string;
+}
+
+/** ISS-28: 机械证据——每条 canary 命令的真实进程退出码。 */
+export interface CanaryEvidence {
+  taskId: string;
+  command: string;
+  exitCode: number;
+}
+
+/** ISS-28: 落盘到 reportPath 的闭环报告（含机械证据，禁止裸 Fitness）。 */
+export interface CycleReportFile {
+  retain: number;
+  decision: "accept" | "reject";
+  reason: string;
+  mode?: string;
+  baselineResolveRate?: number;
+  mutantResolveRate?: number | null;
+  evidence?: CanaryEvidence[];
 }
 
 /**
@@ -335,11 +355,44 @@ export async function runEvolutionCycle(
     mutantFitness.resolve_rate > BASELINE_FITNESS.resolve_rate;
 
   const baselineResolveRate = BASELINE_FITNESS.resolve_rate;
+  const mutantResolveRate = mutantFitness ? mutantFitness.resolve_rate : null;
+
+  // ── ISS-28: 真跑 canary 命令，收集机械证据（真实进程退出码）─────────
+  // 反伪造：报告里的 exitCode 必须是 spawnSync 实际返回的退出码，而非
+  // ModeEvaluator 的合成 Fitness。机械证据优先于 Fitness 裁决。
+  const evidence = runCanaryTasks(config.canary, config.workspaceDir);
+  const evidenceOk = config.canary.every((task) => {
+    const got = evidence.find((e) => e.taskId === task.id);
+    return got !== undefined && got.exitCode === task.expectedExit;
+  });
+
+  // 决策：机械证据不匹配 → 直接 reject（无 commit/发布）；否则按改进判定。
+  const decision: "accept" | "reject" = !evidenceOk
+    ? "reject"
+    : improved
+      ? "accept"
+      : "reject";
+  const reason = !evidenceOk
+    ? "mechanical-evidence-mismatch"
+    : improved
+      ? "improved"
+      : "no-improvement";
+
+  writeCycleReport(config.reportPath, {
+    retain: decision === "accept" ? 1 : 0,
+    decision,
+    reason,
+    mode: config.mutationSource.mode,
+    baselineResolveRate,
+    mutantResolveRate,
+    evidence,
+  });
+
   // postRevertResolveRate 缺省 = baseline（无 revert 时如实记录 baseline 水平）。
   let postRevertResolveRate: number = baselineResolveRate;
 
-  // 无 mutant 过门 → 无 commit、无发布、report retain=0。
-  if (!improved) {
+  // 未通过（证据不符或未改进）→ 无 commit、无发布、report retain=0。
+  if (decision === "reject") {
     return {
       retainedMutants: 0,
       committed: null,
@@ -405,6 +458,39 @@ export async function runEvolutionCycle(
 // ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * ISS-28: 在 workspaceDir 下真实执行每条 canary 命令，返回机械证据。
+ * 返回的 exitCode 是子进程真实退出码（spawn 失败记 -1）。
+ */
+function runCanaryTasks(tasks: MiniCanaryTask[], cwd: string): CanaryEvidence[] {
+  return tasks.map((task) => {
+    const r = spawnSync("sh", ["-c", task.verify], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return {
+      taskId: task.id,
+      command: task.verify,
+      exitCode: typeof r.status === "number" ? r.status : -1,
+    };
+  });
+}
+
+/** ISS-28: 报告落盘（父目录自动创建；失败不阻断闭环）。 */
+function writeCycleReport(
+  reportPath: string | undefined,
+  report: CycleReportFile,
+): void {
+  if (!reportPath) return;
+  try {
+    mkdirSync(path.dirname(reportPath), { recursive: true });
+    writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  } catch {
+    // 报告落盘失败不阻断闭环（闭环本体已由 CycleResult 回传）。
+  }
+}
 
 function safeReadPrompt(promptPath: string): string {
   try {
