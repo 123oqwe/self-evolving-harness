@@ -301,12 +301,18 @@ export class RealLLMPort implements LLMPort {
         });
       });
 
+      // T05: 子进程可能在读 stdin 前就退出（如真实 pi 拒绝未知 flag、cwd 不可用），
+      // 此时写 stdin 会异步 emit EPIPE。必须挂 error handler——否则成为
+      // unhandled 'error' 事件直接崩掉测试进程（CI 实测 EPIPE errno -32）。
+      child.stdin?.on("error", () => {
+        // stdin 断裂不致命：子进程退出码/stderr 会走 exit 分支处理。
+      });
       // 写 prompt 到 stdin 后 end（stdin-only 无 prompt 参数经实测生效）。
       try {
         child.stdin?.write(prompt);
         child.stdin?.end();
       } catch {
-        // stdin 写失败不致命——stdout 可能仍可读。
+        // 同步写失败同样忽略（异步 EPIPE 由上面的 handler 兜住）。
       }
 
       timer = setTimeout(() => {

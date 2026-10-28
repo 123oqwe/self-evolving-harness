@@ -224,12 +224,17 @@ function spawnPiOnce(opts: {
       finish({ stdout, stderr, exitCode: code, timedOut: false });
     });
 
+    // T05: 子进程可能未读 stdin 即退出 → 写 stdin 会异步 emit EPIPE。
+    // 挂 error handler 避免 unhandled 'error' 崩掉进程。
+    proc.stdin.on("error", () => {
+      /* stdin 断裂由 exit 分支处理 */
+    });
     // 写 prompt 到 stdin（pi print mode 合并 stdin 入初始 prompt）。
     try {
       proc.stdin.write(opts.prompt, "utf8");
       proc.stdin.end();
     } catch {
-      /* stdin 已关闭则忽略 */
+      /* 同步失败同样忽略 */
     }
   });
 }
