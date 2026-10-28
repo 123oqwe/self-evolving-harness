@@ -88,6 +88,16 @@ function resolvePnpmShim() {
   return null;
 }
 
+/** shim 是否 Node 脚本（`#!/usr/bin/env node`）——否则不能用 node 执行。 */
+function isNodeScript(p) {
+  try {
+    const head = readFileSync(p, "utf8").slice(0, 200);
+    return /^#!.*\bnode\b/.test(head);
+  } catch {
+    return false;
+  }
+}
+
 function runPnpm(args) {
   // 沙箱/受限环境下 ~/.npm 不可写——主调用即用仓库本地缓存，避免 EPERM 主败后回退不触发。
   const localEnv = {
@@ -101,21 +111,28 @@ function runPnpm(args) {
     stdio: ["ignore", "pipe", "pipe"],
     env: localEnv,
   });
-  if (result.error || !corepackHomeUsable()) {
-    // 回退：node 直接执行 corepack pnpm shim + 仓库本地 corepack 缓存。
+  // T05 修复：只在主路径真的 spawn 失败时回退（原先 `|| !corepackHomeUsable()`
+  // 会在 CI 上恒真——CI 没有 ~/.cache/node/corepack）。
+  // 且回退不得假设 shim 是 Node 脚本：GitHub `pnpm/action-setup` 装的是
+  // **shell** shim，用 node 执行会 SyntaxError（T09 真实失败原因）。
+  if (result.error) {
     const shim = resolvePnpmShim();
     if (shim) {
-      result = spawnSync(process.execPath, [shim, ...args], {
-        cwd: REPO,
-        env: {
-          ...process.env,
-          COREPACK_HOME: join(REPO, ".corepack-home"),
-          // 沙箱下 ~/.npm 不可写（npm pack 缓存）——回退仓库本地 npm 缓存。
-          npm_config_cache: join(REPO, ".npm-cache"),
+      const useNode = isNodeScript(shim);
+      result = spawnSync(
+        useNode ? process.execPath : shim,
+        useNode ? [shim, ...args] : args,
+        {
+          cwd: REPO,
+          env: {
+            ...process.env,
+            COREPACK_HOME: join(REPO, ".corepack-home"),
+            npm_config_cache: join(REPO, ".npm-cache"),
+          },
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "pipe"],
         },
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      );
     }
   }
   return result;
